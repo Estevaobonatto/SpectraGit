@@ -98,16 +98,27 @@ export class RepositoriesService {
   async findAll(
     userId: string | null,
     pagination: PaginationDto,
+    scope?: 'mine' | 'all',
   ): Promise<PaginatedResult<unknown>> {
-    const where = userId
-      ? {
-          OR: [
-            { visibility: RepoVisibility.PUBLIC },
-            { ownerUserId: userId },
-            { members: { some: { userId } } },
-          ],
-        }
-      : { visibility: RepoVisibility.PUBLIC };
+    let where;
+    if (userId && scope === 'mine') {
+      where = {
+        OR: [
+          { ownerUserId: userId },
+          { members: { some: { userId } } },
+        ],
+      };
+    } else if (userId) {
+      where = {
+        OR: [
+          { visibility: RepoVisibility.PUBLIC },
+          { ownerUserId: userId },
+          { members: { some: { userId } } },
+        ],
+      };
+    } else {
+      where = { visibility: RepoVisibility.PUBLIC };
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.repository.findMany({
@@ -157,6 +168,7 @@ export class RepositoriesService {
     // Compute engagement flags for the current user
     let isPulsed = false;
     let isWatched = false;
+    let canEdit = false;
     if (userId) {
       const [pulse, watch] = await Promise.all([
         this.prisma.repositoryPulse.findUnique({
@@ -168,6 +180,7 @@ export class RepositoriesService {
       ]);
       isPulsed = !!pulse;
       isWatched = !!watch;
+      canEdit = await this.checkWriteAccess(repo.id, userId, repo.ownerUserId, repo.ownerOrgId);
     }
 
     return {
@@ -177,6 +190,7 @@ export class RepositoriesService {
       forkCount: repo._count.forks,
       isPulsed,
       isWatched,
+      canEdit,
     };
   }
 
@@ -387,6 +401,29 @@ export class RepositoriesService {
         where: { orgId: repo.ownerOrgId, userId },
       });
       if (orgMember) return true;
+    }
+
+    return false;
+  }
+
+  private async checkWriteAccess(
+    repoId: string,
+    userId: string,
+    ownerUserId: string | null,
+    ownerOrgId: string | null,
+  ): Promise<boolean> {
+    if (ownerUserId === userId) return true;
+
+    const member = await this.prisma.repositoryMember.findFirst({
+      where: { repositoryId: repoId, userId },
+    });
+    if (member && ['ADMIN', 'MAINTAINER', 'WRITE'].includes(member.role)) return true;
+
+    if (ownerOrgId) {
+      const orgMember = await this.prisma.organizationMember.findFirst({
+        where: { orgId: ownerOrgId, userId },
+      });
+      if (orgMember && ['OWNER', 'ADMIN'].includes(orgMember.role)) return true;
     }
 
     return false;

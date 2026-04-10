@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Bell, LogOut, User, Settings, Plus, Home, BookOpen, Building2, ExternalLink } from 'lucide-react';
+import { Search, Bell, LogOut, User, Settings, Plus, Home, BookOpen, Building2, ExternalLink, Compass } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { authService } from '@/services/auth.service';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,7 @@ import { useNotificationCount } from '@/hooks/useNotifications';
 
 const navItems = [
   { to: '/', label: 'Home', icon: Home },
+  { to: '/explore', label: 'Explore', icon: Compass },
   { to: '/repositories', label: 'Repositories', icon: BookOpen },
   { to: '/organizations', label: 'Organizations', icon: Building2 },
   { to: '/integrations/github', label: 'GitHub Sync', icon: ExternalLink },

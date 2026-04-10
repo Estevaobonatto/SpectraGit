@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useOutletContext } from 'react-router-dom';
 import {
   GitPullRequest,
   GitMerge,
@@ -23,7 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { PullRequest } from '@/types';
+import type { PullRequest, Repository } from '@/types';
 import { motion } from 'motion/react';
 
 function StatusBadge({ status }: { status: PullRequest['status'] }) {
@@ -45,6 +45,9 @@ export default function PullRequestDetailPage() {
   const { owner, repo, number } = useParams();
   const prNumber = Number(number);
   const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { repository } = useOutletContext<{ repository: Repository }>();
+  const canEdit = repository?.canEdit ?? false;
 
   const { data: pr, isLoading } = usePullRequest(owner!, repo!, prNumber);
   const { data: diffData } = usePullRequestDiff(owner!, repo!, prNumber);
@@ -187,7 +190,7 @@ export default function PullRequestDetailPage() {
       )}
 
       {/* Actions */}
-      {pr.status === 'OPEN' && (
+      {pr.status === 'OPEN' && isAuthenticated && (
         <div className="space-y-4 rounded-[var(--radius-md)] border border-border p-4">
           {/* Submit Review */}
           <div className="space-y-2">
@@ -235,9 +238,11 @@ export default function PullRequestDetailPage() {
             </div>
           </div>
 
+          {/* Merge / Close — only for repo members */}
+          {canEdit && (
+          <>
           <Separator />
 
-          {/* Merge / Close */}
           <div className="space-y-2">
             {mergeError && <Alert variant="error">{mergeError}</Alert>}
             <div className="flex items-center gap-2">
@@ -267,7 +272,14 @@ export default function PullRequestDetailPage() {
             </Button>
           </div>
           </div>
+          </>
+          )}
         </div>
+      )}
+      {pr.status === 'OPEN' && !isAuthenticated && (
+        <p className="text-sm text-text-tertiary text-center py-4">
+          <Link to="/login" className="text-primary-600 hover:underline font-medium">Sign in</Link> to review, comment, or merge this pull request.
+        </p>
       )}
     </motion.div>
   );

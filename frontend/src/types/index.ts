@@ -58,12 +58,15 @@ export interface Repository {
   ownerUserId: string | null;
   ownerOrgId: string | null;
   owner?: User;
+  ownerUser?: Pick<User, 'id' | 'username' | 'avatarUrl'>;
+  ownerOrg?: { id: string; name: string; avatarUrl: string | null };
   organization?: Organization;
   pulseCount?: number;
   forkCount?: number;
   watchCount?: number;
   isPulsed?: boolean;
   isWatched?: boolean;
+  canEdit?: boolean;
   language?: string | null;
   createdAt: string;
   updatedAt: string;

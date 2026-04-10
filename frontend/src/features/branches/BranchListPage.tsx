@@ -53,7 +53,7 @@ export default function BranchListPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Branches</h2>
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setCreateError(null); }}>
+        {repository.canEdit && <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setCreateError(null); }}>
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="h-4 w-4" />
@@ -87,7 +87,7 @@ export default function BranchListPage() {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+        </Dialog>}
       </div>
 
       {(!branches || branches.length === 0) ? (
@@ -118,7 +118,7 @@ export default function BranchListPage() {
                   </Badge>
                 )}
               </div>
-              {branch.name !== repository.defaultBranch && !branch.isProtected && (
+              {repository.canEdit && branch.name !== repository.defaultBranch && !branch.isProtected && (
                 <Button
                   variant="ghost"
                   size="icon"

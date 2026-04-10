@@ -29,6 +29,7 @@ export default function ReleaseListPage() {
   const { owner, repo } = useParams();
   const { data: releases, isLoading } = useReleases(owner!, repo!);
   const { data: repoData } = useRepository(owner!, repo!);
+  const canEdit = repoData?.canEdit;
   const { data: tags } = useTags(owner!, repo!);
   const { data: branches } = useBranches(owner!, repo!);
   const createRelease = useCreateRelease(owner!, repo!);
@@ -154,7 +155,7 @@ export default function ReleaseListPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Releases</h2>
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setCreateError(null); }}>
+        {canEdit && <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setCreateError(null); }}>
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="h-4 w-4" />
@@ -343,7 +344,7 @@ export default function ReleaseListPage() {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+        </Dialog>}
       </div>
 
       {(!releases || releases.length === 0) ? (
@@ -416,14 +417,14 @@ export default function ReleaseListPage() {
                   )}
                 </div>
 
-                <Button
+                {canEdit && <Button
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 text-text-tertiary hover:text-error"
                   onClick={() => deleteRelease.mutate(release.id)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                </Button>}
               </div>
             </motion.div>
           ))}

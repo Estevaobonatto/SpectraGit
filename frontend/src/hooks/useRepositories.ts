@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { repositoriesService } from '@/services/repositories.service';
 import type { Repository } from '@/types';
 
-export function useRepositories(params?: { page?: number; limit?: number }) {
+export function useRepositories(params?: { page?: number; limit?: number; scope?: 'mine' | 'all' }) {
   return useQuery({
     queryKey: ['repositories', params],
     queryFn: () => repositoriesService.list(params),

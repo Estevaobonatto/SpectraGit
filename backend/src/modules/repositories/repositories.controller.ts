@@ -29,8 +29,12 @@ export class RepositoriesController {
   @Public()
   @Get()
   @ApiOperation({ summary: 'List repositories' })
-  async findAll(@Query() pagination: PaginationDto, @CurrentUser() user?: JwtPayload) {
-    return this.reposService.findAll(user?.sub || null, pagination);
+  async findAll(
+    @Query() pagination: PaginationDto,
+    @Query('scope') scope?: 'mine' | 'all',
+    @CurrentUser() user?: JwtPayload,
+  ) {
+    return this.reposService.findAll(user?.sub || null, pagination, scope);
   }
 
   @Public()

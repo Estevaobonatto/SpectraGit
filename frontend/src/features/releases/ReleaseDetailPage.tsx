@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useOutletContext } from 'react-router-dom';
 import { Package, Tag as TagIcon, Clock, User as UserIcon, Pencil, Trash2, ArrowLeft, GitBranch, Download, Upload, Paperclip, X } from 'lucide-react';
 import { useRelease, useUpdateRelease, useDeleteRelease, useUploadAssets, useDeleteAsset } from '@/hooks/useReleases';
 import { releasesService } from '@/services/repositories.service';
+import type { Repository } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,8 @@ import ReactMarkdown from 'react-markdown';
 export default function ReleaseDetailPage() {
   const { owner, repo, releaseId } = useParams();
   const navigate = useNavigate();
+  const { repository } = useOutletContext<{ repository: Repository }>();
+  const canEdit = repository?.canEdit ?? false;
   const { data: release, isLoading, error } = useRelease(owner!, repo!, releaseId!);
   const updateRelease = useUpdateRelease(owner!, repo!);
   const deleteRelease = useDeleteRelease(owner!, repo!);
@@ -162,14 +165,14 @@ export default function ReleaseDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          {canEdit && <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={openEdit}>
               <Pencil className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-text-tertiary hover:text-error" onClick={handleDelete}>
               <Trash2 className="h-4 w-4" />
             </Button>
-          </div>
+          </div>}
         </div>
 
         {/* Markdown body */}
@@ -191,7 +194,7 @@ export default function ReleaseDetailPage() {
                 <span className="text-xs text-text-tertiary">({release.assets.length})</span>
               )}
             </h3>
-            <div>
+            {canEdit && <div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -208,7 +211,7 @@ export default function ReleaseDetailPage() {
                 <Upload className="h-3.5 w-3.5" />
                 {uploadAssets.isPending ? 'Uploading...' : 'Upload'}
               </Button>
-            </div>
+            </div>}
           </div>
 
           {release.assets && release.assets.length > 0 ? (
@@ -232,13 +235,13 @@ export default function ReleaseDetailPage() {
                     >
                       <Download className="h-3.5 w-3.5" />
                     </a>
-                    <button
+                    {canEdit && <button
                       onClick={() => handleDeleteAsset(asset.id)}
                       disabled={deleteAsset.isPending}
                       className="inline-flex items-center justify-center h-7 w-7 rounded-[var(--radius-sm)] text-text-tertiary hover:text-error hover:bg-surface-secondary transition-colors disabled:opacity-50"
                     >
                       <X className="h-3.5 w-3.5" />
-                    </button>
+                    </button>}
                   </div>
                 </div>
               ))}

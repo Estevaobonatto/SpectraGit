@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { CircleDot, CircleCheck, Plus, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useIssues } from '@/hooks/useIssues';
+import { useAuthStore } from '@/stores/auth.store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +14,7 @@ import { cn, formatRelativeTime } from '@/lib/utils';
 
 export default function IssueListPage() {
   const { owner, repo } = useParams();
+  const { isAuthenticated } = useAuthStore();
   const [statusFilter, setStatusFilter] = useState<'OPEN' | 'CLOSED'>('OPEN');
   const [search, setSearch] = useState('');
   const { data, isLoading } = useIssues(owner!, repo!, { status: statusFilter });
@@ -48,12 +50,12 @@ export default function IssueListPage() {
             Closed
           </button>
         </div>
-        <Button size="sm" asChild>
+        {isAuthenticated && <Button size="sm" asChild>
           <Link to={`/${owner}/${repo}/issues/new`}>
             <Plus className="h-4 w-4" />
             New issue
           </Link>
-        </Button>
+        </Button>}
       </div>
 
       <div className="relative">

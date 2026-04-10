@@ -1,11 +1,13 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
-import { AppShell } from '@/components/layout/AppShell';
-import { ProtectedRoute, PublicOnlyRoute } from './guards';
+import { PublicShell } from '@/components/layout/PublicShell';
+import { ProtectedRoute, PublicOnlyRoute, OptionalAuthRoute } from './guards';
 import { PageLoader } from '@/components/ui/spinner';
 
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
 const OAuthCallbackPage = lazy(() => import('@/features/auth/OAuthCallbackPage'));
+const HomePage = lazy(() => import('@/features/home/HomePage'));
+const ExplorePage = lazy(() => import('@/features/explore/ExplorePage'));
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
 const RepositoryListPage = lazy(() => import('@/features/repositories/RepositoryListPage'));
 const RepositoryNewPage = lazy(() => import('@/features/repositories/RepositoryNewPage'));
@@ -48,7 +50,13 @@ function SuspenseWrapper({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
 }
 
+/** Inline guard: protects a single route element, redirecting guests to /login */
+function AuthRequired({ children }: { children: React.ReactNode }) {
+  return <ProtectedRoute>{children}</ProtectedRoute>;
+}
+
 export const router = createBrowserRouter([
+  /* ---------- Auth pages ---------- */
   {
     path: '/login',
     element: (
@@ -61,49 +69,62 @@ export const router = createBrowserRouter([
     path: '/auth/callback/:provider',
     element: <SuspenseWrapper><OAuthCallbackPage /></SuspenseWrapper>,
   },
+
+  /* ---------- Main shell (guest + logged-in, navbar auto-switches) ---------- */
   {
     path: '/',
     element: (
-      <ProtectedRoute>
-        <AppShell />
-      </ProtectedRoute>
+      <OptionalAuthRoute>
+        <PublicShell />
+      </OptionalAuthRoute>
     ),
     children: [
+      /* --- Open to everyone --- */
       {
         index: true,
-        element: <SuspenseWrapper><DashboardPage /></SuspenseWrapper>,
+        element: <SuspenseWrapper><HomePage /></SuspenseWrapper>,
+      },
+      {
+        path: 'explore',
+        element: <SuspenseWrapper><ExplorePage /></SuspenseWrapper>,
+      },
+
+      /* --- Auth-required pages --- */
+      {
+        path: 'dashboard',
+        element: <AuthRequired><SuspenseWrapper><DashboardPage /></SuspenseWrapper></AuthRequired>,
       },
       {
         path: 'repositories',
-        element: <SuspenseWrapper><RepositoryListPage /></SuspenseWrapper>,
+        element: <AuthRequired><SuspenseWrapper><RepositoryListPage /></SuspenseWrapper></AuthRequired>,
       },
       {
         path: 'repositories/new',
-        element: <SuspenseWrapper><RepositoryNewPage /></SuspenseWrapper>,
+        element: <AuthRequired><SuspenseWrapper><RepositoryNewPage /></SuspenseWrapper></AuthRequired>,
       },
       {
         path: 'notifications',
-        element: <SuspenseWrapper><NotificationsPage /></SuspenseWrapper>,
+        element: <AuthRequired><SuspenseWrapper><NotificationsPage /></SuspenseWrapper></AuthRequired>,
       },
       {
         path: 'organizations',
-        element: <SuspenseWrapper><OrganizationListPage /></SuspenseWrapper>,
+        element: <AuthRequired><SuspenseWrapper><OrganizationListPage /></SuspenseWrapper></AuthRequired>,
       },
       {
         path: 'organizations/new',
-        element: <SuspenseWrapper><OrganizationNewPage /></SuspenseWrapper>,
+        element: <AuthRequired><SuspenseWrapper><OrganizationNewPage /></SuspenseWrapper></AuthRequired>,
       },
       {
         path: 'orgs/:orgName',
-        element: <SuspenseWrapper><OrganizationDetailPage /></SuspenseWrapper>,
+        element: <AuthRequired><SuspenseWrapper><OrganizationDetailPage /></SuspenseWrapper></AuthRequired>,
       },
       {
         path: 'integrations/github',
-        element: <SuspenseWrapper><GitHubIntegrationPage /></SuspenseWrapper>,
+        element: <AuthRequired><SuspenseWrapper><GitHubIntegrationPage /></SuspenseWrapper></AuthRequired>,
       },
       {
         path: 'settings',
-        element: <SuspenseWrapper><SettingsLayout /></SuspenseWrapper>,
+        element: <AuthRequired><SuspenseWrapper><SettingsLayout /></SuspenseWrapper></AuthRequired>,
         children: [
           { index: true, element: <SuspenseWrapper><SettingsProfilePage /></SuspenseWrapper> },
           { path: 'ssh-keys', element: <SuspenseWrapper><SettingsSSHKeysPage /></SuspenseWrapper> },
@@ -114,10 +135,8 @@ export const router = createBrowserRouter([
           { path: 'danger-zone', element: <SuspenseWrapper><SettingsDangerZonePage /></SuspenseWrapper> },
         ],
       },
-      {
-        path: ':owner',
-        element: <SuspenseWrapper><ProfilePage /></SuspenseWrapper>,
-      },
+
+      /* --- Public repo views --- */
       {
         path: ':owner/:repo',
         element: <SuspenseWrapper><RepositoryLayout /></SuspenseWrapper>,
@@ -140,7 +159,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'issues/new',
-            element: <SuspenseWrapper><IssueNewPage /></SuspenseWrapper>,
+            element: <AuthRequired><SuspenseWrapper><IssueNewPage /></SuspenseWrapper></AuthRequired>,
           },
           {
             path: 'issues/:number',
@@ -152,7 +171,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'pulls/new',
-            element: <SuspenseWrapper><PullRequestNewPage /></SuspenseWrapper>,
+            element: <AuthRequired><SuspenseWrapper><PullRequestNewPage /></SuspenseWrapper></AuthRequired>,
           },
           {
             path: 'pulls/:number',
@@ -188,9 +207,15 @@ export const router = createBrowserRouter([
           },
           {
             path: 'settings',
-            element: <SuspenseWrapper><RepositorySettingsPage /></SuspenseWrapper>,
+            element: <AuthRequired><SuspenseWrapper><RepositorySettingsPage /></SuspenseWrapper></AuthRequired>,
           },
         ],
+      },
+
+      /* --- Public profile --- */
+      {
+        path: ':owner',
+        element: <SuspenseWrapper><ProfilePage /></SuspenseWrapper>,
       },
     ],
   },

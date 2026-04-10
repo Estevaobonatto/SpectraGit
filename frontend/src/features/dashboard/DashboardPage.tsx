@@ -13,7 +13,7 @@ import { formatRelativeTime } from '@/lib/utils';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const { data: repoData, isLoading } = useRepositories({ limit: 10 });
+  const { data: repoData, isLoading } = useRepositories({ limit: 10, scope: 'mine' });
 
   if (isLoading) return <PageLoader />;
 
@@ -72,7 +72,7 @@ export default function DashboardPage() {
                   transition={{ delay: index * 0.05, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
                 >
                   <Link
-                    to={`/${user?.username}/${repo.slug}`}
+                    to={`/${repo.ownerUser?.username ?? repo.ownerOrg?.name ?? user?.username}/${repo.slug}`}
                     className="flex items-center justify-between py-3 transition-colors hover:bg-surface-hover -mx-5 px-5 first:-mt-1"
                   >
                   <div className="flex items-center gap-3 min-w-0">

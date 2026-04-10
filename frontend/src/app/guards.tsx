@@ -31,3 +31,14 @@ export function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
+
+/** Renders children for any visitor (logged-in or guest). Waits for auth init. */
+export function OptionalAuthRoute({ children }: { children: React.ReactNode }) {
+  const { isInitialized } = useAuthStore();
+
+  if (!isInitialized) {
+    return <PageLoader />;
+  }
+
+  return <>{children}</>;
+}

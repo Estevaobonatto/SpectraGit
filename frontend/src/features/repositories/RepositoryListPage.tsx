@@ -14,7 +14,7 @@ import { motion } from 'motion/react';
 export default function RepositoryListPage() {
   const { user } = useAuthStore();
   const [search, setSearch] = useState('');
-  const { data: repoData, isLoading } = useRepositories();
+  const { data: repoData, isLoading } = useRepositories({ scope: 'mine' });
 
   if (isLoading) return <PageLoader />;
 
@@ -70,8 +70,7 @@ export default function RepositoryListPage() {
               transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
             >
             <Link
-              
-              to={`/${user?.username}/${repo.slug}`}
+              to={`/${repo.ownerUser?.username ?? repo.ownerOrg?.name ?? user?.username}/${repo.slug}`}
               className="flex items-center justify-between p-4 transition-colors hover:bg-surface-hover"
             >
               <div className="min-w-0 flex-1">

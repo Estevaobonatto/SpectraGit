@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useOutletContext } from 'react-router-dom';
 import { ArrowLeft, CircleDot, CircleCheck, MessageSquare } from 'lucide-react';
 import { useIssue, useUpdateIssue, useAddIssueComment } from '@/hooks/useIssues';
 import { useAuthStore } from '@/stores/auth.store';
+import type { Repository } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
@@ -17,7 +18,9 @@ import { motion } from 'motion/react';
 export default function IssueDetailPage() {
   const { owner, repo, number } = useParams();
   const issueNumber = Number(number);
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
+  const { repository } = useOutletContext<{ repository: Repository }>();
+  const canEdit = repository?.canEdit ?? false;
   const { data: issue, isLoading, error } = useIssue(owner!, repo!, issueNumber);
   const updateIssue = useUpdateIssue(owner!, repo!, issueNumber);
   const addComment = useAddIssueComment(owner!, repo!, issueNumber);
@@ -107,6 +110,7 @@ export default function IssueDetailPage() {
         </div>
       )}
 
+      {isAuthenticated ? (
       <Card>
         <CardContent className="pt-5 space-y-3">
           <div className="flex items-start gap-3">
@@ -120,6 +124,7 @@ export default function IssueDetailPage() {
             />
           </div>
           <div className="flex justify-end gap-2">
+            {canEdit && (
             <Button
               variant="outline"
               onClick={toggleStatus}
@@ -127,6 +132,7 @@ export default function IssueDetailPage() {
             >
               {issue.status === 'OPEN' ? 'Close issue' : 'Reopen issue'}
             </Button>
+            )}
             <Button
               onClick={handleAddComment}
               disabled={!commentBody.trim() || addComment.isPending}
@@ -137,6 +143,11 @@ export default function IssueDetailPage() {
           </div>
         </CardContent>
       </Card>
+      ) : (
+        <p className="text-sm text-text-tertiary text-center py-4">
+          <Link to="/login" className="text-primary-600 hover:underline font-medium">Sign in</Link> to comment or change issue status.
+        </p>
+      )}
     </motion.div>
   );
 }

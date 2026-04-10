@@ -1,9 +1,7 @@
-vamos implementar suporte completo ao git nos repositorios do spectragit
+vamos fazer algumas mudanças:
 
-- O usuario deve poder fazer todas as operações git possiveis com repositorios do spectragit, comparavel ao github e suas operações e suporte ao git
+quando o usuario entra na pagina incial (/) ele vai ver os repositorios publicos principais e uma aba de pesquisa e uam de "descobrir"
 
- - os usuarios devem poder fazer o que quiserem com os repositorios clonados do spectragit, deve ser possivel usar em ides com suporte a git, use o protocolo ao maximo
+vai ter uma navbar com login e criação de conta (para a pagina de login)
 
-- o usuario deve ter uma visão clara na interface do que aconteceu (quem criou ou commitou algo, quem fez as pulls e issues e etc)
-
-- Faça todas as mudanças e implementações necessarias
+- Os repositorios publicos vão poder ser acessados por usuarios não logados

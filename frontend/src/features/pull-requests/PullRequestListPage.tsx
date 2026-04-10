@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { GitPullRequest, GitMerge, Search, Plus } from 'lucide-react';
 import { usePullRequests } from '@/hooks/usePullRequests';
+import { useAuthStore } from '@/stores/auth.store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,7 @@ const statusIcons = {
 
 export default function PullRequestListPage() {
   const { owner, repo } = useParams();
+  const { isAuthenticated } = useAuthStore();
   const [statusFilter, setStatusFilter] = useState<'OPEN' | 'CLOSED' | 'MERGED'>('OPEN');
   const [search, setSearch] = useState('');
   const { data, isLoading } = usePullRequests(owner!, repo!, { status: statusFilter });
@@ -47,12 +49,12 @@ export default function PullRequestListPage() {
             </button>
           ))}
         </div>
-        <Button size="sm" asChild>
+        {isAuthenticated && <Button size="sm" asChild>
           <Link to={`/${owner}/${repo}/pulls/new`}>
             <Plus className="h-4 w-4" />
             New pull request
           </Link>
-        </Button>
+        </Button>}
       </div>
 
       <div className="relative">

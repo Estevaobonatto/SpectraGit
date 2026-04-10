@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useOutletContext } from 'react-router-dom';
 import { Tag as TagIcon, Trash2, Plus, Package, GitCommit } from 'lucide-react';
 import { useTags, useCreateTag, useDeleteTag } from '@/hooks/useTags';
 import { useCommits } from '@/hooks/useBranches';
@@ -21,9 +21,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { motion } from 'motion/react';
+import type { Repository } from '@/types';
 
 export default function TagListPage() {
   const { owner, repo } = useParams();
+  const { repository } = useOutletContext<{ repository: Repository }>();
   const { data: tags, isLoading } = useTags(owner!, repo!);
   const createTag = useCreateTag(owner!, repo!);
   const deleteTag = useDeleteTag(owner!, repo!);
@@ -76,7 +78,7 @@ export default function TagListPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Tags</h2>
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setCreateError(null); }}>
+        {repository.canEdit && <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setCreateError(null); }}>
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="h-4 w-4" />
@@ -149,7 +151,7 @@ export default function TagListPage() {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+        </Dialog>}
       </div>
 
       {(!tags || tags.length === 0) ? (
@@ -184,14 +186,14 @@ export default function TagListPage() {
                   </div>
                 </div>
               </div>
-              <Button
+              {repository.canEdit && <Button
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 text-text-tertiary hover:text-error"
                 onClick={() => deleteTag.mutate(tag.name)}
               >
                 <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              </Button>}
             </motion.div>
           ))}
         </div>
