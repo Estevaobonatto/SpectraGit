@@ -5,13 +5,13 @@ export const authService = {
   refresh: (refreshToken: string) =>
     api.post<{ data: { accessToken: string; refreshToken: string } }>('/auth/refresh', { refreshToken }),
 
-  logout: () => api.post('/auth/logout'),
+  logout: (refreshToken: string) => api.post('/auth/logout', { refreshToken }),
 };
 
 export const usersService = {
   me: () => api.get<{ data: User }>('/me').then((r) => r.data.data),
 
-  updateMe: (data: Partial<Pick<User, 'displayName' | 'bio' | 'avatarUrl'>>) =>
+  updateMe: (data: Partial<Pick<User, 'displayName' | 'bio' | 'avatarUrl' | 'location' | 'website'>>) =>
     api.put<{ data: User }>('/me', data).then((r) => r.data.data),
 
   getByUsername: (username: string) =>

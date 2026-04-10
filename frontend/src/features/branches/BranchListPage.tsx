@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageLoader } from '@/components/ui/spinner';
+import { Alert } from '@/components/ui/alert';
 import {
   Dialog,
   DialogTrigger,
@@ -28,15 +29,19 @@ export default function BranchListPage() {
 
   const [newBranchName, setNewBranchName] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const handleCreate = () => {
     if (!newBranchName.trim()) return;
     createBranch.mutate(
-      { name: newBranchName, sourceBranch: repository.defaultBranch },
+      { name: newBranchName, startPoint: repository.defaultBranch },
       {
         onSuccess: () => {
           setNewBranchName('');
           setDialogOpen(false);
+        },
+        onError: (err) => {
+          setCreateError((err as Error)?.message ?? 'Failed to create branch');
         },
       },
     );
@@ -48,7 +53,7 @@ export default function BranchListPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Branches</h2>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setCreateError(null); }}>
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="h-4 w-4" />
@@ -64,13 +69,16 @@ export default function BranchListPage() {
                 <Label>Branch name</Label>
                 <Input
                   value={newBranchName}
-                  onChange={(e) => setNewBranchName(e.target.value)}
+                  onChange={(e) => { setNewBranchName(e.target.value); setCreateError(null); }}
                   placeholder="feature/my-branch"
                 />
               </div>
               <p className="text-xs text-text-tertiary">
                 Branch will be created from <strong>{repository.defaultBranch}</strong>
               </p>
+              {createError && (
+                <Alert variant="error">{createError}</Alert>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>

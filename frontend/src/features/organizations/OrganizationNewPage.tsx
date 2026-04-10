@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert } from '@/components/ui/alert';
 
 export default function OrganizationNewPage() {
   const navigate = useNavigate();
@@ -59,6 +60,11 @@ export default function OrganizationNewPage() {
               Cancel
             </Button>
           </div>
+          {createMutation.isError && (
+            <Alert variant="error">
+              {(createMutation.error as Error)?.message ?? 'Failed to create organization'}
+            </Alert>
+          )}
         </form>
       </CardContent>
     </Card>

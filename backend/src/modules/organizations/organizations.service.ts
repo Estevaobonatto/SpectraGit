@@ -118,6 +118,19 @@ export class OrganizationsService {
     return { message: 'Member removed' };
   }
 
+  async listMembers(name: string) {
+    const org = await this.prisma.organization.findUnique({ where: { name } });
+    if (!org) throw new NotFoundException('Organization not found');
+
+    return this.prisma.organizationMember.findMany({
+      where: { orgId: org.id },
+      include: {
+        user: { select: { id: true, username: true, avatarUrl: true, displayName: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   async createTeam(name: string, userId: string, dto: CreateTeamDto) {
     await this.ensureOrgAdmin(name, userId);
 

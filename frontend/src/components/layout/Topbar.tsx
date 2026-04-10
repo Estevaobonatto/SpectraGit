@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Bell, LogOut, User, Settings, Plus } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUIStore } from '@/stores/ui.store';
+import { authService } from '@/services/auth.service';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +22,7 @@ import { useNotificationCount } from '@/hooks/useNotifications';
 
 export function Topbar() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user, logout, refreshToken } = useAuthStore();
   const { sidebarOpen } = useUIStore();
   const [searchQuery, setSearchQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
@@ -46,6 +47,9 @@ export function Topbar() {
   };
 
   const handleLogout = () => {
+    if (refreshToken) {
+      authService.logout(refreshToken).catch(() => {/* ignore — local state is cleared regardless */});
+    }
     logout();
     navigate('/login');
   };

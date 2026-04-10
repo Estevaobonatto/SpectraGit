@@ -13,7 +13,7 @@ export function useCreateBranch(owner: string, repo: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { name: string; sourceBranch?: string }) =>
+    mutationFn: (data: { name: string; startPoint: string }) =>
       branchesService.create(owner, repo, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branches', owner, repo] });

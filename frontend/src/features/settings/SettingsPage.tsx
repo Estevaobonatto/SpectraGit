@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Settings, Key, Plus, Trash2 } from 'lucide-react';
 import { useCurrentUser, useUpdateProfile, useSSHKeys, useAddSSHKey, useDeleteSSHKey } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Avatar } from '@/components/ui/avatar';
 import { PageLoader } from '@/components/ui/spinner';
+import { Alert } from '@/components/ui/alert';
 import { formatRelativeTime } from '@/lib/utils';
 import { motion } from 'motion/react';
 
@@ -25,35 +26,49 @@ export default function SettingsPage() {
   const [location, setLocation] = useState('');
   const [website, setWebsite] = useState('');
   const [profileDirty, setProfileDirty] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSuccess, setProfileSuccess] = useState(false);
 
   const [keyDialogOpen, setKeyDialogOpen] = useState(false);
   const [keyTitle, setKeyTitle] = useState('');
   const [keyContent, setKeyContent] = useState('');
+  const [sshAddError, setSshAddError] = useState<string | null>(null);
+  const [sshDeleteError, setSshDeleteError] = useState<string | null>(null);
 
   // Initialize form values from user data
-  useState(() => {
+  useEffect(() => {
     if (user) {
       setDisplayName(user.displayName ?? '');
       setBio(user.bio ?? '');
       setLocation(user.location ?? '');
       setWebsite(user.website ?? '');
+      setProfileDirty(false);
     }
-  });
+  }, [user]);
 
   if (isLoading || !user) return <PageLoader />;
 
   const handleProfileSave = () => {
+    setProfileError(null);
+    setProfileSuccess(false);
     updateMutation.mutate(
       { displayName, bio, location, website },
-      { onSuccess: () => setProfileDirty(false) },
+      {
+        onSuccess: () => { setProfileDirty(false); setProfileSuccess(true); },
+        onError: (err) => setProfileError((err as Error)?.message ?? 'Failed to save profile'),
+      },
     );
   };
 
   const handleAddKey = () => {
     if (!keyTitle.trim() || !keyContent.trim()) return;
+    setSshAddError(null);
     addKeyMutation.mutate(
       { title: keyTitle, publicKey: keyContent },
-      { onSuccess: () => { setKeyDialogOpen(false); setKeyTitle(''); setKeyContent(''); } },
+      {
+        onSuccess: () => { setKeyDialogOpen(false); setKeyTitle(''); setKeyContent(''); },
+        onError: (err) => setSshAddError((err as Error)?.message ?? 'Failed to add SSH key'),
+      },
     );
   };
 
@@ -128,6 +143,8 @@ export default function SettingsPage() {
           <Button onClick={handleProfileSave} disabled={updateMutation.isPending || !profileDirty}>
             Save profile
           </Button>
+          {profileError && <Alert variant="error">{profileError}</Alert>}
+          {profileSuccess && <Alert variant="success">Profile saved successfully.</Alert>}
         </CardContent>
       </Card>
 
@@ -154,19 +171,20 @@ export default function SettingsPage() {
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="keyTitle">Title</Label>
-                  <Input id="keyTitle" value={keyTitle} onChange={(e) => setKeyTitle(e.target.value)} placeholder="e.g. Work laptop" />
+                  <Input id="keyTitle" value={keyTitle} onChange={(e) => { setKeyTitle(e.target.value); setSshAddError(null); }} placeholder="e.g. Work laptop" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="keyContent">Key</Label>
                   <Textarea
                     id="keyContent"
                     value={keyContent}
-                    onChange={(e) => setKeyContent(e.target.value)}
+                    onChange={(e) => { setKeyContent(e.target.value); setSshAddError(null); }}
                     placeholder="ssh-ed25519 AAAA..."
                     rows={4}
                     className="font-mono text-xs"
                   />
                 </div>
+                {sshAddError && <Alert variant="error">{sshAddError}</Alert>}
                 <Button onClick={handleAddKey} disabled={addKeyMutation.isPending || !keyTitle.trim() || !keyContent.trim()}>
                   Add key
                 </Button>
@@ -175,6 +193,7 @@ export default function SettingsPage() {
           </Dialog>
         </CardHeader>
         <CardContent>
+          {sshDeleteError && <Alert variant="error" className="mb-3">{sshDeleteError}</Alert>}
           {sshKeys && sshKeys.length > 0 ? (
             <div className="divide-y divide-border">
               {sshKeys.map((key, index) => (
@@ -193,7 +212,12 @@ export default function SettingsPage() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    onClick={() => deleteKeyMutation.mutate(key.id)}
+                    onClick={() => {
+                      setSshDeleteError(null);
+                      deleteKeyMutation.mutate(key.id, {
+                        onError: (err) => setSshDeleteError((err as Error)?.message ?? 'Failed to delete SSH key'),
+                      });
+                    }}
                     disabled={deleteKeyMutation.isPending}
                   >
                     <Trash2 className="h-4 w-4 text-error" />

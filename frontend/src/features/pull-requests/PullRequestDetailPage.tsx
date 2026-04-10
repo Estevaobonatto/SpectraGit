@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { PageLoader } from '@/components/ui/spinner';
 import { DiffViewer } from '@/components/repo/DiffViewer';
+import { Alert } from '@/components/ui/alert';
 import { formatRelativeTime } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -55,25 +56,39 @@ export default function PullRequestDetailPage() {
 
   const [comment, setComment] = useState('');
   const [reviewBody, setReviewBody] = useState('');
-  const [mergeStrategy, setMergeStrategy] = useState<'merge' | 'squash' | 'rebase'>('merge');
+  const [mergeStrategy, setMergeStrategy] = useState<'MERGE_COMMIT' | 'SQUASH'>('MERGE_COMMIT');
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [mergeError, setMergeError] = useState<string | null>(null);
 
   if (isLoading || !pr) return <PageLoader />;
 
   const handleAddComment = () => {
     if (!comment.trim()) return;
-    commentMutation.mutate(comment, { onSuccess: () => setComment('') });
+    setCommentError(null);
+    commentMutation.mutate(comment, {
+      onSuccess: () => setComment(''),
+      onError: (err) => setCommentError((err as Error)?.message ?? 'Failed to add comment'),
+    });
   };
 
   const handleMerge = () => {
-    mergeMutation.mutate(mergeStrategy);
+    setMergeError(null);
+    mergeMutation.mutate(mergeStrategy, {
+      onError: (err) => setMergeError((err as Error)?.message ?? 'Failed to merge pull request'),
+    });
   };
 
   const handleClose = () => {
     closeMutation.mutate();
   };
 
-  const handleSubmitReview = (event: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT') => {
-    reviewMutation.mutate({ body: reviewBody, status: event }, { onSuccess: () => setReviewBody('') });
+  const handleSubmitReview = (status: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED') => {
+    setReviewError(null);
+    reviewMutation.mutate({ body: reviewBody, status }, {
+      onSuccess: () => setReviewBody(''),
+      onError: (err) => setReviewError((err as Error)?.message ?? 'Failed to submit review'),
+    });
   };
 
   const diff = diffData ?? [];
@@ -184,16 +199,17 @@ export default function PullRequestDetailPage() {
               rows={3}
             />
             <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => handleSubmitReview('COMMENT')}>
+              <Button size="sm" variant="outline" onClick={() => handleSubmitReview('COMMENTED')}>
                 Comment
               </Button>
-              <Button size="sm" variant="default" onClick={() => handleSubmitReview('APPROVE')}>
+              <Button size="sm" variant="default" onClick={() => handleSubmitReview('APPROVED')}>
                 Approve
               </Button>
-              <Button size="sm" variant="destructive" onClick={() => handleSubmitReview('REQUEST_CHANGES')}>
+              <Button size="sm" variant="destructive" onClick={() => handleSubmitReview('CHANGES_REQUESTED')}>
                 Request changes
               </Button>
             </div>
+            {reviewError && <Alert variant="error">{reviewError}</Alert>}
           </div>
 
           <Separator />
@@ -204,10 +220,11 @@ export default function PullRequestDetailPage() {
             <div className="flex-1 space-y-2">
               <Textarea
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onChange={(e) => { setComment(e.target.value); setCommentError(null); }}
                 placeholder="Add a comment..."
                 rows={3}
               />
+              {commentError && <Alert variant="error">{commentError}</Alert>}
               <Button
                 size="sm"
                 onClick={handleAddComment}
@@ -221,11 +238,13 @@ export default function PullRequestDetailPage() {
           <Separator />
 
           {/* Merge / Close */}
-          <div className="flex items-center gap-2">
+          <div className="space-y-2">
+            {mergeError && <Alert variant="error">{mergeError}</Alert>}
+            <div className="flex items-center gap-2">
             <div className="flex items-center">
               <Button onClick={handleMerge} disabled={mergeMutation.isPending}>
                 <GitMerge className="h-4 w-4" />
-                {mergeStrategy === 'merge' ? 'Merge' : mergeStrategy === 'squash' ? 'Squash and merge' : 'Rebase and merge'}
+                {mergeStrategy === 'MERGE_COMMIT' ? 'Merge' : 'Squash and merge'}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -234,14 +253,11 @@ export default function PullRequestDetailPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setMergeStrategy('merge')}>
+                  <DropdownMenuItem onClick={() => setMergeStrategy('MERGE_COMMIT')}>
                     Create a merge commit
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setMergeStrategy('squash')}>
+                  <DropdownMenuItem onClick={() => setMergeStrategy('SQUASH')}>
                     Squash and merge
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setMergeStrategy('rebase')}>
-                    Rebase and merge
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -249,6 +265,7 @@ export default function PullRequestDetailPage() {
             <Button variant="destructive" onClick={handleClose} disabled={closeMutation.isPending}>
               Close pull request
             </Button>
+          </div>
           </div>
         </div>
       )}

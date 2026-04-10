@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { PageLoader } from '@/components/ui/spinner';
+import { Alert } from '@/components/ui/alert';
 import { motion } from 'motion/react';
 
 export default function OrganizationDetailPage() {
@@ -23,14 +24,25 @@ export default function OrganizationDetailPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteUsername, setInviteUsername] = useState('');
   const [inviteRole, setInviteRole] = useState('MEMBER');
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState(false);
 
   if (isLoading || !org) return <PageLoader />;
 
   const handleInvite = () => {
     if (!inviteUsername.trim()) return;
+    setInviteError(null);
+    setInviteSuccess(false);
     inviteMutation.mutate(
       { username: inviteUsername, role: inviteRole },
-      { onSuccess: () => { setInviteOpen(false); setInviteUsername(''); } },
+      {
+        onSuccess: () => {
+          setInviteOpen(false);
+          setInviteUsername('');
+          setInviteSuccess(true);
+        },
+        onError: (err) => setInviteError((err as Error)?.message ?? 'Failed to invite member'),
+      },
     );
   };
 
@@ -69,7 +81,7 @@ export default function OrganizationDetailPage() {
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
-                  <Input id="username" value={inviteUsername} onChange={(e) => setInviteUsername(e.target.value)} placeholder="username" />
+                  <Input id="username" value={inviteUsername} onChange={(e) => { setInviteUsername(e.target.value); setInviteError(null); }} placeholder="username" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
@@ -84,6 +96,7 @@ export default function OrganizationDetailPage() {
                     <option value="OWNER">Owner</option>
                   </select>
                 </div>
+                {inviteError && <Alert variant="error">{inviteError}</Alert>}
                 <Button onClick={handleInvite} disabled={inviteMutation.isPending || !inviteUsername.trim()}>
                   Send invitation
                 </Button>
@@ -92,6 +105,9 @@ export default function OrganizationDetailPage() {
           </Dialog>
         </CardHeader>
         <CardContent>
+          {inviteSuccess && (
+            <Alert variant="success" className="mb-3">Member invited successfully.</Alert>
+          )}
           {members && members.length > 0 ? (
             <div className="divide-y divide-border">
               {members.map((m, index) => (

@@ -19,4 +19,16 @@ export class UpdateUserDto {
   @IsUrl()
   @MaxLength(512)
   avatarUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  location?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUrl()
+  @MaxLength(512)
+  website?: string;
 }

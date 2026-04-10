@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert } from '@/components/ui/alert';
 import { PageLoader } from '@/components/ui/spinner';
 
 export default function PullRequestNewPage() {
@@ -103,6 +104,11 @@ export default function PullRequestNewPage() {
           </div>
           {sourceBranch && targetBranch && sourceBranch === targetBranch && (
             <p className="text-sm text-error">Source and target branches must be different.</p>
+          )}
+          {createMutation.isError && (
+            <Alert variant="error">
+              {(createMutation.error as Error)?.message ?? 'Failed to create pull request'}
+            </Alert>
           )}
         </form>
       </CardContent>

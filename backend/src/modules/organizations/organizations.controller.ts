@@ -59,6 +59,13 @@ export class OrganizationsController {
     return this.orgsService.inviteMember(name, user.sub, dto);
   }
 
+  @Public()
+  @Get(':name/members')
+  @ApiOperation({ summary: 'List members of organization' })
+  async listMembers(@Param('name') name: string) {
+    return this.orgsService.listMembers(name);
+  }
+
   @Delete(':name/members/:username')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Remove member from organization' })

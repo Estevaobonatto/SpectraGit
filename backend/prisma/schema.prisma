@@ -17,6 +17,8 @@ model User {
   displayName String?  @map("display_name") @db.VarChar(100)
   avatarUrl   String?  @map("avatar_url") @db.VarChar(512)
   bio         String?  @db.VarChar(500)
+  location    String?  @db.VarChar(255)
+  website     String?  @db.VarChar(512)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

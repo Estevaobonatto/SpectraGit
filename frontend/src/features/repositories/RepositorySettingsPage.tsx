@@ -22,6 +22,9 @@ export default function RepositorySettingsPage() {
   const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
   const [initialized, setInitialized] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (isLoading) return <PageLoader />;
 
@@ -41,13 +44,23 @@ export default function RepositorySettingsPage() {
   }
 
   const handleSave = () => {
-    updateMutation.mutate({ description, defaultBranch, visibility });
+    setSaveError(null);
+    setSaveSuccess(false);
+    updateMutation.mutate(
+      { description, defaultBranch, visibility },
+      {
+        onSuccess: () => setSaveSuccess(true),
+        onError: (err) => setSaveError((err as Error)?.message ?? 'Failed to save settings'),
+      },
+    );
   };
 
   const handleDelete = () => {
     if (deleteConfirm !== `${owner}/${repo}`) return;
+    setDeleteError(null);
     deleteMutation.mutate(undefined, {
       onSuccess: () => navigate('/'),
+      onError: (err) => setDeleteError((err as Error)?.message ?? 'Failed to delete repository'),
     });
   };
 
@@ -112,6 +125,8 @@ export default function RepositorySettingsPage() {
           <Button onClick={handleSave} disabled={updateMutation.isPending}>
             {updateMutation.isPending ? 'Saving…' : 'Save Changes'}
           </Button>
+          {saveError && <Alert variant="error">{saveError}</Alert>}
+          {saveSuccess && <Alert variant="success">Settings saved successfully.</Alert>}
         </CardContent>
       </Card>
 
@@ -160,6 +175,7 @@ export default function RepositorySettingsPage() {
               <Trash2 className="mr-1 h-4 w-4" />
               {deleteMutation.isPending ? 'Deleting…' : 'Delete Repository'}
             </Button>
+            {deleteError && <Alert variant="error">{deleteError}</Alert>}
           </div>
         </CardContent>
       </Card>

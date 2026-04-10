@@ -41,7 +41,7 @@ export const branchesService = {
   list: (owner: string, repo: string) =>
     api.get<{ data: Branch[] }>(`/repos/${owner}/${repo}/branches`).then((r) => r.data.data),
 
-  create: (owner: string, repo: string, data: { name: string; sourceBranch?: string }) =>
+  create: (owner: string, repo: string, data: { name: string; startPoint: string }) =>
     api.post<{ data: Branch }>(`/repos/${owner}/${repo}/branches`, data).then((r) => r.data.data),
 
   delete: (owner: string, repo: string, branch: string) =>
