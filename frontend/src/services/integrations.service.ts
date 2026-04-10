@@ -8,9 +8,13 @@ export const integrationsService = {
   listGitHubRepos: () =>
     api.get<{ data: GitHubRepo[] }>('/integrations/github/repos').then((r) => r.data.data),
 
-  importRepo: (fullName: string) =>
-    api.post(`/integrations/github/repos/${fullName}/import`),
+  importRepo: (fullName: string) => {
+    const [owner, repo] = fullName.split('/');
+    return api.post(`/integrations/github/repos/${owner}/${repo}/import`);
+  },
 
-  syncRepo: (fullName: string) =>
-    api.get(`/integrations/github/repos/${fullName}/sync`),
+  syncRepo: (fullName: string) => {
+    const [owner, repo] = fullName.split('/');
+    return api.get(`/integrations/github/repos/${owner}/${repo}/sync`);
+  },
 };

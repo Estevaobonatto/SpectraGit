@@ -1,7 +1,9 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Octokit } from '@octokit/rest';
+import { RepoVisibility } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { RepositoriesService } from '../../repositories/repositories.service';
 
 @Injectable()
 export class GitHubService {
@@ -10,6 +12,7 @@ export class GitHubService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly repositoriesService: RepositoriesService,
   ) {}
 
   private getOctokit(accessToken: string): Octokit {
@@ -62,17 +65,29 @@ export class GitHubService {
 
     const { data: githubRepo } = await octokit.repos.get({ owner, repo: repoName });
 
+    // Idempotent: if already imported return the existing record
+    const slug = githubRepo.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-');
+    const existing = await this.prisma.repository.findFirst({
+      where: { ownerUserId: userId, slug },
+      include: {
+        ownerUser: { select: { username: true } },
+        ownerOrg: { select: { name: true } },
+      },
+    });
+    if (existing) {
+      this.logger.log(`Repository ${githubRepoFullName} already imported, returning existing record`);
+      return existing;
+    }
+
     this.logger.log(`Importing repository ${githubRepoFullName} for user ${userId}`);
 
-    return {
+    return this.repositoriesService.create(userId, {
       name: githubRepo.name,
-      description: githubRepo.description,
-      isPrivate: githubRepo.private,
-      defaultBranch: githubRepo.default_branch,
-      cloneUrl: githubRepo.clone_url,
-      language: githubRepo.language,
-      topics: githubRepo.topics,
-    };
+      description: githubRepo.description ?? undefined,
+      visibility: githubRepo.private ? RepoVisibility.PRIVATE : RepoVisibility.PUBLIC,
+      defaultBranch: githubRepo.default_branch ?? 'main',
+      initWithReadme: false,
+    });
   }
 
   async syncRepositoryMetadata(userId: string, githubRepoFullName: string) {

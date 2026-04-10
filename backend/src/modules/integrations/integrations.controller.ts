@@ -22,15 +22,23 @@ export class IntegrationsController {
     return this.githubService.listGitHubRepos(user.sub);
   }
 
-  @Post('repos/:fullName/import')
+  @Post('repos/:owner/:repo/import')
   @ApiOperation({ summary: 'Import a GitHub repository' })
-  async importRepo(@CurrentUser() user: JwtPayload, @Param('fullName') fullName: string) {
-    return this.githubService.importRepository(user.sub, fullName);
+  async importRepo(
+    @CurrentUser() user: JwtPayload,
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+  ) {
+    return this.githubService.importRepository(user.sub, `${owner}/${repo}`);
   }
 
-  @Get('repos/:fullName/sync')
+  @Get('repos/:owner/:repo/sync')
   @ApiOperation({ summary: 'Sync repository metadata from GitHub' })
-  async syncRepo(@CurrentUser() user: JwtPayload, @Param('fullName') fullName: string) {
-    return this.githubService.syncRepositoryMetadata(user.sub, fullName);
+  async syncRepo(
+    @CurrentUser() user: JwtPayload,
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+  ) {
+    return this.githubService.syncRepositoryMetadata(user.sub, `${owner}/${repo}`);
   }
 }

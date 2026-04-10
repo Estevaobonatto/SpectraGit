@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ExternalLink, RefreshCw, Download, CheckCircle2 } from 'lucide-react';
+import { ExternalLink, RefreshCw, Download, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
 import { integrationsService } from '@/services/integrations.service';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,10 +8,14 @@ import { Separator } from '@/components/ui/separator';
 import { PageLoader, Spinner } from '@/components/ui/spinner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { GitHubRepo } from '@/types';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+
+type RepoImportState = 'importing' | 'success' | 'error';
 
 export default function GitHubIntegrationPage() {
   const queryClient = useQueryClient();
+  const [repoStates, setRepoStates] = useState<Record<string, RepoImportState>>({});
+  const [repoErrors, setRepoErrors] = useState<Record<string, string>>({});
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['github-profile'],
@@ -19,7 +23,7 @@ export default function GitHubIntegrationPage() {
     retry: false,
   });
 
-  const { data: repos, isLoading: reposLoading } = useQuery({
+  const { data: repos, isLoading: reposLoading, refetch: refetchRepos, isFetching: isSyncingRepos } = useQuery({
     queryKey: ['github-repos'],
     queryFn: () => integrationsService.listGitHubRepos(),
     enabled: !!profile,
@@ -27,20 +31,25 @@ export default function GitHubIntegrationPage() {
 
   const importMutation = useMutation({
     mutationFn: (repoFullName: string) => integrationsService.importRepo(repoFullName),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['repositories'] }),
+    onSuccess: (_data, repoFullName) => {
+      setRepoStates((s) => ({ ...s, [repoFullName]: 'success' }));
+      queryClient.invalidateQueries({ queryKey: ['repositories'] });
+    },
+    onError: (err: unknown, repoFullName) => {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })
+          ?.response?.data?.message ??
+        (err as { message?: string })?.message ??
+        'Import failed';
+      setRepoStates((s) => ({ ...s, [repoFullName]: 'error' }));
+      setRepoErrors((e) => ({ ...e, [repoFullName]: message }));
+    },
   });
-
-  const syncMutation = useMutation({
-    mutationFn: () => integrationsService.syncRepo('all'),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['github-repos'] }),
-  });
-
-  const [importedRepos, setImportedRepos] = useState<Set<string>>(new Set());
 
   const handleImport = (repo: GitHubRepo) => {
-    importMutation.mutate(repo.fullName, {
-      onSuccess: () => setImportedRepos((prev) => new Set(prev).add(repo.fullName)),
-    });
+    setRepoStates((s) => ({ ...s, [repo.fullName]: 'importing' }));
+    setRepoErrors((e) => { const n = { ...e }; delete n[repo.fullName]; return n; });
+    importMutation.mutate(repo.fullName);
   };
 
   if (profileLoading) return <PageLoader />;
@@ -78,9 +87,9 @@ export default function GitHubIntegrationPage() {
           <ExternalLink className="h-6 w-6" />
           GitHub Integration
         </h1>
-        <Button variant="outline" onClick={() => syncMutation.mutate()} disabled={syncMutation.isPending}>
-          <RefreshCw className={syncMutation.isPending ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
-          Sync
+        <Button variant="outline" onClick={() => refetchRepos()} disabled={isSyncingRepos}>
+          <RefreshCw className={isSyncingRepos ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
+          {isSyncingRepos ? 'Syncing...' : 'Sync'}
         </Button>
       </div>
 
@@ -99,46 +108,75 @@ export default function GitHubIntegrationPage() {
 
       {/* Importable repos */}
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-text-primary">Your GitHub Repositories</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-text-primary">Your GitHub Repositories</h2>
+          {repos && repos.length > 0 && (
+            <span className="text-xs text-text-tertiary">{repos.length} repositories</span>
+          )}
+        </div>
         {reposLoading ? (
           <div className="flex justify-center py-8"><Spinner /></div>
         ) : !repos || repos.length === 0 ? (
           <p className="text-sm text-text-tertiary">No repositories found on your GitHub account.</p>
         ) : (
           <div className="divide-y divide-border rounded-[var(--radius-md)] border border-border">
-            {repos.map((r: GitHubRepo, index: number) => (
-              <motion.div
-                key={r.fullName}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                className="flex items-center gap-3 p-4">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-text-primary">{r.fullName}</p>
-                  {r.description && <p className="text-xs text-text-secondary line-clamp-1">{r.description}</p>}
-                  <div className="mt-1 flex items-center gap-2 text-xs text-text-tertiary">
-                    {r.language && <span>{r.language}</span>}
-                    <Badge variant="secondary" className="text-[10px]">{r.private ? 'Private' : 'Public'}</Badge>
+            {repos.map((r: GitHubRepo, index: number) => {
+              const state = repoStates[r.fullName];
+              const error = repoErrors[r.fullName];
+              return (
+                <motion.div
+                  key={r.fullName}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="flex items-center gap-3 p-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-text-primary">{r.fullName}</p>
+                    {r.description && <p className="text-xs text-text-secondary line-clamp-1">{r.description}</p>}
+                    <div className="mt-1 flex items-center gap-2 text-xs text-text-tertiary">
+                      {r.language && <span>{r.language}</span>}
+                      <Badge variant="secondary" className="text-[10px]">{r.private ? 'Private' : 'Public'}</Badge>
+                    </div>
+                    <AnimatePresence>
+                      {state === 'error' && error && (
+                        <motion.p
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-1 flex items-center gap-1 text-xs text-destructive">
+                          <AlertCircle className="h-3 w-3 shrink-0" />
+                          {error}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
                   </div>
-                </div>
-                {importedRepos.has(r.fullName) ? (
-                  <Badge variant="success" className="flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Imported
-                  </Badge>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleImport(r)}
-                    disabled={importMutation.isPending}
-                  >
-                    <Download className="h-4 w-4" />
-                    Import
-                  </Button>
-                )}
-              </motion.div>
-            ))}
+
+                  <div className="shrink-0">
+                    {state === 'success' ? (
+                      <Badge variant="success" className="flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Imported
+                      </Badge>
+                    ) : state === 'importing' ? (
+                      <Button size="sm" variant="outline" disabled>
+                        <Spinner size="sm" />
+                        Importing...
+                      </Button>
+                    ) : state === 'error' ? (
+                      <Button size="sm" variant="outline" onClick={() => handleImport(r)}>
+                        <RotateCcw className="h-4 w-4" />
+                        Retry
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => handleImport(r)}>
+                        <Download className="h-4 w-4" />
+                        Import
+                      </Button>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>

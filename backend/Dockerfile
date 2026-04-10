@@ -24,15 +24,14 @@ RUN addgroup -g 1001 -S spectragit && \
 
 WORKDIR /app
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/package.json ./
+COPY --from=builder --chown=spectragit:spectragit /app/dist ./dist
+COPY --from=builder --chown=spectragit:spectragit /app/node_modules ./node_modules
+COPY --from=builder --chown=spectragit:spectragit /app/prisma ./prisma
+COPY --from=builder --chown=spectragit:spectragit /app/package.json ./
 
 RUN npx prisma generate && \
     mkdir -p /data/repositories && \
-    chown -R spectragit:spectragit /data/repositories && \
-    chown -R spectragit:spectragit /app/node_modules
+    chown -R spectragit:spectragit /data/repositories
 
 USER spectragit
 
