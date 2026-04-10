@@ -51,3 +51,24 @@ export function useDeleteNotification() {
     },
   });
 }
+
+// ── Notification Preferences ────────────────────────────────
+
+export function useNotificationPreferences() {
+  return useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: () => notificationsService.getPreferences(),
+  });
+}
+
+export function useUpdateNotificationPreferences() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (preferences: Array<{ notificationType: string; enabled: boolean }>) =>
+      notificationsService.updatePreferences(preferences),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });
+    },
+  });
+}

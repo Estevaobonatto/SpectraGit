@@ -122,4 +122,22 @@ export class UsersService {
       take: limit,
     });
   }
+
+  async getOAuthAccounts(userId: string) {
+    return this.prisma.oAuthAccount.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        provider: true,
+        providerUserId: true,
+        scope: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async deleteAccount(userId: string) {
+    await this.prisma.user.delete({ where: { id: userId } });
+    return { message: 'Account deleted' };
+  }
 }

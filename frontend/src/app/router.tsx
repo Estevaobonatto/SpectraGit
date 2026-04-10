@@ -26,9 +26,18 @@ const OrganizationListPage = lazy(() => import('@/features/organizations/Organiz
 const OrganizationNewPage = lazy(() => import('@/features/organizations/OrganizationNewPage'));
 const OrganizationDetailPage = lazy(() => import('@/features/organizations/OrganizationDetailPage'));
 const GitHubIntegrationPage = lazy(() => import('@/features/github-sync/GitHubIntegrationPage'));
-const SettingsPage = lazy(() => import('@/features/settings/SettingsPage'));
 const RepositorySettingsPage = lazy(() => import('@/features/repositories/RepositorySettingsPage'));
 const ProfilePage = lazy(() => import('@/features/settings/ProfilePage'));
+
+// Settings layout & sub-pages
+const SettingsLayoutModule = import('@/features/settings/SettingsPage');
+const SettingsLayout = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsLayout })));
+const SettingsProfilePage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsProfilePage })));
+const SettingsSSHKeysPage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsSSHKeysPage })));
+const SettingsSessionsPage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsSessionsPage })));
+const SettingsAccountsPage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsAccountsPage })));
+const SettingsNotificationsPage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsNotificationsPage })));
+const SettingsDangerZonePage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsDangerZonePage })));
 
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
@@ -89,7 +98,15 @@ export const router = createBrowserRouter([
       },
       {
         path: 'settings',
-        element: <SuspenseWrapper><SettingsPage /></SuspenseWrapper>,
+        element: <SuspenseWrapper><SettingsLayout /></SuspenseWrapper>,
+        children: [
+          { index: true, element: <SuspenseWrapper><SettingsProfilePage /></SuspenseWrapper> },
+          { path: 'ssh-keys', element: <SuspenseWrapper><SettingsSSHKeysPage /></SuspenseWrapper> },
+          { path: 'sessions', element: <SuspenseWrapper><SettingsSessionsPage /></SuspenseWrapper> },
+          { path: 'accounts', element: <SuspenseWrapper><SettingsAccountsPage /></SuspenseWrapper> },
+          { path: 'notifications', element: <SuspenseWrapper><SettingsNotificationsPage /></SuspenseWrapper> },
+          { path: 'danger-zone', element: <SuspenseWrapper><SettingsDangerZonePage /></SuspenseWrapper> },
+        ],
       },
       {
         path: ':owner',

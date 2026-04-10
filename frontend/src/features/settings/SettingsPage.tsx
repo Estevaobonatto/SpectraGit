@@ -1,235 +1,102 @@
-import { useState, useEffect } from 'react';
-import { Settings, Key, Plus, Trash2 } from 'lucide-react';
-import { useCurrentUser, useUpdateProfile, useSSHKeys, useAddSSHKey, useDeleteSSHKey } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Avatar } from '@/components/ui/avatar';
+import { lazy, Suspense } from 'react';
+import { NavLink, Outlet, Navigate } from 'react-router-dom';
+import { Settings, Key, Monitor, Link2, Bell, AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { PageLoader } from '@/components/ui/spinner';
-import { Alert } from '@/components/ui/alert';
-import { formatRelativeTime } from '@/lib/utils';
 import { motion } from 'motion/react';
 
-export default function SettingsPage() {
-  const { data: user, isLoading } = useCurrentUser();
-  const updateMutation = useUpdateProfile();
-  const { data: sshKeys } = useSSHKeys();
-  const addKeyMutation = useAddSSHKey();
-  const deleteKeyMutation = useDeleteSSHKey();
+const ProfileSection = lazy(() => import('./sections/ProfileSection'));
+const SSHKeysSection = lazy(() => import('./sections/SSHKeysSection'));
+const SessionsSection = lazy(() => import('./sections/SessionsSection'));
+const ConnectedAccountsSection = lazy(() => import('./sections/ConnectedAccountsSection'));
+const NotificationsSection = lazy(() => import('./sections/NotificationsSection'));
+const DangerZoneSection = lazy(() => import('./sections/DangerZoneSection'));
 
-  const [displayName, setDisplayName] = useState('');
-  const [bio, setBio] = useState('');
-  const [location, setLocation] = useState('');
-  const [website, setWebsite] = useState('');
-  const [profileDirty, setProfileDirty] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [profileSuccess, setProfileSuccess] = useState(false);
+const NAV_ITEMS = [
+  { to: '/settings', label: 'Profile', icon: Settings, end: true },
+  { to: '/settings/ssh-keys', label: 'SSH Keys', icon: Key },
+  { to: '/settings/sessions', label: 'Sessions', icon: Monitor },
+  { to: '/settings/accounts', label: 'Connected Accounts', icon: Link2 },
+  { to: '/settings/notifications', label: 'Notifications', icon: Bell },
+  { to: '/settings/danger-zone', label: 'Danger Zone', icon: AlertTriangle },
+];
 
-  const [keyDialogOpen, setKeyDialogOpen] = useState(false);
-  const [keyTitle, setKeyTitle] = useState('');
-  const [keyContent, setKeyContent] = useState('');
-  const [sshAddError, setSshAddError] = useState<string | null>(null);
-  const [sshDeleteError, setSshDeleteError] = useState<string | null>(null);
-
-  // Initialize form values from user data
-  useEffect(() => {
-    if (user) {
-      setDisplayName(user.displayName ?? '');
-      setBio(user.bio ?? '');
-      setLocation(user.location ?? '');
-      setWebsite(user.website ?? '');
-      setProfileDirty(false);
-    }
-  }, [user]);
-
-  if (isLoading || !user) return <PageLoader />;
-
-  const handleProfileSave = () => {
-    setProfileError(null);
-    setProfileSuccess(false);
-    updateMutation.mutate(
-      { displayName, bio, location, website },
-      {
-        onSuccess: () => { setProfileDirty(false); setProfileSuccess(true); },
-        onError: (err) => setProfileError((err as Error)?.message ?? 'Failed to save profile'),
-      },
-    );
-  };
-
-  const handleAddKey = () => {
-    if (!keyTitle.trim() || !keyContent.trim()) return;
-    setSshAddError(null);
-    addKeyMutation.mutate(
-      { title: keyTitle, publicKey: keyContent },
-      {
-        onSuccess: () => { setKeyDialogOpen(false); setKeyTitle(''); setKeyContent(''); },
-        onError: (err) => setSshAddError((err as Error)?.message ?? 'Failed to add SSH key'),
-      },
-    );
-  };
-
+export function SettingsLayout() {
   return (
     <motion.div
-      className="mx-auto max-w-2xl space-y-6"
+      className="mx-auto max-w-4xl"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
     >
-      <h1 className="flex items-center gap-2 text-2xl font-bold text-text-primary">
+      <h1 className="flex items-center gap-2 text-2xl font-bold text-text-primary mb-6">
         <Settings className="h-6 w-6" />
         Settings
       </h1>
 
-      {/* Profile Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Avatar src={user.avatarUrl} alt={user.username} size="lg" />
-            <div>
-              <p className="font-semibold">{user.username}</p>
-              <p className="text-sm text-text-tertiary">{user.email}</p>
-            </div>
-          </div>
+      <div className="flex gap-6">
+        {/* Sidebar */}
+        <nav className="w-52 shrink-0">
+          <ul className="space-y-1 sticky top-20">
+            {NAV_ITEMS.map((item) => (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-primary-100 text-primary-700'
+                        : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary',
+                    )
+                  }
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-          <div className="space-y-2">
-            <Label htmlFor="displayName">Display name</Label>
-            <Input
-              id="displayName"
-              value={displayName}
-              onChange={(e) => { setDisplayName(e.target.value); setProfileDirty(true); }}
-              placeholder="Your display name"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea
-              id="bio"
-              value={bio}
-              onChange={(e) => { setBio(e.target.value); setProfileDirty(true); }}
-              placeholder="Tell us about yourself"
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={location}
-                onChange={(e) => { setLocation(e.target.value); setProfileDirty(true); }}
-                placeholder="City, Country"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
-              <Input
-                id="website"
-                value={website}
-                onChange={(e) => { setWebsite(e.target.value); setProfileDirty(true); }}
-                placeholder="https://example.com"
-              />
-            </div>
-          </div>
-
-          <Button onClick={handleProfileSave} disabled={updateMutation.isPending || !profileDirty}>
-            Save profile
-          </Button>
-          {profileError && <Alert variant="error">{profileError}</Alert>}
-          {profileSuccess && <Alert variant="success">Profile saved successfully.</Alert>}
-        </CardContent>
-      </Card>
-
-      <Separator />
-
-      {/* SSH Keys */}
-      <Card>
-        <CardHeader className="flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" />
-            SSH Keys
-          </CardTitle>
-          <Dialog open={keyDialogOpen} onOpenChange={setKeyDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4" />
-                Add SSH key
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add SSH key</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="keyTitle">Title</Label>
-                  <Input id="keyTitle" value={keyTitle} onChange={(e) => { setKeyTitle(e.target.value); setSshAddError(null); }} placeholder="e.g. Work laptop" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="keyContent">Key</Label>
-                  <Textarea
-                    id="keyContent"
-                    value={keyContent}
-                    onChange={(e) => { setKeyContent(e.target.value); setSshAddError(null); }}
-                    placeholder="ssh-ed25519 AAAA..."
-                    rows={4}
-                    className="font-mono text-xs"
-                  />
-                </div>
-                {sshAddError && <Alert variant="error">{sshAddError}</Alert>}
-                <Button onClick={handleAddKey} disabled={addKeyMutation.isPending || !keyTitle.trim() || !keyContent.trim()}>
-                  Add key
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent>
-          {sshDeleteError && <Alert variant="error" className="mb-3">{sshDeleteError}</Alert>}
-          {sshKeys && sshKeys.length > 0 ? (
-            <div className="divide-y divide-border">
-              {sshKeys.map((key, index) => (
-                <motion.div
-                  key={key.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="flex items-center gap-3 py-3">
-                  <Key className="h-4 w-4 text-text-tertiary" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{key.title}</p>
-                    <p className="text-xs text-text-tertiary font-mono truncate">{key.fingerprint}</p>
-                    <p className="text-xs text-text-tertiary">Added {formatRelativeTime(key.createdAt)}</p>
-                  </div>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => {
-                      setSshDeleteError(null);
-                      deleteKeyMutation.mutate(key.id, {
-                        onError: (err) => setSshDeleteError((err as Error)?.message ?? 'Failed to delete SSH key'),
-                      });
-                    }}
-                    disabled={deleteKeyMutation.isPending}
-                  >
-                    <Trash2 className="h-4 w-4 text-error" />
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-text-tertiary">No SSH keys added.</p>
-          )}
-        </CardContent>
-      </Card>
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
+        </div>
+      </div>
     </motion.div>
   );
+}
+
+// Individual route components (used by router)
+export function SettingsProfilePage() {
+  return <Suspense fallback={<PageLoader />}><ProfileSection /></Suspense>;
+}
+
+export function SettingsSSHKeysPage() {
+  return <Suspense fallback={<PageLoader />}><SSHKeysSection /></Suspense>;
+}
+
+export function SettingsSessionsPage() {
+  return <Suspense fallback={<PageLoader />}><SessionsSection /></Suspense>;
+}
+
+export function SettingsAccountsPage() {
+  return <Suspense fallback={<PageLoader />}><ConnectedAccountsSection /></Suspense>;
+}
+
+export function SettingsNotificationsPage() {
+  return <Suspense fallback={<PageLoader />}><NotificationsSection /></Suspense>;
+}
+
+export function SettingsDangerZonePage() {
+  return <Suspense fallback={<PageLoader />}><DangerZoneSection /></Suspense>;
+}
+
+// Default export kept for backward compat with lazy import in router
+export default function SettingsPage() {
+  return <Navigate to="/settings" replace />;
 }

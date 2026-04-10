@@ -72,4 +72,49 @@ export class NotificationsService {
   async getUnreadCount(userId: string): Promise<number> {
     return this.prisma.notification.count({ where: { userId, isRead: false } });
   }
+
+  async getPreferences(userId: string) {
+    const allTypes: NotificationType[] = [
+      'ISSUE_CREATED', 'ISSUE_COMMENT',
+      'PR_CREATED', 'PR_COMMENT', 'PR_REVIEW', 'PR_MERGED',
+      'MENTION', 'REPO_INVITE', 'ORG_INVITE',
+    ];
+
+    const saved = await this.prisma.notificationPreference.findMany({
+      where: { userId },
+    });
+
+    const savedMap = new Map(saved.map((p) => [p.notificationType, p.enabled]));
+
+    return allTypes.map((type) => ({
+      notificationType: type,
+      enabled: savedMap.has(type) ? savedMap.get(type)! : true,
+    }));
+  }
+
+  async updatePreferences(
+    userId: string,
+    preferences: Array<{ notificationType: string; enabled: boolean }>,
+  ) {
+    const operations = preferences.map((pref) =>
+      this.prisma.notificationPreference.upsert({
+        where: {
+          userId_notificationType: {
+            userId,
+            notificationType: pref.notificationType as NotificationType,
+          },
+        },
+        update: { enabled: pref.enabled },
+        create: {
+          userId,
+          notificationType: pref.notificationType as NotificationType,
+          enabled: pref.enabled,
+        },
+      }),
+    );
+
+    await this.prisma.$transaction(operations);
+
+    return this.getPreferences(userId);
+  }
 }

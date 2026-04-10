@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { Notification } from '@/types';
+import type { Notification, NotificationPreference } from '@/types';
 
 export const notificationsService = {
   list: (params?: { page?: number; limit?: number }) =>
@@ -15,4 +15,10 @@ export const notificationsService = {
   markAllRead: () => api.post('/notifications/read-all'),
 
   delete: (id: string) => api.delete(`/notifications/${id}`),
+
+  getPreferences: () =>
+    api.get<{ data: NotificationPreference[] }>('/notifications/preferences').then((r) => r.data.data),
+
+  updatePreferences: (preferences: Array<{ notificationType: string; enabled: boolean }>) =>
+    api.put<{ data: NotificationPreference[] }>('/notifications/preferences', { preferences }).then((r) => r.data.data),
 };

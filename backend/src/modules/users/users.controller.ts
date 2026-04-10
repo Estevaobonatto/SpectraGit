@@ -26,6 +26,20 @@ export class UsersController {
     return this.usersService.updateProfile(user.sub, dto);
   }
 
+  @Delete('me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete current user account' })
+  async deleteMe(@CurrentUser() user: JwtPayload) {
+    return this.usersService.deleteAccount(user.sub);
+  }
+
+  @Get('me/oauth-accounts')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List connected OAuth accounts' })
+  async getOAuthAccounts(@CurrentUser() user: JwtPayload) {
+    return this.usersService.getOAuthAccounts(user.sub);
+  }
+
   @Post('me/ssh-keys')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add SSH key' })

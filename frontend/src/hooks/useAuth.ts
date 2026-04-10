@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { usersService } from '@/services/auth.service';
+import { authService, usersService } from '@/services/auth.service';
 import { useAuthStore } from '@/stores/auth.store';
 import type { User } from '@/types';
 
@@ -66,5 +66,53 @@ export function useDeleteSSHKey() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ssh-keys'] });
     },
+  });
+}
+
+// ── Sessions ────────────────────────────────────────────────
+
+export function useSessions() {
+  return useQuery({
+    queryKey: ['sessions'],
+    queryFn: () => authService.getSessions(),
+  });
+}
+
+export function useRevokeSession() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionId: string) => authService.revokeSession(sessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+    },
+  });
+}
+
+export function useRevokeAllSessions() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => authService.revokeAllSessions(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+    },
+  });
+}
+
+// ── OAuth Accounts ──────────────────────────────────────────
+
+export function useOAuthAccounts() {
+  return useQuery({
+    queryKey: ['oauth-accounts'],
+    queryFn: () => usersService.getOAuthAccounts(),
+  });
+}
+
+// ── Delete Account ──────────────────────────────────────────
+
+export function useDeleteAccount() {
+  return useMutation({
+    mutationFn: () => usersService.deleteAccount(),
   });
 }

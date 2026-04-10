@@ -112,6 +112,16 @@ export class AuthService {
     await this.prisma.session.deleteMany({ where: { userId } });
   }
 
+  async revokeSession(userId: string, sessionId: string): Promise<void> {
+    const session = await this.prisma.session.findFirst({
+      where: { id: sessionId, userId },
+    });
+    if (!session) {
+      throw new UnauthorizedException('Session not found');
+    }
+    await this.prisma.session.delete({ where: { id: sessionId } });
+  }
+
   async getActiveSessions(userId: string) {
     return this.prisma.session.findMany({
       where: { userId, expiresAt: { gt: new Date() } },

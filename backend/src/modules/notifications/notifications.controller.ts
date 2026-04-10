@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Query, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -43,5 +43,20 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Delete a notification' })
   async delete(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.notificationsService.delete(user.sub, id);
+  }
+
+  @Get('preferences')
+  @ApiOperation({ summary: 'Get notification preferences' })
+  async getPreferences(@CurrentUser() user: JwtPayload) {
+    return this.notificationsService.getPreferences(user.sub);
+  }
+
+  @Put('preferences')
+  @ApiOperation({ summary: 'Update notification preferences' })
+  async updatePreferences(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { preferences: Array<{ notificationType: string; enabled: boolean }> },
+  ) {
+    return this.notificationsService.updatePreferences(user.sub, body.preferences);
   }
 }

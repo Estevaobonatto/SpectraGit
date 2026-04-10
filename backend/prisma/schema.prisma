@@ -33,7 +33,8 @@ model User {
   mergedPRs      PullRequest[]      @relation("PRMerger")
   reviews        Review[]
   comments       Comment[]
-  notifications  Notification[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
   orgMembers     OrganizationMember[]
   teamMembers    TeamMember[]
   auditLogs      AuditLog[]
@@ -481,6 +482,20 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+model NotificationPreference {
+  id               String           @id @default(uuid()) @db.Uuid
+  userId           String           @map("user_id") @db.Uuid
+  notificationType NotificationType @map("notification_type")
+  enabled          Boolean          @default(true)
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, notificationType])
+  @@map("notification_preferences")
 }
 
 // ─── Audit Log ───────────────────────────────────────────────

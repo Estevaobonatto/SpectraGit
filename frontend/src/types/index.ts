@@ -22,7 +22,21 @@ export interface OAuthAccount {
   id: string;
   provider: 'google' | 'github';
   providerUserId: string;
+  scope: string | null;
   createdAt: string;
+}
+
+export interface Session {
+  id: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface NotificationPreference {
+  notificationType: NotificationType;
+  enabled: boolean;
 }
 
 export interface TokenResponse {
@@ -199,7 +213,9 @@ export type NotificationType =
   | 'PR_COMMENT'
   | 'PR_REVIEW'
   | 'MENTION'
-  | 'REPO_PUSHED';
+  | 'REPO_PUSHED'
+  | 'REPO_INVITE'
+  | 'ORG_INVITE';
 
 export interface Organization {
   id: string;

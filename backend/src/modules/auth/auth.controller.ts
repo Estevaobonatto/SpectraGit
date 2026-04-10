@@ -2,7 +2,9 @@ import {
   Controller,
   Post,
   Get,
+  Delete,
   Body,
+  Param,
   Req,
   Res,
   UseGuards,
@@ -120,5 +122,17 @@ export class AuthController {
   @ApiOperation({ summary: 'List active sessions' })
   async getSessions(@CurrentUser() user: JwtPayload) {
     return this.authService.getActiveSessions(user.sub);
+  }
+
+  @Delete('sessions/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a specific session' })
+  async revokeSession(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') sessionId: string,
+  ) {
+    await this.authService.revokeSession(user.sub, sessionId);
+    return { message: 'Session revoked' };
   }
 }
