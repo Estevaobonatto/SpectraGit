@@ -21,6 +21,12 @@ export default defineConfig({
         target: 'http://localhost:3000',
         ws: true,
       },
+      // Proxy Git Smart HTTP requests (clone/push) to the backend.
+      // Matches paths like /owner/repo.git/...
+      '^/[^/]+/[^/]+\\.git': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
     },
   },
 })

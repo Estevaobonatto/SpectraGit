@@ -1,11 +1,9 @@
-vamos melhorar o import de repositorios do github e no git do app:
+vamos implementar suporte completo ao git nos repositorios do spectragit
 
-- o Import deve ser completo, tudo do repositorio deve ser importado (arquivos, commits, branches, issues, pulls e etc)
+- O usuario deve poder fazer todas as operações git possiveis com repositorios do spectragit, comparavel ao github e suas operações e suporte ao git
 
-- na pagian de importação deve ter um onbord mostrando o status real da importação, uma barra de progresso real do clone do repositorio e depois o usuario deve ser mandado para a pagina do repositorio no app
+ - os usuarios devem poder fazer o que quiserem com os repositorios clonados do spectragit, deve ser possivel usar em ides com suporte a git, use o protocolo ao maximo
 
-- Deve ser possivel impoirtar repositorios privados, use a api do github completamente para public e private
+- o usuario deve ter uma visão clara na interface do que aconteceu (quem criou ou commitou algo, quem fez as pulls e issues e etc)
 
-Implemente melhorias grandes nos serviços de git da aplicação para suportar tudo, incluindo clone dos usuarios dos repositorios do nosso app SpectraGit (publico e privado)
-
-todas as operações git devem ser possiveis. faça todas as mudanças necessarias no backend e frotn end
+- Faça todas as mudanças e implementações necessarias

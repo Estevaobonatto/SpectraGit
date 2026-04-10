@@ -8,6 +8,7 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { createGitHttpMiddleware } from './modules/git/git-http.middleware';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -17,6 +18,13 @@ async function bootstrap() {
   const port = configService.get<number>('port', 3000);
   const apiPrefix = configService.get<string>('apiPrefix', 'api/v1');
   const corsOrigins = configService.get<string[]>('cors.origins', ['http://localhost:5173']);
+  const gitStoragePath = configService.get<string>('git.storagePath', '/data/repositories');
+
+  // Register Git Smart HTTP middleware on the raw Express instance BEFORE
+  // NestJS registers its routes (happens inside app.listen → app.init).
+  // This ensures git requests are handled without going through the NestJS router.
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.use(createGitHttpMiddleware(gitStoragePath));
 
   app.setGlobalPrefix(apiPrefix);
 

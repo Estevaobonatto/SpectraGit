@@ -84,6 +84,9 @@ export class GitService {
     await git.addConfig('init.defaultBranch', defaultBranch);
     await git.addConfig('user.name', 'SpectraGit');
     await git.addConfig('user.email', 'noreply@spectragit.local');
+    // Allow pushes to the checked-out branch; git will also update the
+    // working tree so the on-disk state stays consistent with HEAD.
+    await git.addConfig('receive.denyCurrentBranch', 'updateInstead');
     await git.checkout(['-b', defaultBranch]);
 
     if (initReadme) {
@@ -179,6 +182,9 @@ export class GitService {
 
     // Create local tracking branches for every remote branch
     const repoGit = this.getGit(repoPath);
+    // Allow pushes to the checked-out branch; git will also update the
+    // working tree so the on-disk state stays consistent with HEAD.
+    await repoGit.addConfig('receive.denyCurrentBranch', 'updateInstead');
     const remoteRefs = await repoGit.branch(['-r']);
     for (const remoteBranch of remoteRefs.all) {
       if (remoteBranch.includes('HEAD')) continue;
