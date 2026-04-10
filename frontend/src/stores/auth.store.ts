@@ -7,8 +7,10 @@ interface AuthState {
   refreshToken: string | null;
   user: User | null;
   isAuthenticated: boolean;
+  isInitialized: boolean;
   setTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: User) => void;
+  setInitialized: () => void;
   logout: () => void;
 }
 
@@ -19,18 +21,26 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       user: null,
       isAuthenticated: false,
+      isInitialized: false,
       setTokens: (accessToken, refreshToken) =>
         set({ accessToken, refreshToken, isAuthenticated: true }),
       setUser: (user) => set({ user }),
+      setInitialized: () => set({ isInitialized: true }),
       logout: () =>
-        set({ accessToken: null, refreshToken: null, user: null, isAuthenticated: false }),
+        set({ accessToken: null, refreshToken: null, user: null, isAuthenticated: false, isInitialized: true }),
     }),
     {
       name: 'spectragit-auth',
       partialize: (state) => ({
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Mark as initialized after rehydration from localStorage
+        if (state) state.isInitialized = false;
+      },
     },
   ),
 );
