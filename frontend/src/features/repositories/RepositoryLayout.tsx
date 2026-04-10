@@ -1,4 +1,4 @@
-import { Outlet, useParams } from 'react-router-dom';
+import { Outlet, useParams, useLocation } from 'react-router-dom';
 import { useRepository } from '@/hooks/useRepositories';
 import { RepoHeader } from '@/components/layout/RepoHeader';
 import { RepoTabs } from '@/components/layout/RepoTabs';
@@ -8,6 +8,7 @@ import { Alert } from '@/components/ui/alert';
 
 export default function RepositoryLayout() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
+  const location = useLocation();
   const { data: repository, isLoading, error } = useRepository(owner!, repo!);
 
   if (isLoading) return <PageLoader />;
@@ -20,15 +21,17 @@ export default function RepositoryLayout() {
     );
   }
 
+  const isSettings = location.pathname.endsWith('/settings');
+
   return (
     <div className="space-y-4">
       <RepoHeader repo={repository} />
       <RepoTabs />
-      <div className="grid grid-cols-1 gap-8 pt-2 lg:grid-cols-[1fr_280px]">
+      <div className={`grid grid-cols-1 gap-8 pt-2 ${!isSettings ? 'lg:grid-cols-[1fr_280px]' : ''}`}>
         <div className="min-w-0">
           <Outlet context={{ repository }} />
         </div>
-        <RepoSidebar repo={repository} />
+        {!isSettings && <RepoSidebar repo={repository} />}
       </div>
     </div>
   );

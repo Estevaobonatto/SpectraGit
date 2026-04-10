@@ -1,5 +1,5 @@
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { Code2, CircleDot, GitPullRequest, GitCommit, GitBranch, Activity, Settings } from 'lucide-react';
+import { Code2, CircleDot, GitPullRequest, GitCommit, GitBranch, Tag, Package, Activity, Settings } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
@@ -9,6 +9,8 @@ const tabs = [
   { label: 'Pull Requests', icon: GitPullRequest, path: '/pulls' },
   { label: 'Commits', icon: GitCommit, path: '/commits' },
   { label: 'Branches', icon: GitBranch, path: '/branches' },
+  { label: 'Tags', icon: Tag, path: '/tags' },
+  { label: 'Releases', icon: Package, path: '/releases' },
   { label: 'Activity', icon: Activity, path: '/activity' },
   { label: 'Settings', icon: Settings, path: '/settings' },
 ];

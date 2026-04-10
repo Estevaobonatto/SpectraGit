@@ -518,6 +518,35 @@ export class GitService {
     }
   }
 
+  async deleteTag(ownerName: string, repoSlug: string, tagName: string): Promise<void> {
+    const repoPath = this.getRepoPath(ownerName, repoSlug);
+    const git = this.getGit(repoPath);
+    await git.tag(['-d', tagName]);
+  }
+
+  async getTagDetail(
+    ownerName: string,
+    repoSlug: string,
+    tagName: string,
+  ): Promise<{ commitSha: string; message: string | null; taggerName: string | null; taggerDate: string | null }> {
+    const repoPath = this.getRepoPath(ownerName, repoSlug);
+    const git = this.getGit(repoPath);
+    try {
+      const raw = await git.raw(['for-each-ref', `refs/tags/${tagName}`, '--format=%(objectname)%0a%(*objectname)%0a%(contents)%0a%(taggername)%0a%(taggerdate:iso)']);
+      const lines = raw.trim().split('\n');
+      const dereferenced = lines[1] || lines[0];
+      const commitSha = dereferenced || lines[0];
+      return {
+        commitSha: commitSha.substring(0, 40),
+        message: lines[2] || null,
+        taggerName: lines[3] || null,
+        taggerDate: lines[4] || null,
+      };
+    } catch {
+      return { commitSha: '', message: null, taggerName: null, taggerDate: null };
+    }
+  }
+
   async getHeadCommitSha(
     ownerName: string,
     repoSlug: string,

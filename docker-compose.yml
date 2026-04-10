@@ -64,6 +64,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
     volumes:
       - git_storage:/data/repositories
+      - release_assets:/data/release-assets
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,3 +75,4 @@ volumes:
   postgres_data:
   redis_data:
   git_storage:
+  release_assets:

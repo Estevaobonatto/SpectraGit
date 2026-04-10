@@ -78,6 +78,37 @@ export interface Branch {
   updatedAt: string;
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+  commitSha: string;
+  message: string | null;
+  release?: { id: string; name: string } | null;
+  createdAt: string;
+}
+
+export interface Release {
+  id: string;
+  name: string;
+  body: string | null;
+  targetBranch: string;
+  isDraft: boolean;
+  isPrerelease: boolean;
+  tag: Tag;
+  author?: User;
+  assets: ReleaseAsset[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReleaseAsset {
+  id: string;
+  fileName: string;
+  contentType: string;
+  size: number;
+  createdAt: string;
+}
+
 export interface Commit {
   sha: string;
   message: string;

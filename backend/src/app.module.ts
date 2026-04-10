@@ -10,6 +10,8 @@ import { RepositoriesModule } from './modules/repositories/repositories.module';
 import { GitModule } from './modules/git/git.module';
 import { CommitsModule } from './modules/commits/commits.module';
 import { BranchesModule } from './modules/branches/branches.module';
+import { TagsModule } from './modules/tags/tags.module';
+import { ReleasesModule } from './modules/releases/releases.module';
 import { IssuesModule } from './modules/issues/issues.module';
 import { PullRequestsModule } from './modules/pull-requests/pull-requests.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
@@ -51,6 +53,8 @@ import { ActivityModule } from './modules/activity/activity.module';
     GitModule,
     CommitsModule,
     BranchesModule,
+    TagsModule,
+    ReleasesModule,
     IssuesModule,
     PullRequestsModule,
     ReviewsModule,

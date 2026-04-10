@@ -15,6 +15,9 @@ const FileViewerPage = lazy(() => import('@/features/repositories/FileViewerPage
 const CommitListPage = lazy(() => import('@/features/commits/CommitListPage'));
 const CommitDetailPage = lazy(() => import('@/features/commits/CommitDetailPage'));
 const BranchListPage = lazy(() => import('@/features/branches/BranchListPage'));
+const TagListPage = lazy(() => import('@/features/tags/TagListPage'));
+const ReleaseListPage = lazy(() => import('@/features/releases/ReleaseListPage'));
+const ReleaseDetailPage = lazy(() => import('@/features/releases/ReleaseDetailPage'));
 const IssueListPage = lazy(() => import('@/features/issues/IssueListPage'));
 const IssueDetailPage = lazy(() => import('@/features/issues/IssueDetailPage'));
 const IssueNewPage = lazy(() => import('@/features/issues/IssueNewPage'));
@@ -166,6 +169,18 @@ export const router = createBrowserRouter([
           {
             path: 'branches',
             element: <SuspenseWrapper><BranchListPage /></SuspenseWrapper>,
+          },
+          {
+            path: 'tags',
+            element: <SuspenseWrapper><TagListPage /></SuspenseWrapper>,
+          },
+          {
+            path: 'releases',
+            element: <SuspenseWrapper><ReleaseListPage /></SuspenseWrapper>,
+          },
+          {
+            path: 'releases/:releaseId',
+            element: <SuspenseWrapper><ReleaseDetailPage /></SuspenseWrapper>,
           },
           {
             path: 'activity',

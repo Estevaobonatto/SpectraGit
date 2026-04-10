@@ -12,10 +12,13 @@ import {
   Users,
   CircleDot,
   GitPullRequest,
+  Package,
 } from 'lucide-react';
 import { useRepoStats } from '@/hooks/useRepositories';
+import { useReleases } from '@/hooks/useReleases';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import type { Repository } from '@/types';
 
@@ -43,6 +46,12 @@ interface RepoSidebarProps {
 export function RepoSidebar({ repo }: RepoSidebarProps) {
   const { owner } = useParams<{ owner: string }>();
   const { data: stats, isLoading } = useRepoStats(owner!, repo.slug);
+  const { data: releases } = useReleases(owner!, repo.slug);
+
+  const latestRelease = useMemo(() => {
+    if (!releases || releases.length === 0) return null;
+    return releases.find((r) => !r.isDraft) ?? null;
+  }, [releases]);
 
   const languageEntries = useMemo(() => {
     if (!stats?.languages) return [];
@@ -151,6 +160,33 @@ export function RepoSidebar({ repo }: RepoSidebarProps) {
                 <StatItem icon={Users} label="Contributors" value={stats?.contributors?.length ?? 0} />
               </div>
             </div>
+
+            {/* Latest Release */}
+            {latestRelease && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+                  Latest Release
+                </h4>
+                <Link
+                  to={`/${owner}/${repo.slug}/releases/${latestRelease.id}`}
+                  className="flex items-start gap-2.5 rounded-[var(--radius-sm)] border border-border p-2.5 hover:bg-surface-hover transition-colors group"
+                >
+                  <Package className="h-4 w-4 text-primary-500 shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-text-primary group-hover:text-primary-500 transition-colors truncate">
+                      {latestRelease.name}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <Tag className="h-3 w-3 text-text-tertiary" />
+                      <code className="text-xs text-text-tertiary">{latestRelease.tag.name}</code>
+                      {latestRelease.isPrerelease && (
+                        <Badge variant="warning" className="text-[10px] px-1 py-0">pre</Badge>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            )}
 
             {/* Language bar (compact) */}
             {languageEntries.length > 0 && (

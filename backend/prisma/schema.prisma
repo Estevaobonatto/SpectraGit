@@ -43,6 +43,7 @@ model User {
   watches        RepositoryWatch[]
   personalAccessTokens PersonalAccessToken[]
   activityEvents       ActivityEvent[]
+  authoredReleases     Release[]      @relation("ReleaseAuthor")
 
   @@map("users")
 }
@@ -206,6 +207,7 @@ model Repository {
   pulses         RepositoryPulse[]
   watches        RepositoryWatch[]
   activityEvents ActivityEvent[]
+  releases       Release[]
 
   @@unique([ownerUserId, slug])
   @@unique([ownerOrgId, slug])
@@ -268,9 +270,49 @@ model Tag {
   createdAt    DateTime @default(now()) @map("created_at")
 
   repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  release    Release?
 
   @@unique([repositoryId, name])
   @@map("tags")
+}
+
+// ─── Releases ────────────────────────────────────────────────
+
+model Release {
+  id           String   @id @default(uuid()) @db.Uuid
+  repositoryId String   @map("repository_id") @db.Uuid
+  tagId        String   @unique @map("tag_id") @db.Uuid
+  name         String   @db.VarChar(255)
+  body         String?  @db.Text
+  targetBranch String   @default("main") @map("target_branch") @db.VarChar(255)
+  isDraft      Boolean  @default(false) @map("is_draft")
+  isPrerelease Boolean  @default(false) @map("is_prerelease")
+  authorId     String   @map("author_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  repository Repository     @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  tag        Tag             @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  author     User            @relation("ReleaseAuthor", fields: [authorId], references: [id])
+  assets     ReleaseAsset[]
+
+  @@index([repositoryId])
+  @@map("releases")
+}
+
+model ReleaseAsset {
+  id          String   @id @default(uuid()) @db.Uuid
+  releaseId   String   @map("release_id") @db.Uuid
+  fileName    String   @map("file_name") @db.VarChar(255)
+  filePath    String   @map("file_path") @db.VarChar(1000)
+  contentType String   @map("content_type") @db.VarChar(255)
+  size        Int
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@index([releaseId])
+  @@map("release_assets")
 }
 
 // ─── Issues ──────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { Repository, FileTreeItem, FileContent, Branch, Commit, CommitDetail, DiffFile, RepoStats } from '@/types';
+import type { Repository, FileTreeItem, FileContent, Branch, Commit, CommitDetail, DiffFile, RepoStats, Tag, Release, ReleaseAsset } from '@/types';
 
 export const repositoriesService = {
   list: (params?: { page?: number; limit?: number }) =>
@@ -77,4 +77,66 @@ export const commitsService = {
     api
       .get<{ data: { commits: Commit[]; diff: DiffFile[] } }>(`/repos/${owner}/${repo}/compare/${base}...${head}`)
       .then((r) => r.data.data),
+};
+
+export const tagsService = {
+  list: (owner: string, repo: string) =>
+    api.get<{ data: Tag[] }>(`/repos/${owner}/${repo}/tags`).then((r) => r.data.data),
+
+  get: (owner: string, repo: string, tag: string) =>
+    api.get<{ data: Tag }>(`/repos/${owner}/${repo}/tags/${tag}`).then((r) => r.data.data),
+
+  create: (owner: string, repo: string, data: { name: string; commitSha: string; message?: string }) =>
+    api.post<{ data: Tag }>(`/repos/${owner}/${repo}/tags`, data).then((r) => r.data.data),
+
+  delete: (owner: string, repo: string, tag: string) =>
+    api.delete(`/repos/${owner}/${repo}/tags/${tag}`),
+};
+
+export const releasesService = {
+  list: (owner: string, repo: string) =>
+    api.get<{ data: Release[] }>(`/repos/${owner}/${repo}/releases`).then((r) => r.data.data),
+
+  get: (owner: string, repo: string, releaseId: string) =>
+    api.get<{ data: Release }>(`/repos/${owner}/${repo}/releases/${releaseId}`).then((r) => r.data.data),
+
+  create: (owner: string, repo: string, data: {
+    tagName: string;
+    name: string;
+    body?: string;
+    targetBranch?: string;
+    isDraft?: boolean;
+    isPrerelease?: boolean;
+    commitSha?: string;
+    tagMessage?: string;
+  }) =>
+    api.post<{ data: Release }>(`/repos/${owner}/${repo}/releases`, data).then((r) => r.data.data),
+
+  update: (owner: string, repo: string, releaseId: string, data: {
+    name?: string;
+    body?: string;
+    targetBranch?: string;
+    isDraft?: boolean;
+    isPrerelease?: boolean;
+  }) =>
+    api.put<{ data: Release }>(`/repos/${owner}/${repo}/releases/${releaseId}`, data).then((r) => r.data.data),
+
+  delete: (owner: string, repo: string, releaseId: string) =>
+    api.delete(`/repos/${owner}/${repo}/releases/${releaseId}`),
+
+  uploadAssets: (owner: string, repo: string, releaseId: string, files: File[]) => {
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    return api.post<{ data: ReleaseAsset[] }>(
+      `/repos/${owner}/${repo}/releases/${releaseId}/assets`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    ).then((r) => r.data.data);
+  },
+
+  getAssetDownloadUrl: (owner: string, repo: string, releaseId: string, assetId: string) =>
+    `${api.defaults.baseURL}/repos/${owner}/${repo}/releases/${releaseId}/assets/${assetId}/download`,
+
+  deleteAsset: (owner: string, repo: string, releaseId: string, assetId: string) =>
+    api.delete(`/repos/${owner}/${repo}/releases/${releaseId}/assets/${assetId}`),
 };
