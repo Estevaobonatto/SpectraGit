@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { PullRequest } from '@/types';
+import { motion } from 'motion/react';
 
 function StatusBadge({ status }: { status: PullRequest['status'] }) {
   const map = {
@@ -78,7 +79,12 @@ export default function PullRequestDetailPage() {
   const diff = diffData ?? [];
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       {/* Header */}
       <div>
         <div className="flex items-start gap-3">
@@ -246,6 +252,6 @@ export default function PullRequestDetailPage() {
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

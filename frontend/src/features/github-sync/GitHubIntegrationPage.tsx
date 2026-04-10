@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { PageLoader, Spinner } from '@/components/ui/spinner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { GitHubRepo } from '@/types';
+import { motion } from 'motion/react';
 
 export default function GitHubIntegrationPage() {
   const queryClient = useQueryClient();
@@ -105,8 +106,13 @@ export default function GitHubIntegrationPage() {
           <p className="text-sm text-text-tertiary">No repositories found on your GitHub account.</p>
         ) : (
           <div className="divide-y divide-border rounded-[var(--radius-md)] border border-border">
-            {repos.map((r: GitHubRepo) => (
-              <div key={r.fullName} className="flex items-center gap-3 p-4">
+            {repos.map((r: GitHubRepo, index: number) => (
+              <motion.div
+                key={r.fullName}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                className="flex items-center gap-3 p-4">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm text-text-primary">{r.fullName}</p>
                   {r.description && <p className="text-xs text-text-secondary line-clamp-1">{r.description}</p>}
@@ -131,7 +137,7 @@ export default function GitHubIntegrationPage() {
                     Import
                   </Button>
                 )}
-              </div>
+              </motion.div>
             ))}
           </div>
         )}

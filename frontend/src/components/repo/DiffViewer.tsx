@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronRight, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { motion, AnimatePresence } from 'motion/react';
 import type { DiffFile, DiffHunk, DiffLine } from '@/types';
 
 interface DiffViewerProps {
@@ -57,6 +58,13 @@ function DiffFileView({ file, onLineComment }: { file: DiffFile; onLineComment?:
       </button>
 
       {!collapsed && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+          className="overflow-hidden"
+        >
         <div className="overflow-x-auto">
           <table className="w-full text-xs font-mono">
             <tbody>
@@ -66,6 +74,7 @@ function DiffFileView({ file, onLineComment }: { file: DiffFile; onLineComment?:
             </tbody>
           </table>
         </div>
+        </motion.div>
       )}
     </div>
   );

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageLoader } from '@/components/ui/spinner';
 import { Alert } from '@/components/ui/alert';
+import { motion } from 'motion/react';
 
 export default function RepositorySettingsPage() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -51,7 +52,12 @@ export default function RepositorySettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <motion.div
+      className="mx-auto max-w-2xl space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       <h1 className="flex items-center gap-2 text-2xl font-bold text-text-primary">
         <Settings className="h-6 w-6" />
         Repository Settings
@@ -157,6 +163,6 @@ export default function RepositorySettingsPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }

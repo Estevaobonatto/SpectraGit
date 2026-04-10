@@ -1,4 +1,5 @@
 import { AlertCircle, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 interface AlertProps {
@@ -19,12 +20,17 @@ export function Alert({ variant = 'info', title, children, className }: AlertPro
   const v = variants[variant];
   const Icon = v.icon;
   return (
-    <div className={cn('flex gap-3 rounded-[var(--radius-md)] border p-4', v.bg, v.border, v.text, className)}>
+    <motion.div
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      className={cn('flex gap-3 rounded-[var(--radius-md)] border p-4', v.bg, v.border, v.text, className)}
+    >
       <Icon className={cn('h-5 w-5 mt-0.5 shrink-0', v.iconColor)} />
       <div className="flex-1 text-sm">
         {title && <p className="font-semibold mb-0.5">{title}</p>}
         {children}
       </div>
-    </div>
+    </motion.div>
   );
 }

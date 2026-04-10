@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ExternalLink,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { useUIStore } from '@/stores/ui.store';
 import { Button } from '@/components/ui/button';
@@ -36,21 +37,40 @@ export function Sidebar() {
     return location.pathname.startsWith(path);
   };
 
-  const renderItem = (item: (typeof navItems)[0]) => {
+  const renderItem = (item: (typeof navItems)[0], index: number) => {
     const active = isActive(item.to);
     const link = (
       <Link
         to={item.to}
         className={cn(
-          'flex items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-sm font-medium transition-colors',
+          'relative flex items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-sm font-medium transition-colors',
           active
-            ? 'bg-primary-50 text-primary-700'
+            ? 'text-primary-700'
             : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
           !sidebarOpen && 'justify-center px-2',
         )}
       >
-        <item.icon className="h-5 w-5 shrink-0" />
-        {sidebarOpen && <span>{item.label}</span>}
+        {active && (
+          <motion.div
+            layoutId="sidebar-active"
+            className="absolute inset-0 rounded-[var(--radius-sm)] bg-primary-50"
+            transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+          />
+        )}
+        <item.icon className="relative z-10 h-5 w-5 shrink-0" />
+        <AnimatePresence>
+          {sidebarOpen && (
+            <motion.span
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: 'auto' }}
+              exit={{ opacity: 0, width: 0 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+              className="relative z-10 overflow-hidden whitespace-nowrap"
+            >
+              {item.label}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </Link>
     );
 
@@ -74,19 +94,28 @@ export function Sidebar() {
       )}
     >
       <div className={cn('flex h-14 items-center border-b border-border px-4', !sidebarOpen && 'justify-center px-2')}>
-        {sidebarOpen && (
-          <Link to="/" className="flex items-center gap-2 text-lg font-bold text-primary-600">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] bg-primary-500 text-white text-sm font-bold">
-              S
-            </div>
-            SpectraGit
-          </Link>
-        )}
-        {!sidebarOpen && (
-          <Link to="/" className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] bg-primary-500 text-white text-sm font-bold">
+        <Link to="/" className="flex items-center gap-2 text-lg font-bold text-primary-600">
+          <motion.div
+            whileHover={{ scale: 1.05, rotate: 2 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] bg-primary-500 text-white text-sm font-bold"
+          >
             S
-          </Link>
-        )}
+          </motion.div>
+          <AnimatePresence>
+            {sidebarOpen && (
+              <motion.span
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.2 }}
+              >
+                SpectraGit
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </Link>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4 scrollbar-thin">

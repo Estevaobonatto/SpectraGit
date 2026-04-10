@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageLoader } from '@/components/ui/spinner';
 import { cn, formatRelativeTime } from '@/lib/utils';
+import { motion } from 'motion/react';
 
 const statusIcons = {
   OPEN: <GitPullRequest className="h-4 w-4 text-success" />,
@@ -72,9 +73,15 @@ export default function PullRequestListPage() {
         />
       ) : (
         <div className="divide-y divide-border rounded-[var(--radius-md)] border border-border">
-          {prs.map((pr) => (
-            <Link
+          {prs.map((pr, index) => (
+            <motion.div
               key={pr.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+            <Link
+              
               to={`/${owner}/${repo}/pulls/${pr.number}`}
               className="flex items-start gap-3 p-4 transition-colors hover:bg-surface-hover"
             >
@@ -105,6 +112,7 @@ export default function PullRequestListPage() {
                 <Avatar src={pr.author.avatarUrl} alt={pr.author.username} size="sm" />
               )}
             </Link>
+            </motion.div>
           ))}
         </div>
       )}

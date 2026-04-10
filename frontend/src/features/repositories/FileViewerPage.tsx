@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { PageLoader } from '@/components/ui/spinner';
 import { Alert } from '@/components/ui/alert';
 import type { Repository } from '@/types';
+import { motion } from 'motion/react';
 
 export default function FileViewerPage() {
   const { owner, repo, branch, '*': filePath } = useParams();
@@ -28,7 +29,12 @@ export default function FileViewerPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <motion.div
+      className="space-y-4"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       <div className="flex items-center gap-2 text-sm">
         <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
           <Link to={`/${owner}/${repo}/tree/${currentBranch}/${pathSegments.slice(0, -1).join('/')}`}>
@@ -86,7 +92,7 @@ export default function FileViewerPage() {
           </table>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

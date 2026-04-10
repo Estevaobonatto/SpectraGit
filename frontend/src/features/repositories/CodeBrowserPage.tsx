@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { InlineLoader } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
+import { motion } from 'motion/react';
 import type { Repository, FileTreeItem } from '@/types';
 
 export default function CodeBrowserPage() {
@@ -154,8 +155,15 @@ export default function CodeBrowserPage() {
         />
       ) : (
         <div className={cn('divide-y divide-border rounded-b-[var(--radius-md)] border border-border', !lastCommit && 'rounded-t-[var(--radius-md)]')}>
-          {sortedTree.map((item) => (
-            <FileRow key={item.path} item={item} owner={owner!} repo={repo!} branch={currentBranch} />
+          {sortedTree.map((item, index) => (
+            <motion.div
+              key={item.path}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.02, duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <FileRow item={item} owner={owner!} repo={repo!} branch={currentBranch} />
+            </motion.div>
           ))}
         </div>
       )}

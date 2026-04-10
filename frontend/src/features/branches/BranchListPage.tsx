@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { motion } from 'motion/react';
 import type { Repository } from '@/types';
 
 export default function BranchListPage() {
@@ -85,8 +86,13 @@ export default function BranchListPage() {
         <EmptyState icon={GitBranch} title="No branches" />
       ) : (
         <div className="divide-y divide-border rounded-[var(--radius-md)] border border-border">
-          {branches.map((branch) => (
-            <div key={branch.id} className="flex items-center justify-between p-4">
+          {branches.map((branch, index) => (
+            <motion.div
+              key={branch.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              className="flex items-center justify-between p-4">
               <div className="flex items-center gap-2">
                 <GitBranch className="h-4 w-4 text-text-tertiary" />
                 <Link
@@ -114,7 +120,7 @@ export default function BranchListPage() {
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               )}
-            </div>
+            </motion.div>
           ))}
         </div>
       )}

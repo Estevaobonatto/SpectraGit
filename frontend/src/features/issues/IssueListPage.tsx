@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CircleDot, CircleCheck, Plus, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useIssues } from '@/hooks/useIssues';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,12 +74,17 @@ export default function IssueListPage() {
         />
       ) : (
         <div className="divide-y divide-border rounded-[var(--radius-md)] border border-border">
-          {issues.map((issue) => (
-            <Link
+          {issues.map((issue, index) => (
+            <motion.div
               key={issue.id}
-              to={`/${owner}/${repo}/issues/${issue.number}`}
-              className="flex items-start gap-3 p-4 transition-colors hover:bg-surface-hover"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
             >
+              <Link
+                to={`/${owner}/${repo}/issues/${issue.number}`}
+                className="flex items-start gap-3 p-4 transition-colors hover:bg-surface-hover"
+              >
               {issue.status === 'OPEN' ? (
                 <CircleDot className="mt-0.5 h-4 w-4 shrink-0 text-success" />
               ) : (
@@ -109,6 +115,7 @@ export default function IssueListPage() {
                 <Avatar src={issue.assignee.avatarUrl} alt={issue.assignee.username} size="sm" />
               )}
             </Link>
+            </motion.div>
           ))}
         </div>
       )}

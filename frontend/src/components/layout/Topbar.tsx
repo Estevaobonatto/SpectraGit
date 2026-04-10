@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { motion } from 'motion/react';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -93,9 +94,15 @@ export function Topbar() {
         >
           <Bell className="h-4 w-4" />
           {(unreadCount ?? 0) > 0 && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+            >
             <Badge className="absolute -right-1 -top-1 h-4 min-w-4 px-1 text-[10px] bg-error text-white border-0">
               {unreadCount! > 99 ? '99+' : unreadCount}
             </Badge>
+            </motion.div>
           )}
         </Button>
 

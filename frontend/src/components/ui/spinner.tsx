@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface SpinnerProps {
   className?: string;
@@ -14,17 +15,32 @@ export function Spinner({ className, size = 'md' }: SpinnerProps) {
 
 export function PageLoader() {
   return (
-    <div className="flex h-[60vh] items-center justify-center">
-      <Spinner size="lg" />
-    </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="flex h-[60vh] items-center justify-center"
+    >
+      <motion.div
+        animate={{ scale: [1, 1.1, 1] }}
+        transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+      >
+        <Spinner size="lg" />
+      </motion.div>
+    </motion.div>
   );
 }
 
 export function InlineLoader({ text = 'Loading...' }: { text?: string }) {
   return (
-    <div className="flex items-center gap-2 text-sm text-text-secondary py-4">
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="flex items-center gap-2 text-sm text-text-secondary py-4"
+    >
       <Spinner size="sm" />
       <span>{text}</span>
-    </div>
+    </motion.div>
   );
 }

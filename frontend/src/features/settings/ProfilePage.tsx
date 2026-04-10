@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageLoader } from '@/components/ui/spinner';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
+import { motion } from 'motion/react';
 
 export default function ProfilePage() {
   const { owner } = useParams();
@@ -19,7 +20,12 @@ export default function ProfilePage() {
   const repoList = repos?.data ?? [];
 
   return (
-    <div className="flex gap-8">
+    <motion.div
+      className="flex gap-8"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       {/* Profile sidebar */}
       <aside className="w-72 shrink-0 space-y-4">
         <Avatar src={user.avatarUrl} alt={user.username} size="lg" className="h-64 w-64 rounded-full" />
@@ -61,9 +67,15 @@ export default function ProfilePage() {
           <EmptyState icon={BookMarked} title="No repositories yet" description="This user hasn't created any repositories." />
         ) : (
           <div className="space-y-3">
-            {repoList.map((r) => (
-              <Link
+            {repoList.map((r, index) => (
+              <motion.div
                 key={r.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              >
+              <Link
+                
                 to={`/${owner}/${r.name}`}
                 className="block rounded-[var(--radius-md)] border border-border p-4 transition-colors hover:bg-surface-hover"
               >
@@ -77,10 +89,11 @@ export default function ProfilePage() {
                   <span>Updated {formatRelativeTime(r.updatedAt)}</span>
                 </div>
               </Link>
+              </motion.div>
             ))}
           </div>
         )}
       </main>
-    </div>
+    </motion.div>
   );
 }

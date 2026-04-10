@@ -5,6 +5,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageLoader } from '@/components/ui/spinner';
 import { formatRelativeTime } from '@/lib/utils';
+import { motion } from 'motion/react';
 import type { Repository } from '@/types';
 
 export default function CommitListPage() {
@@ -22,8 +23,13 @@ export default function CommitListPage() {
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">Commits</h2>
       <div className="divide-y divide-border rounded-[var(--radius-md)] border border-border">
-        {commits.map((commit) => (
-          <div key={commit.sha} className="flex items-start gap-3 p-4">
+        {commits.map((commit, index) => (
+          <motion.div
+            key={commit.sha}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            className="flex items-start gap-3 p-4">
             <Avatar alt={commit.authorName} size="sm" />
             <div className="flex-1 min-w-0">
               <Link
@@ -43,7 +49,7 @@ export default function CommitListPage() {
             >
               {commit.sha.slice(0, 7)}
             </Link>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>

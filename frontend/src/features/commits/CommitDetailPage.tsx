@@ -8,6 +8,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { PageLoader } from '@/components/ui/spinner';
 import { Alert } from '@/components/ui/alert';
 import { formatDate } from '@/lib/utils';
+import { motion } from 'motion/react';
 
 export default function CommitDetailPage() {
   const { owner, repo, sha } = useParams();
@@ -20,7 +21,12 @@ export default function CommitDetailPage() {
   const totalDeletions = commit.diff?.reduce((a, f) => a + f.deletions, 0) ?? 0;
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       <div className="flex items-start gap-3">
         <Button variant="ghost" size="icon" className="h-8 w-8 mt-0.5" asChild>
           <Link to={`/${owner}/${repo}/commits`}>
@@ -48,6 +54,6 @@ export default function CommitDetailPage() {
       {commit.diff && commit.diff.length > 0 && (
         <DiffViewer files={commit.diff} />
       )}
-    </div>
+    </motion.div>
   );
 }

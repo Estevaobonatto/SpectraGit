@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { PageLoader } from '@/components/ui/spinner';
 import { Alert } from '@/components/ui/alert';
 import { formatRelativeTime } from '@/lib/utils';
+import { motion } from 'motion/react';
 
 export default function IssueDetailPage() {
   const { owner, repo, number } = useParams();
@@ -38,7 +39,12 @@ export default function IssueDetailPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       <div className="flex items-start gap-3">
         <Button variant="ghost" size="icon" className="h-8 w-8 mt-0.5" asChild>
           <Link to={`/${owner}/${repo}/issues`}>
@@ -131,6 +137,6 @@ export default function IssueDetailPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, Plus, GitFork, Lock, Globe } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useAuthStore } from '@/stores/auth.store';
 import { useRepositories } from '@/hooks/useRepositories';
 import { Button } from '@/components/ui/button';
@@ -63,12 +64,17 @@ export default function DashboardPage() {
             />
           ) : (
             <div className="divide-y divide-border">
-              {repos.map((repo) => (
-                <Link
+              {repos.map((repo, index) => (
+                <motion.div
                   key={repo.id}
-                  to={`/${user?.username}/${repo.slug}`}
-                  className="flex items-center justify-between py-3 transition-colors hover:bg-surface-hover -mx-5 px-5 first:-mt-1"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
                 >
+                  <Link
+                    to={`/${user?.username}/${repo.slug}`}
+                    className="flex items-center justify-between py-3 transition-colors hover:bg-surface-hover -mx-5 px-5 first:-mt-1"
+                  >
                   <div className="flex items-center gap-3 min-w-0">
                     <BookOpen className="h-4 w-4 shrink-0 text-text-tertiary" />
                     <div className="min-w-0">
@@ -93,6 +99,7 @@ export default function DashboardPage() {
                     {formatRelativeTime(repo.updatedAt)}
                   </span>
                 </Link>
+                </motion.div>
               ))}
             </div>
           )}

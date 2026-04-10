@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageLoader } from '@/components/ui/spinner';
 import { cn, formatRelativeTime } from '@/lib/utils';
+import { motion } from 'motion/react';
 
 export default function NotificationsPage() {
   const { data: notifications, isLoading } = useNotifications();
@@ -53,9 +54,12 @@ export default function NotificationsPage() {
         />
       ) : (
         <div className="divide-y divide-border rounded-[var(--radius-md)] border border-border">
-          {items.map((n) => (
-            <div
+          {items.map((n, index) => (
+            <motion.div
               key={n.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
               className={cn(
                 'flex items-start gap-3 p-4 transition-colors',
                 !n.isRead && 'bg-primary-50/50',
@@ -89,7 +93,7 @@ export default function NotificationsPage() {
                   <Trash2 className="h-4 w-4 text-error" />
                 </Button>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}

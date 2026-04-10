@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageLoader } from '@/components/ui/spinner';
 import { formatRelativeTime } from '@/lib/utils';
+import { motion } from 'motion/react';
 
 export default function RepositoryListPage() {
   const { user } = useAuthStore();
@@ -61,9 +62,15 @@ export default function RepositoryListPage() {
         />
       ) : (
         <div className="divide-y divide-border rounded-[var(--radius-md)] border border-border">
-          {repos.map((repo) => (
-            <Link
+          {repos.map((repo, index) => (
+            <motion.div
               key={repo.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+            <Link
+              
               to={`/${user?.username}/${repo.slug}`}
               className="flex items-center justify-between p-4 transition-colors hover:bg-surface-hover"
             >
@@ -84,6 +91,7 @@ export default function RepositoryListPage() {
                 </div>
               </div>
             </Link>
+            </motion.div>
           ))}
         </div>
       )}

@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { PageLoader } from '@/components/ui/spinner';
+import { motion } from 'motion/react';
 
 export default function OrganizationDetailPage() {
   const { orgName } = useParams();
@@ -93,14 +94,19 @@ export default function OrganizationDetailPage() {
         <CardContent>
           {members && members.length > 0 ? (
             <div className="divide-y divide-border">
-              {members.map((m) => (
-                <div key={m.id} className="flex items-center gap-3 py-3">
+              {members.map((m, index) => (
+                <motion.div
+                  key={m.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="flex items-center gap-3 py-3">
                   <Avatar src={m.user?.avatarUrl} alt={m.user?.username ?? ''} size="sm" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm text-text-primary">{m.user?.username}</p>
                   </div>
                   <Badge variant={m.role === 'OWNER' ? 'default' : 'secondary'}>{m.role}</Badge>
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
@@ -120,14 +126,19 @@ export default function OrganizationDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="divide-y divide-border">
-              {teams.map((team) => (
-                <div key={team.id} className="flex items-center gap-3 py-3">
+              {teams.map((team, index) => (
+                <motion.div
+                  key={team.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="flex items-center gap-3 py-3">
                   <div className="flex-1">
                     <p className="font-medium text-sm text-text-primary">{team.name}</p>
                     {team.description && <p className="text-xs text-text-tertiary">{team.description}</p>}
                   </div>
                   <Badge variant="secondary">{team.name}</Badge>
-                </div>
+                </motion.div>
               ))}
             </div>
           </CardContent>

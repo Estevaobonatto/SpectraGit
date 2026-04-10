@@ -6,6 +6,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageLoader } from '@/components/ui/spinner';
+import { motion } from 'motion/react';
 
 export default function OrganizationListPage() {
   const { data: memberships, isLoading } = useMyOrganizations();
@@ -32,11 +33,17 @@ export default function OrganizationListPage() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {memberships.map((membership) => {
+          {memberships.map((membership, index) => {
             const org = membership.organization;
             return (
-              <Link
+              <motion.div
                 key={membership.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              >
+              <Link
+                
                 to={`/orgs/${org?.name ?? membership.id}`}
                 className="flex items-start gap-3 rounded-[var(--radius-md)] border border-border p-4 transition-colors hover:bg-surface-hover"
               >
@@ -50,6 +57,7 @@ export default function OrganizationListPage() {
                   <Badge variant="secondary" className="mt-2 text-[10px]">{membership.role}</Badge>
                 </div>
               </Link>
+              </motion.div>
             );
           })}
         </div>

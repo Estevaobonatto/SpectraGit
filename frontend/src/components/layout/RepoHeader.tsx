@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import { Eye, GitFork, Star, Lock, Globe } from 'lucide-react';
+import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,12 @@ export function RepoHeader({ repo, className }: RepoHeaderProps) {
   const { owner } = useParams<{ owner: string }>();
 
   return (
-    <div className={cn('flex flex-col gap-3 pb-4', className)}>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+      className={cn('flex flex-col gap-3 pb-4', className)}
+    >
       <div className="flex items-center gap-2 text-lg">
         <Link to={`/${owner}`} className="font-medium text-primary-500 hover:underline">
           {owner}
@@ -37,25 +43,31 @@ export function RepoHeader({ repo, className }: RepoHeaderProps) {
       )}
 
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Star className="h-3.5 w-3.5" />
-          Star
-          {repo.starCount !== undefined && (
-            <span className="ml-1 text-text-secondary">{repo.starCount}</span>
-          )}
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <GitFork className="h-3.5 w-3.5" />
-          Fork
-          {repo.forkCount !== undefined && (
-            <span className="ml-1 text-text-secondary">{repo.forkCount}</span>
-          )}
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Eye className="h-3.5 w-3.5" />
-          Watch
-        </Button>
+        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Star className="h-3.5 w-3.5" />
+            Star
+            {repo.starCount !== undefined && (
+              <span className="ml-1 text-text-secondary">{repo.starCount}</span>
+            )}
+          </Button>
+        </motion.div>
+        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <GitFork className="h-3.5 w-3.5" />
+            Fork
+            {repo.forkCount !== undefined && (
+              <span className="ml-1 text-text-secondary">{repo.forkCount}</span>
+            )}
+          </Button>
+        </motion.div>
+        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Eye className="h-3.5 w-3.5" />
+            Watch
+          </Button>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

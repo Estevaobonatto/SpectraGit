@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Avatar } from '@/components/ui/avatar';
 import { PageLoader } from '@/components/ui/spinner';
 import { formatRelativeTime } from '@/lib/utils';
+import { motion } from 'motion/react';
 
 export default function SettingsPage() {
   const { data: user, isLoading } = useCurrentUser();
@@ -57,7 +58,12 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <motion.div
+      className="mx-auto max-w-2xl space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       <h1 className="flex items-center gap-2 text-2xl font-bold text-text-primary">
         <Settings className="h-6 w-6" />
         Settings
@@ -171,8 +177,13 @@ export default function SettingsPage() {
         <CardContent>
           {sshKeys && sshKeys.length > 0 ? (
             <div className="divide-y divide-border">
-              {sshKeys.map((key) => (
-                <div key={key.id} className="flex items-center gap-3 py-3">
+              {sshKeys.map((key, index) => (
+                <motion.div
+                  key={key.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04, duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="flex items-center gap-3 py-3">
                   <Key className="h-4 w-4 text-text-tertiary" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{key.title}</p>
@@ -187,7 +198,7 @@ export default function SettingsPage() {
                   >
                     <Trash2 className="h-4 w-4 text-error" />
                   </Button>
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
@@ -195,6 +206,6 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }
