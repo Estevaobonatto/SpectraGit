@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link, useParams, useOutletContext } from 'react-router-dom';
-import { File, Folder, ChevronDown, GitBranch, History, Copy, Download, BookOpen } from 'lucide-react';
+import { File, Folder, ChevronDown, GitBranch, History, Copy, Download, BookOpen, KeyRound, Terminal, Check, Lock } from 'lucide-react';
 import { useFileTree, useFileContent } from '@/hooks/useRepositories';
 import { useBranches } from '@/hooks/useBranches';
 import { useCommits } from '@/hooks/useBranches';
@@ -13,6 +13,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '@/components/ui/popover';
 import { InlineLoader } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { MarkdownRenderer } from '@/components/repo/MarkdownRenderer';
@@ -29,14 +34,29 @@ export default function CodeBrowserPage() {
   const { data: tree, isLoading } = useFileTree(owner!, repo!, currentBranch, currentPath || undefined);
   const { data: commits } = useCommits(owner!, repo!, { branch: currentBranch, limit: 1 });
   const [copiedClone, setCopiedClone] = useState(false);
+  const [copiedCmd, setCopiedCmd] = useState(false);
+  const [cloneTab, setCloneTab] = useState<'https' | 'ssh'>('https');
 
   const lastCommit = commits?.[0];
-  const cloneUrl = `${window.location.origin}/${owner}/${repo}.git`;
+  const httpsCloneUrl = `${window.location.origin}/${owner}/${repo}.git`;
+  const sshPort = window.location.hostname === 'localhost' ? 2222 : 22;
+  const sshHost = window.location.hostname;
+  const sshCloneUrl = sshPort === 22
+    ? `git@${sshHost}:${owner}/${repo}.git`
+    : `ssh://git@${sshHost}:${sshPort}/${owner}/${repo}.git`;
+  const cloneUrl = cloneTab === 'ssh' ? sshCloneUrl : httpsCloneUrl;
+  const cloneCmd = `git clone ${cloneUrl}`;
 
   const handleCopyClone = () => {
     navigator.clipboard.writeText(cloneUrl);
     setCopiedClone(true);
     setTimeout(() => setCopiedClone(false), 2000);
+  };
+
+  const handleCopyCmd = () => {
+    navigator.clipboard.writeText(cloneCmd);
+    setCopiedCmd(true);
+    setTimeout(() => setCopiedCmd(false), 2000);
   };
 
   const sortedTree = [...(tree ?? [])].sort((a, b) => {
@@ -131,29 +151,105 @@ export default function CodeBrowserPage() {
               Commits
             </Link>
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <Popover>
+            <PopoverTrigger asChild>
               <Button variant="default" size="sm" className="gap-1.5">
                 <Download className="h-3.5 w-3.5" />
                 Clone
                 <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <div className="p-3 space-y-2">
-                <p className="text-sm font-medium">Clone with HTTPS</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 rounded bg-background px-3 py-1.5 text-xs border border-border truncate">
-                    {cloneUrl}
-                  </code>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleCopyClone}>
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-96 p-0">
+              <div className="p-4 space-y-4">
+                {/* Protocol tabs */}
+                <div className="flex rounded-lg border border-border overflow-hidden">
+                  <button
+                    onClick={() => { setCloneTab('https'); setCopiedClone(false); setCopiedCmd(false); }}
+                    className={cn(
+                      'flex-1 px-3 py-1.5 text-xs font-medium transition-colors',
+                      cloneTab === 'https'
+                        ? 'bg-surface-hover text-text-primary'
+                        : 'text-text-tertiary hover:text-text-secondary',
+                    )}
+                  >
+                    <Lock className="h-3 w-3 inline mr-1" />
+                    HTTPS
+                  </button>
+                  <button
+                    onClick={() => { setCloneTab('ssh'); setCopiedClone(false); setCopiedCmd(false); }}
+                    className={cn(
+                      'flex-1 px-3 py-1.5 text-xs font-medium transition-colors border-l border-border',
+                      cloneTab === 'ssh'
+                        ? 'bg-surface-hover text-text-primary'
+                        : 'text-text-tertiary hover:text-text-secondary',
+                    )}
+                  >
+                    <Terminal className="h-3 w-3 inline mr-1" />
+                    SSH
+                  </button>
                 </div>
-                {copiedClone && <p className="text-xs text-success">Copied!</p>}
+
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold flex items-center gap-1.5">
+                    <Terminal className="h-3.5 w-3.5" />
+                    Clone with {cloneTab === 'ssh' ? 'SSH' : 'HTTPS'}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 rounded bg-background px-3 py-1.5 text-xs border border-border truncate font-mono">
+                      {cloneUrl}
+                    </code>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleCopyClone}>
+                      {copiedClone ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-text-secondary">Terminal command</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 rounded bg-background px-3 py-1.5 text-xs border border-border truncate font-mono">
+                      git clone {cloneUrl}
+                    </code>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={handleCopyCmd}>
+                      {copiedCmd ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="border-t border-border pt-3 space-y-2">
+                  <p className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
+                    <KeyRound className="h-3 w-3" />
+                    Authentication
+                  </p>
+                  {cloneTab === 'ssh' ? (
+                    <>
+                      <p className="text-xs text-text-tertiary leading-relaxed">
+                        Use an <strong>SSH key</strong> for authentication. Add your public key to your account settings.
+                      </p>
+                      <Button variant="outline" size="sm" className="w-full text-xs" asChild>
+                        <Link to="/settings/ssh-keys">
+                          <KeyRound className="h-3 w-3 mr-1.5" />
+                          Manage SSH Keys
+                        </Link>
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-text-tertiary leading-relaxed">
+                        Use a <strong>Personal Access Token</strong> as your password when Git prompts for credentials. Your username can be anything.
+                      </p>
+                      <Button variant="outline" size="sm" className="w-full text-xs" asChild>
+                        <Link to="/settings/tokens">
+                          <KeyRound className="h-3 w-3 mr-1.5" />
+                          Manage Access Tokens
+                        </Link>
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 

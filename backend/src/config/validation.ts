@@ -18,5 +18,6 @@ export const validationSchema = Joi.object({
   GITHUB_CALLBACK_URL: Joi.string().optional(),
   FRONTEND_URL: Joi.string().default('http://localhost:5173'),
   GIT_STORAGE_PATH: Joi.string().default('/data/repositories'),
+  SSH_PORT: Joi.number().default(2222),
   CORS_ORIGINS: Joi.string().default('http://localhost:5173'),
 });

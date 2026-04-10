@@ -35,7 +35,7 @@ RUN npx prisma generate && \
 
 USER spectragit
 
-EXPOSE 3000
+EXPOSE 3000 2222
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]

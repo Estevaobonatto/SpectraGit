@@ -41,9 +41,11 @@ services:
     restart: unless-stopped
     ports:
       - '3000:3000'
+      - '2222:2222'
     environment:
       NODE_ENV: production
       PORT: 3000
+      SSH_PORT: 2222
       DATABASE_URL: postgresql://spectragit:spectragit_secret@postgres:5432/spectragit?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379

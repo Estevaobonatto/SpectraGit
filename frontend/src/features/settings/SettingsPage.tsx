@@ -1,12 +1,13 @@
 import { lazy, Suspense } from 'react';
 import { NavLink, Outlet, Navigate } from 'react-router-dom';
-import { Settings, Key, Monitor, Link2, Bell, AlertTriangle } from 'lucide-react';
+import { Settings, Key, Monitor, Link2, Bell, AlertTriangle, KeyRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageLoader } from '@/components/ui/spinner';
 import { motion } from 'motion/react';
 
 const ProfileSection = lazy(() => import('./sections/ProfileSection'));
 const SSHKeysSection = lazy(() => import('./sections/SSHKeysSection'));
+const TokensSection = lazy(() => import('./sections/TokensSection'));
 const SessionsSection = lazy(() => import('./sections/SessionsSection'));
 const ConnectedAccountsSection = lazy(() => import('./sections/ConnectedAccountsSection'));
 const NotificationsSection = lazy(() => import('./sections/NotificationsSection'));
@@ -15,6 +16,7 @@ const DangerZoneSection = lazy(() => import('./sections/DangerZoneSection'));
 const NAV_ITEMS = [
   { to: '/settings', label: 'Profile', icon: Settings, end: true },
   { to: '/settings/ssh-keys', label: 'SSH Keys', icon: Key },
+  { to: '/settings/tokens', label: 'Access Tokens', icon: KeyRound },
   { to: '/settings/sessions', label: 'Sessions', icon: Monitor },
   { to: '/settings/accounts', label: 'Connected Accounts', icon: Link2 },
   { to: '/settings/notifications', label: 'Notifications', icon: Bell },
@@ -78,6 +80,10 @@ export function SettingsProfilePage() {
 
 export function SettingsSSHKeysPage() {
   return <Suspense fallback={<PageLoader />}><SSHKeysSection /></Suspense>;
+}
+
+export function SettingsTokensPage() {
+  return <Suspense fallback={<PageLoader />}><TokensSection /></Suspense>;
 }
 
 export function SettingsSessionsPage() {

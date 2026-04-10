@@ -27,6 +27,7 @@ const OrganizationNewPage = lazy(() => import('@/features/organizations/Organiza
 const OrganizationDetailPage = lazy(() => import('@/features/organizations/OrganizationDetailPage'));
 const GitHubIntegrationPage = lazy(() => import('@/features/github-sync/GitHubIntegrationPage'));
 const RepositorySettingsPage = lazy(() => import('@/features/repositories/RepositorySettingsPage'));
+const ActivityFeedPage = lazy(() => import('@/features/activity/ActivityFeedPage'));
 const ProfilePage = lazy(() => import('@/features/settings/ProfilePage'));
 
 // Settings layout & sub-pages
@@ -34,6 +35,7 @@ const SettingsLayoutModule = import('@/features/settings/SettingsPage');
 const SettingsLayout = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsLayout })));
 const SettingsProfilePage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsProfilePage })));
 const SettingsSSHKeysPage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsSSHKeysPage })));
+const SettingsTokensPage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsTokensPage })));
 const SettingsSessionsPage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsSessionsPage })));
 const SettingsAccountsPage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsAccountsPage })));
 const SettingsNotificationsPage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsNotificationsPage })));
@@ -102,6 +104,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <SuspenseWrapper><SettingsProfilePage /></SuspenseWrapper> },
           { path: 'ssh-keys', element: <SuspenseWrapper><SettingsSSHKeysPage /></SuspenseWrapper> },
+          { path: 'tokens', element: <SuspenseWrapper><SettingsTokensPage /></SuspenseWrapper> },
           { path: 'sessions', element: <SuspenseWrapper><SettingsSessionsPage /></SuspenseWrapper> },
           { path: 'accounts', element: <SuspenseWrapper><SettingsAccountsPage /></SuspenseWrapper> },
           { path: 'notifications', element: <SuspenseWrapper><SettingsNotificationsPage /></SuspenseWrapper> },
@@ -163,6 +166,10 @@ export const router = createBrowserRouter([
           {
             path: 'branches',
             element: <SuspenseWrapper><BranchListPage /></SuspenseWrapper>,
+          },
+          {
+            path: 'activity',
+            element: <SuspenseWrapper><ActivityFeedPage /></SuspenseWrapper>,
           },
           {
             path: 'settings',

@@ -36,6 +36,9 @@ export default () => ({
   git: {
     storagePath: process.env.GIT_STORAGE_PATH || '/data/repositories',
   },
+  ssh: {
+    port: parseInt(process.env.SSH_PORT || '2222', 10),
+  },
   cors: {
     origins: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(','),
   },
