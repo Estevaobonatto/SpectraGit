@@ -62,27 +62,33 @@ export class RepositoriesService {
       },
     });
 
-    await this.gitService.initRepository(
-      ownerName,
-      slug,
-      dto.defaultBranch || 'main',
-      dto.initWithReadme ?? true,
-    );
-
-    if (dto.initWithReadme) {
-      const headSha = await this.gitService.getHeadCommitSha(
+    try {
+      await this.gitService.initRepository(
         ownerName,
         slug,
         dto.defaultBranch || 'main',
+        dto.initWithReadme ?? true,
       );
 
-      await this.prisma.branch.create({
-        data: {
-          repositoryId: repo.id,
-          name: dto.defaultBranch || 'main',
-          headCommitSha: headSha,
-        },
-      });
+      if (dto.initWithReadme) {
+        const headSha = await this.gitService.getHeadCommitSha(
+          ownerName,
+          slug,
+          dto.defaultBranch || 'main',
+        );
+
+        await this.prisma.branch.create({
+          data: {
+            repositoryId: repo.id,
+            name: dto.defaultBranch || 'main',
+            headCommitSha: headSha,
+          },
+        });
+      }
+    } catch (err) {
+      // Rollback DB record so the user can retry without a 409
+      await this.prisma.repository.delete({ where: { id: repo.id } });
+      throw err;
     }
 
     return repo;

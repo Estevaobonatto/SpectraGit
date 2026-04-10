@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Put, Param, Body, Query, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiPropertyOptional } from '@nestjs/swagger';
 import { IssueStatus } from '@prisma/client';
+import { IsEnum, IsOptional } from 'class-validator';
 import { IssuesService } from './issues.service';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueDto, CreateIssueCommentDto } from './dto/update-issue.dto';
@@ -8,6 +9,13 @@ import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtPayload } from '../../common/types/request.types';
+
+class ListIssuesDto extends PaginationDto {
+  @ApiPropertyOptional({ enum: IssueStatus })
+  @IsOptional()
+  @IsEnum(IssueStatus)
+  status?: IssueStatus;
+}
 
 @ApiTags('Issues')
 @Controller('repos/:owner/:repo/issues')
@@ -32,11 +40,10 @@ export class IssuesController {
   async findAll(
     @Param('owner') owner: string,
     @Param('repo') repo: string,
-    @Query() pagination: PaginationDto,
-    @Query('status') status?: IssueStatus,
+    @Query() query: ListIssuesDto,
     @CurrentUser() user?: JwtPayload,
   ) {
-    return this.issuesService.findAll(owner, repo, pagination, status, user?.sub);
+    return this.issuesService.findAll(owner, repo, query, query.status, user?.sub);
   }
 
   @Public()

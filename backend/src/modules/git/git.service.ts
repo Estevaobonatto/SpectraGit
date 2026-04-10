@@ -37,7 +37,12 @@ export class GitService {
   }
 
   private getGit(repoPath: string): SimpleGit {
-    return simpleGit(repoPath);
+    return simpleGit(repoPath, {
+      config: [
+        'user.name=SpectraGit',
+        'user.email=noreply@spectragit.local',
+      ],
+    });
   }
 
   async initRepository(
@@ -49,7 +54,7 @@ export class GitService {
     const repoPath = this.getRepoPath(ownerName, repoSlug);
 
     if (fs.existsSync(repoPath)) {
-      throw new InternalServerErrorException('Repository already exists on disk');
+      fs.rmSync(repoPath, { recursive: true, force: true });
     }
 
     fs.mkdirSync(repoPath, { recursive: true });
@@ -57,13 +62,15 @@ export class GitService {
     const git = this.getGit(repoPath);
     await git.init();
     await git.addConfig('init.defaultBranch', defaultBranch);
+    await git.addConfig('user.name', 'SpectraGit');
+    await git.addConfig('user.email', 'noreply@spectragit.local');
     await git.checkout(['-b', defaultBranch]);
 
     if (initReadme) {
       const readmePath = path.join(repoPath, 'README.md');
       fs.writeFileSync(readmePath, `# ${repoSlug}\n`);
       await git.add('.');
-      await git.commit('Initial commit', { '--allow-empty': null });
+      await git.commit('Initial commit');
     }
 
     this.logger.log(`Repository initialized: ${ownerName}/${repoSlug}`);

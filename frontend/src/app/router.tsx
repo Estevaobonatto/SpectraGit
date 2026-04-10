@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { ProtectedRoute, PublicOnlyRoute } from './guards';
 import { PageLoader } from '@/components/ui/spinner';
@@ -27,6 +27,7 @@ const OrganizationNewPage = lazy(() => import('@/features/organizations/Organiza
 const OrganizationDetailPage = lazy(() => import('@/features/organizations/OrganizationDetailPage'));
 const GitHubIntegrationPage = lazy(() => import('@/features/github-sync/GitHubIntegrationPage'));
 const SettingsPage = lazy(() => import('@/features/settings/SettingsPage'));
+const RepositorySettingsPage = lazy(() => import('@/features/repositories/RepositorySettingsPage'));
 const ProfilePage = lazy(() => import('@/features/settings/ProfilePage'));
 
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
@@ -148,7 +149,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'settings',
-            element: <Navigate to={`settings`} replace />,
+            element: <SuspenseWrapper><RepositorySettingsPage /></SuspenseWrapper>,
           },
         ],
       },

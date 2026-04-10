@@ -10,8 +10,9 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiPropertyOptional } from '@nestjs/swagger';
 import { PRStatus } from '@prisma/client';
+import { IsEnum, IsOptional } from 'class-validator';
 import { PullRequestsService } from './pull-requests.service';
 import { CreatePullRequestDto } from './dto/create-pull-request.dto';
 import {
@@ -23,6 +24,13 @@ import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtPayload } from '../../common/types/request.types';
+
+class ListPRsDto extends PaginationDto {
+  @ApiPropertyOptional({ enum: PRStatus })
+  @IsOptional()
+  @IsEnum(PRStatus)
+  status?: PRStatus;
+}
 
 @ApiTags('Pull Requests')
 @Controller('repos/:owner/:repo/pulls')
@@ -47,11 +55,10 @@ export class PullRequestsController {
   async findAll(
     @Param('owner') owner: string,
     @Param('repo') repo: string,
-    @Query() pagination: PaginationDto,
-    @Query('status') status?: PRStatus,
+    @Query() query: ListPRsDto,
     @CurrentUser() user?: JwtPayload,
   ) {
-    return this.prService.findAll(owner, repo, pagination, status, user?.sub);
+    return this.prService.findAll(owner, repo, query, query.status, user?.sub);
   }
 
   @Public()
