@@ -39,6 +39,8 @@ model User {
   teamMembers    TeamMember[]
   auditLogs      AuditLog[]
   importJobs     ImportJob[]
+  pulses         RepositoryPulse[]
+  watches        RepositoryWatch[]
 
   @@map("users")
 }
@@ -199,6 +201,8 @@ model Repository {
   labels         Label[]
   milestones     Milestone[]
   teamAccess     TeamRepoAccess[]
+  pulses         RepositoryPulse[]
+  watches        RepositoryWatch[]
 
   @@unique([ownerUserId, slug])
   @@unique([ownerOrgId, slug])
@@ -496,6 +500,36 @@ model NotificationPreference {
 
   @@unique([userId, notificationType])
   @@map("notification_preferences")
+}
+
+// ─── Repository Engagement (Pulse & Watch) ──────────────────
+
+model RepositoryPulse {
+  id           String   @id @default(uuid()) @db.Uuid
+  repositoryId String   @map("repository_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, userId])
+  @@index([userId])
+  @@map("repository_pulses")
+}
+
+model RepositoryWatch {
+  id           String   @id @default(uuid()) @db.Uuid
+  repositoryId String   @map("repository_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, userId])
+  @@index([userId])
+  @@map("repository_watches")
 }
 
 // ─── Audit Log ───────────────────────────────────────────────

@@ -77,6 +77,50 @@ export class RepositoriesController {
     return this.reposService.fork(owner, repo, user.sub);
   }
 
+  @Post(':owner/:repo/pulse')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Pulse (like) a repository' })
+  async pulse(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reposService.pulseRepo(user.sub, owner, repo);
+  }
+
+  @Delete(':owner/:repo/pulse')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove pulse from a repository' })
+  async unpulse(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reposService.unpulseRepo(user.sub, owner, repo);
+  }
+
+  @Post(':owner/:repo/watch')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Watch a repository' })
+  async watch(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reposService.watchRepo(user.sub, owner, repo);
+  }
+
+  @Delete(':owner/:repo/watch')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Unwatch a repository' })
+  async unwatch(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reposService.unwatchRepo(user.sub, owner, repo);
+  }
+
   @Public()
   @Get(':owner/:repo/stats')
   @ApiOperation({ summary: 'Get repository stats (languages, contributors, counts)' })

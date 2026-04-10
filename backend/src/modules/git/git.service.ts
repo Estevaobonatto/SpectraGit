@@ -106,6 +106,43 @@ export class GitService {
   }
 
   /**
+   * Clone a local repository into another local path (fast filesystem copy).
+   * Used for fork operations.
+   */
+  async cloneLocal(
+    sourceOwner: string,
+    sourceSlug: string,
+    destOwner: string,
+    destSlug: string,
+  ): Promise<string> {
+    const sourcePath = this.getRepoPath(sourceOwner, sourceSlug);
+    const destPath = this.getRepoPath(destOwner, destSlug);
+
+    if (!fs.existsSync(sourcePath)) {
+      throw new InternalServerErrorException(
+        `Source repository not found on disk: ${sourceOwner}/${sourceSlug}`,
+      );
+    }
+
+    if (fs.existsSync(destPath)) {
+      fs.rmSync(destPath, { recursive: true, force: true });
+    }
+
+    const parentDir = path.dirname(destPath);
+    if (!fs.existsSync(parentDir)) {
+      fs.mkdirSync(parentDir, { recursive: true });
+    }
+
+    const git = simpleGit(parentDir, {
+      config: ['user.name=SpectraGit', 'user.email=noreply@spectragit.local'],
+    });
+    await git.clone(sourcePath, destPath, ['--local']);
+
+    this.logger.log(`Forked repository: ${sourceOwner}/${sourceSlug} → ${destOwner}/${destSlug}`);
+    return destPath;
+  }
+
+  /**
    * Clone a remote repository (full history + all branches) into the local
    * storage path.  The cloneUrl should contain credentials inline (e.g.
    * https://x-access-token:<token>@github.com/owner/repo.git).

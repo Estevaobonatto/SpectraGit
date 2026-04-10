@@ -6,7 +6,7 @@ import {
   Scale,
   GitBranch,
   Tag,
-  Star,
+  Zap,
   GitFork,
   Eye,
   Users,
@@ -126,9 +126,9 @@ export function RepoSidebar({ repo }: RepoSidebarProps) {
                 Activity
               </h4>
               <div className="grid grid-cols-2 gap-2">
-                <StatItem icon={Star} label="Stars" value={repo.starCount ?? 0} />
+                <StatItem icon={Zap} label="Pulses" value={repo.pulseCount ?? 0} />
                 <StatItem icon={GitFork} label="Forks" value={repo.forkCount ?? 0} />
-                <StatItem icon={Eye} label="Watchers" value={0} />
+                <StatItem icon={Eye} label="Watchers" value={repo.watchCount ?? 0} />
                 <StatItem
                   icon={GitBranch}
                   label="Branches"

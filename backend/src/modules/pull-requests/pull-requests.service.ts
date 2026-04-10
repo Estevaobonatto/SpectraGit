@@ -69,6 +69,8 @@ export class PullRequestsService {
     this.eventsService.emit('pr.created', {
       repositoryId: repoEntity.id,
       pullRequestId: pr.id,
+      prNumber: pr.number,
+      title: pr.title,
       authorId: userId,
     });
 

@@ -65,6 +65,69 @@ export function useForkRepository(owner: string, repo: string) {
     mutationFn: () => repositoriesService.fork(owner, repo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repositories'] });
+      queryClient.invalidateQueries({ queryKey: ['repository', owner, repo] });
+    },
+  });
+}
+
+export function usePulseRepository(owner: string, repo: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (isPulsed: boolean) =>
+      isPulsed
+        ? repositoriesService.unpulse(owner, repo)
+        : repositoriesService.pulse(owner, repo),
+    onMutate: async (isPulsed: boolean) => {
+      await queryClient.cancelQueries({ queryKey: ['repository', owner, repo] });
+      const previous = queryClient.getQueryData<Repository>(['repository', owner, repo]);
+      if (previous) {
+        queryClient.setQueryData<Repository>(['repository', owner, repo], {
+          ...previous,
+          isPulsed: !isPulsed,
+          pulseCount: (previous.pulseCount ?? 0) + (isPulsed ? -1 : 1),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['repository', owner, repo], context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['repository', owner, repo] });
+    },
+  });
+}
+
+export function useWatchRepository(owner: string, repo: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (isWatched: boolean) =>
+      isWatched
+        ? repositoriesService.unwatch(owner, repo)
+        : repositoriesService.watch(owner, repo),
+    onMutate: async (isWatched: boolean) => {
+      await queryClient.cancelQueries({ queryKey: ['repository', owner, repo] });
+      const previous = queryClient.getQueryData<Repository>(['repository', owner, repo]);
+      if (previous) {
+        queryClient.setQueryData<Repository>(['repository', owner, repo], {
+          ...previous,
+          isWatched: !isWatched,
+          watchCount: (previous.watchCount ?? 0) + (isWatched ? -1 : 1),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['repository', owner, repo], context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['repository', owner, repo] });
     },
   });
 }

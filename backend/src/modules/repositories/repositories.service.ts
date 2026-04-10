@@ -141,7 +141,7 @@ export class RepositoriesService {
       include: {
         ownerUser: { select: { id: true, username: true, avatarUrl: true } },
         ownerOrg: { select: { id: true, name: true, avatarUrl: true } },
-        _count: { select: { issues: true, pullRequests: true, branches: true } },
+        _count: { select: { issues: true, pullRequests: true, branches: true, forks: true, pulses: true, watches: true } },
       },
     });
 
@@ -153,7 +153,30 @@ export class RepositoriesService {
       if (!hasAccess) throw new NotFoundException('Repository not found');
     }
 
-    return repo;
+    // Compute engagement flags for the current user
+    let isPulsed = false;
+    let isWatched = false;
+    if (userId) {
+      const [pulse, watch] = await Promise.all([
+        this.prisma.repositoryPulse.findUnique({
+          where: { repositoryId_userId: { repositoryId: repo.id, userId } },
+        }),
+        this.prisma.repositoryWatch.findUnique({
+          where: { repositoryId_userId: { repositoryId: repo.id, userId } },
+        }),
+      ]);
+      isPulsed = !!pulse;
+      isWatched = !!watch;
+    }
+
+    return {
+      ...repo,
+      pulseCount: repo._count.pulses,
+      watchCount: repo._count.watches,
+      forkCount: repo._count.forks,
+      isPulsed,
+      isWatched,
+    };
   }
 
   async update(ownerName: string, slug: string, userId: string, dto: UpdateRepositoryDto) {
@@ -199,9 +222,99 @@ export class RepositoriesService {
         isFork: true,
         forkSourceRepoId: sourceRepo.id,
       },
+      include: {
+        ownerUser: { select: { id: true, username: true, avatarUrl: true } },
+      },
     });
 
+    try {
+      await this.gitService.cloneLocal(ownerName, slug, user.username, forkedRepo.slug);
+
+      // Create branch records from the source repo's branches
+      const sourceBranches = await this.gitService.getLocalBranchesWithSha(
+        user.username,
+        forkedRepo.slug,
+      );
+      if (sourceBranches.length > 0) {
+        await this.prisma.branch.createMany({
+          data: sourceBranches.map((b) => ({
+            repositoryId: forkedRepo.id,
+            name: b.name,
+            headCommitSha: b.sha,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    } catch (err) {
+      await this.prisma.repository.delete({ where: { id: forkedRepo.id } });
+      throw err;
+    }
+
     return forkedRepo;
+  }
+
+  // ─── Pulse (like/favorite) ────────────────────────────────
+
+  async pulseRepo(userId: string, ownerName: string, slug: string) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+
+    await this.prisma.repositoryPulse.upsert({
+      where: { repositoryId_userId: { repositoryId: repo.id, userId } },
+      create: { repositoryId: repo.id, userId },
+      update: {},
+    });
+
+    const count = await this.prisma.repositoryPulse.count({
+      where: { repositoryId: repo.id },
+    });
+
+    return { count, isActive: true };
+  }
+
+  async unpulseRepo(userId: string, ownerName: string, slug: string) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+
+    await this.prisma.repositoryPulse.deleteMany({
+      where: { repositoryId: repo.id, userId },
+    });
+
+    const count = await this.prisma.repositoryPulse.count({
+      where: { repositoryId: repo.id },
+    });
+
+    return { count, isActive: false };
+  }
+
+  // ─── Watch ────────────────────────────────────────────────
+
+  async watchRepo(userId: string, ownerName: string, slug: string) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+
+    await this.prisma.repositoryWatch.upsert({
+      where: { repositoryId_userId: { repositoryId: repo.id, userId } },
+      create: { repositoryId: repo.id, userId },
+      update: {},
+    });
+
+    const count = await this.prisma.repositoryWatch.count({
+      where: { repositoryId: repo.id },
+    });
+
+    return { count, isActive: true };
+  }
+
+  async unwatchRepo(userId: string, ownerName: string, slug: string) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+
+    await this.prisma.repositoryWatch.deleteMany({
+      where: { repositoryId: repo.id, userId },
+    });
+
+    const count = await this.prisma.repositoryWatch.count({
+      where: { repositoryId: repo.id },
+    });
+
+    return { count, isActive: false };
   }
 
   async getFileTree(

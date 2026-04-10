@@ -26,6 +26,18 @@ export const repositoriesService = {
   fork: (owner: string, repo: string) =>
     api.post<{ data: Repository }>(`/repos/${owner}/${repo}/fork`).then((r) => r.data.data),
 
+  pulse: (owner: string, repo: string) =>
+    api.post<{ data: { count: number; isActive: boolean } }>(`/repos/${owner}/${repo}/pulse`).then((r) => r.data.data),
+
+  unpulse: (owner: string, repo: string) =>
+    api.delete<{ data: { count: number; isActive: boolean } }>(`/repos/${owner}/${repo}/pulse`).then((r) => r.data.data),
+
+  watch: (owner: string, repo: string) =>
+    api.post<{ data: { count: number; isActive: boolean } }>(`/repos/${owner}/${repo}/watch`).then((r) => r.data.data),
+
+  unwatch: (owner: string, repo: string) =>
+    api.delete<{ data: { count: number; isActive: boolean } }>(`/repos/${owner}/${repo}/watch`).then((r) => r.data.data),
+
   getTree: (owner: string, repo: string, branch: string, path?: string) =>
     api
       .get<{ data: FileTreeItem[] }>(`/repos/${owner}/${repo}/tree/${branch}`, { params: { path } })

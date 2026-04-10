@@ -59,8 +59,11 @@ export interface Repository {
   ownerOrgId: string | null;
   owner?: User;
   organization?: Organization;
-  starCount?: number;
+  pulseCount?: number;
   forkCount?: number;
+  watchCount?: number;
+  isPulsed?: boolean;
+  isWatched?: boolean;
   language?: string | null;
   createdAt: string;
   updatedAt: string;

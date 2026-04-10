@@ -45,6 +45,8 @@ export class IssuesService {
     this.eventsService.emit('issue.created', {
       repositoryId: repoEntity.id,
       issueId: issue.id,
+      issueNumber: issue.number,
+      title: issue.title,
       authorId: userId,
     });
 

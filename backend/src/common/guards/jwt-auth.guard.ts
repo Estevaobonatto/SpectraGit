@@ -1,4 +1,4 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
+import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
@@ -10,13 +10,24 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   canActivate(context: ExecutionContext) {
+    // Always attempt JWT authentication so request.user is populated even on
+    // public routes (enables per-user flags like isPulsed/isWatched on @Public GET endpoints)
+    return super.canActivate(context);
+  }
+
+  handleRequest(err: any, user: any, _info: any, context: ExecutionContext) {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
+    // On public routes authentication is optional: populate user when token is
+    // valid but do NOT throw when it is absent or invalid
     if (isPublic) {
-      return true;
+      return user ?? null;
     }
-    return super.canActivate(context);
+    if (err || !user) {
+      throw err || new UnauthorizedException();
+    }
+    return user;
   }
 }
