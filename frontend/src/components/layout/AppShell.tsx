@@ -1,8 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '@/lib/utils';
-import { useUIStore } from '@/stores/ui.store';
-import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -19,20 +16,13 @@ function getRouteKey(pathname: string): string {
 }
 
 export function AppShell() {
-  const { sidebarOpen } = useUIStore();
   const location = useLocation();
 
   return (
     <TooltipProvider delayDuration={200}>
       <div className="min-h-screen bg-background">
-        <Sidebar />
         <Topbar />
-        <main
-          className={cn(
-            'pt-14 min-h-screen transition-all duration-200',
-            sidebarOpen ? 'pl-60' : 'pl-16',
-          )}
-        >
+        <main className="pt-14 min-h-screen">
           <div className="mx-auto max-w-6xl px-6 py-6">
             <AnimatePresence mode="wait">
               <motion.div
