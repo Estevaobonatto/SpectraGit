@@ -85,6 +85,65 @@ export class GitService {
     }
   }
 
+  /**
+   * Clone a remote repository (full history + all branches) into the local
+   * storage path.  The cloneUrl should contain credentials inline (e.g.
+   * https://x-access-token:<token>@github.com/owner/repo.git).
+   */
+  async cloneFromUrl(ownerName: string, repoSlug: string, cloneUrl: string): Promise<void> {
+    const repoPath = this.getRepoPath(ownerName, repoSlug);
+
+    if (fs.existsSync(repoPath)) {
+      fs.rmSync(repoPath, { recursive: true, force: true });
+    }
+
+    const parentDir = path.dirname(repoPath);
+    if (!fs.existsSync(parentDir)) {
+      fs.mkdirSync(parentDir, { recursive: true });
+    }
+
+    // Clone into repoPath (creates the working tree directory)
+    const git = simpleGit(parentDir, {
+      config: ['user.name=SpectraGit', 'user.email=noreply@spectragit.local'],
+    });
+    await git.clone(cloneUrl, repoPath);
+
+    // Create local tracking branches for every remote branch
+    const repoGit = this.getGit(repoPath);
+    const remoteRefs = await repoGit.branch(['-r']);
+    for (const remoteBranch of remoteRefs.all) {
+      if (remoteBranch.includes('HEAD')) continue;
+      const localName = remoteBranch.replace(/^origin\//, '');
+      try {
+        await repoGit.checkout(['-b', localName, '--track', remoteBranch]);
+      } catch {
+        // Already checked out (default branch was checked out by clone)
+      }
+    }
+
+    this.logger.log(`Cloned repository: ${ownerName}/${repoSlug}`);
+  }
+
+  /**
+   * Returns every local branch together with its HEAD commit SHA.
+   */
+  async getLocalBranchesWithSha(
+    ownerName: string,
+    repoSlug: string,
+  ): Promise<{ name: string; sha: string }[]> {
+    const repoPath = this.getRepoPath(ownerName, repoSlug);
+    const git = this.getGit(repoPath);
+    try {
+      const summary = await git.branchLocal();
+      return Object.entries(summary.branches).map(([name, info]) => ({
+        name,
+        sha: info.commit,
+      }));
+    } catch {
+      return [];
+    }
+  }
+
   async getFileTree(
     ownerName: string,
     repoSlug: string,

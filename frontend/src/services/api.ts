@@ -16,6 +16,10 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Single in-flight refresh promise — deduplicates concurrent 401 retries
+// (e.g. React 18 StrictMode fires effects twice)
+let refreshing: Promise<void> | null = null;
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -24,15 +28,27 @@ api.interceptors.response.use(
       original._retry = true;
       const refreshToken = useAuthStore.getState().refreshToken;
       if (refreshToken) {
+        if (!refreshing) {
+          refreshing = axios
+            .post(`${API_BASE}/auth/refresh`, { refreshToken })
+            .then(({ data }) => {
+              useAuthStore
+                .getState()
+                .setTokens(data.data.accessToken, data.data.refreshToken);
+            })
+            .catch(() => {
+              useAuthStore.getState().logout();
+            })
+            .finally(() => {
+              refreshing = null;
+            });
+        }
         try {
-          const { data } = await axios.post(`${API_BASE}/auth/refresh`, {
-            refreshToken,
-          });
-          useAuthStore.getState().setTokens(data.data.accessToken, data.data.refreshToken);
-          original.headers.Authorization = `Bearer ${data.data.accessToken}`;
+          await refreshing;
+          original.headers.Authorization = `Bearer ${useAuthStore.getState().accessToken}`;
           return api(original);
         } catch {
-          useAuthStore.getState().logout();
+          return Promise.reject(error);
         }
       }
     }

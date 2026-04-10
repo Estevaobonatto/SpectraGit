@@ -4,6 +4,7 @@ import { Octokit } from '@octokit/rest';
 import { RepoVisibility } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { RepositoriesService } from '../../repositories/repositories.service';
+import { GitService } from '../../git/git.service';
 
 @Injectable()
 export class GitHubService {
@@ -13,6 +14,7 @@ export class GitHubService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly repositoriesService: RepositoriesService,
+    private readonly gitService: GitService,
   ) {}
 
   private getOctokit(accessToken: string): Octokit {
@@ -65,8 +67,12 @@ export class GitHubService {
 
     const { data: githubRepo } = await octokit.repos.get({ owner, repo: repoName });
 
-    // Idempotent: if already imported return the existing record
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new BadRequestException('User not found');
+
     const slug = githubRepo.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-');
+
+    // Idempotent: return existing record if already imported
     const existing = await this.prisma.repository.findFirst({
       where: { ownerUserId: userId, slug },
       include: {
@@ -75,19 +81,54 @@ export class GitHubService {
       },
     });
     if (existing) {
-      this.logger.log(`Repository ${githubRepoFullName} already imported, returning existing record`);
+      this.logger.log(`Repository ${githubRepoFullName} already imported, returning existing`);
       return existing;
     }
 
     this.logger.log(`Importing repository ${githubRepoFullName} for user ${userId}`);
 
-    return this.repositoriesService.create(userId, {
-      name: githubRepo.name,
-      description: githubRepo.description ?? undefined,
-      visibility: githubRepo.private ? RepoVisibility.PRIVATE : RepoVisibility.PUBLIC,
-      defaultBranch: githubRepo.default_branch ?? 'main',
-      initWithReadme: false,
+    // Create DB record
+    const repo = await this.prisma.repository.create({
+      data: {
+        ownerUserId: userId,
+        name: githubRepo.name,
+        slug,
+        description: githubRepo.description ?? null,
+        visibility: githubRepo.private ? RepoVisibility.PRIVATE : RepoVisibility.PUBLIC,
+        defaultBranch: githubRepo.default_branch ?? 'main',
+      },
+      include: {
+        ownerUser: { select: { username: true } },
+        ownerOrg: { select: { name: true } },
+      },
     });
+
+    try {
+      // Clone full history + all branches from GitHub
+      // Token embedded in URL for authentication (never logged)
+      const cloneUrl = `https://x-access-token:${token}@github.com/${owner}/${repoName}.git`;
+      await this.gitService.cloneFromUrl(user.username, slug, cloneUrl);
+
+      // Seed Branch records from the cloned repo
+      const branches = await this.gitService.getLocalBranchesWithSha(user.username, slug);
+      if (branches.length > 0) {
+        await this.prisma.branch.createMany({
+          data: branches.map((b) => ({
+            repositoryId: repo.id,
+            name: b.name,
+            headCommitSha: b.sha || null,
+            isProtected: b.name === (githubRepo.default_branch ?? 'main'),
+          })),
+          skipDuplicates: true,
+        });
+      }
+    } catch (err) {
+      // Rollback DB record so the user can retry
+      await this.prisma.repository.delete({ where: { id: repo.id } }).catch(() => {});
+      throw err;
+    }
+
+    return repo;
   }
 
   async syncRepositoryMetadata(userId: string, githubRepoFullName: string) {

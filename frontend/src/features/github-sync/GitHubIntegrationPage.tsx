@@ -69,7 +69,7 @@ export default function GitHubIntegrationPage() {
               Connect your GitHub account to import repositories and sync your profile.
             </p>
             <Button asChild>
-              <a href="/api/v1/integrations/github/connect">
+              <a href="/api/v1/auth/oauth/github">
                 <ExternalLink className="h-4 w-4" />
                 Connect GitHub account
               </a>
@@ -98,7 +98,7 @@ export default function GitHubIntegrationPage() {
         <CardContent className="flex items-center gap-3 pt-6">
           <CheckCircle2 className="h-5 w-5 text-success" />
           <span className="text-sm text-text-primary">
-            Connected as <span className="font-semibold">{String((profile as Record<string, unknown>).username ?? '')}</span>
+            Connected as <span className="font-semibold">{String((profile as Record<string, unknown>).login ?? '')}</span>
           </span>
           <Badge variant="success">Connected</Badge>
         </CardContent>

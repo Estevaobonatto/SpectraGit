@@ -85,7 +85,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    await this.prisma.session.delete({ where: { id: session.id } });
+    // Use deleteMany so concurrent refresh requests on the same token don't
+    // throw a P2025 (record not found) which would surface as a 500.
+    const deleted = await this.prisma.session.deleteMany({ where: { id: session.id } });
+    if (deleted.count === 0) {
+      // Another concurrent request already consumed this session.
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
 
     return this.createSession(
       session.user.id,
