@@ -1,6 +1,6 @@
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { simpleGit, SimpleGit, LogResult } from 'simple-git';
+import { simpleGit, SimpleGit } from 'simple-git';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -18,6 +18,26 @@ export interface GitCommitInfo {
   authorEmail: string;
   date: string;
   body?: string;
+}
+
+export interface DiffLine {
+  type: 'add' | 'del' | 'context';
+  content: string;
+  oldLineNumber?: number;
+  newLineNumber?: number;
+}
+
+export interface DiffHunk {
+  header: string;
+  lines: DiffLine[];
+}
+
+export interface DiffFile {
+  filePath: string;
+  status: 'added' | 'modified' | 'deleted' | 'renamed';
+  additions: number;
+  deletions: number;
+  hunks: DiffHunk[];
 }
 
 @Injectable()
@@ -90,7 +110,12 @@ export class GitService {
    * storage path.  The cloneUrl should contain credentials inline (e.g.
    * https://x-access-token:<token>@github.com/owner/repo.git).
    */
-  async cloneFromUrl(ownerName: string, repoSlug: string, cloneUrl: string): Promise<void> {
+  async cloneFromUrl(
+    ownerName: string,
+    repoSlug: string,
+    cloneUrl: string,
+    onProgress?: (percent: number) => Promise<void>,
+  ): Promise<void> {
     const repoPath = this.getRepoPath(ownerName, repoSlug);
 
     if (fs.existsSync(repoPath)) {
@@ -105,8 +130,15 @@ export class GitService {
     // Clone into repoPath (creates the working tree directory)
     const git = simpleGit(parentDir, {
       config: ['user.name=SpectraGit', 'user.email=noreply@spectragit.local'],
+      progress: onProgress
+        ? ({ progress }) => {
+            // simple-git progress is 0-100 per stage; map to 5-60 range
+            const mapped = Math.round(5 + (progress / 100) * 55);
+            onProgress(mapped).catch(() => {});
+          }
+        : undefined,
     });
-    await git.clone(cloneUrl, repoPath);
+    await git.clone(cloneUrl, repoPath, ['--progress']);
 
     // Create local tracking branches for every remote branch
     const repoGit = this.getGit(repoPath);
@@ -155,25 +187,34 @@ export class GitService {
 
     try {
       const treeRef = dirPath ? `${branch}:${dirPath}` : branch;
-      const result = await git.raw(['ls-tree', '--name-only', treeRef]);
+      // Use full ls-tree output to get type + name in one call, and -z for
+      // null-terminated output so filenames with special chars aren't quoted.
+      const result = await git.raw(['ls-tree', '-z', treeRef]);
 
       if (!result.trim()) return [];
 
       const entries: GitFileTreeEntry[] = [];
-      const names = result.trim().split('\n');
+      // -z uses \0 as delimiter; split and filter empty trailing entry
+      const lines = result.split('\0').filter(Boolean);
 
-      for (const name of names) {
+      for (const line of lines) {
+        // Format: "<mode> <type> <hash>\t<name>"
+        const tabIdx = line.indexOf('\t');
+        if (tabIdx === -1) continue;
+        const meta = line.slice(0, tabIdx);
+        const name = line.slice(tabIdx + 1);
+        const objType = meta.split(' ')[1]; // "blob" or "tree"
         const fullPath = dirPath ? `${dirPath}/${name}` : name;
-        const typeResult = await git.raw(['cat-file', '-t', `${branch}:${fullPath}`]);
         entries.push({
           name,
           path: fullPath,
-          type: typeResult.trim() === 'tree' ? 'directory' : 'file',
+          type: objType === 'tree' ? 'directory' : 'file',
         });
       }
 
       return entries;
-    } catch {
+    } catch (err) {
+      this.logger.error(`getFileTree failed: ${(err as Error).message}`);
       return [];
     }
   }
@@ -189,6 +230,41 @@ export class GitService {
     return git.show([`${branch}:${filePath}`]);
   }
 
+  /** Return the size (in bytes) of an object at branch:filePath. */
+  async getFileSize(
+    ownerName: string,
+    repoSlug: string,
+    branch: string,
+    filePath: string,
+  ): Promise<number> {
+    const repoPath = this.getRepoPath(ownerName, repoSlug);
+    const git = this.getGit(repoPath);
+    const result = await git.raw(['cat-file', '-s', `${branch}:${filePath}`]);
+    return parseInt(result.trim(), 10) || 0;
+  }
+
+  /** Return raw binary file content as a Buffer. */
+  async getFileBinary(
+    ownerName: string,
+    repoSlug: string,
+    branch: string,
+    filePath: string,
+  ): Promise<Buffer> {
+    const repoPath = this.getRepoPath(ownerName, repoSlug);
+    const git = this.getGit(repoPath);
+    // Get the blob hash, then use cat-file to stream it
+    const blobHash = await git.raw(['rev-parse', `${branch}:${filePath}`]);
+    const { execFile } = await import('child_process');
+    const { promisify } = await import('util');
+    const execFileAsync = promisify(execFile);
+    const { stdout } = await execFileAsync(
+      'git',
+      ['cat-file', 'blob', blobHash.trim()],
+      { cwd: repoPath, encoding: 'buffer', maxBuffer: 50 * 1024 * 1024 },
+    );
+    return stdout;
+  }
+
   async getCommitLog(
     ownerName: string,
     repoSlug: string,
@@ -200,20 +276,36 @@ export class GitService {
     const git = this.getGit(repoPath);
 
     try {
-      const log: LogResult = await git.log({
-        [branch]: null,
-        maxCount: limit,
-        '--skip': offset,
-      } as Record<string, unknown>);
+      // Use git's %xNN escapes for separators so they survive the process arg boundary.
+      const fmt = '%x1f%H%x1f%s%x1f%aN%x1f%ae%x1f%aI%x1f%b%x1e';
+      const SEP = '\x1f';
+      const RS  = '\x1e';
+      const safeLimit  = Number.isFinite(limit)  ? limit  : 30;
+      const safeOffset = Number.isFinite(offset) ? offset : 0;
+      const result = await git.raw([
+        'log', branch,
+        `--max-count=${safeLimit}`,
+        `--skip=${safeOffset}`,
+        `--format=${fmt}`,
+      ]);
 
-      return log.all.map((entry) => ({
-        sha: entry.hash,
-        message: entry.message,
-        author: entry.author_name,
-        authorEmail: entry.author_email,
-        date: entry.date,
-        body: entry.body,
-      }));
+      if (!result.trim()) return [];
+
+      return result
+        .split(RS)
+        .filter((r) => r.includes(SEP))
+        .map((record) => {
+          const p = record.split(SEP);
+          return {
+            sha:         p[1]?.trim() ?? '',
+            message:     p[2]?.trim() ?? '',
+            author:      p[3]?.trim() ?? '',
+            authorEmail: p[4]?.trim() ?? '',
+            date:        p[5]?.trim() ?? '',
+            body:        p[6]?.trim() ?? undefined,
+          };
+        })
+        .filter((c) => c.sha);
     } catch {
       return [];
     }
@@ -228,27 +320,96 @@ export class GitService {
     const git = this.getGit(repoPath);
 
     try {
-      const log = await git.log({ [sha]: null, maxCount: 1 } as Record<string, unknown>);
-      const entry = log.latest;
-      if (!entry) return null;
+      const fmt = '%x1f%H%x1f%s%x1f%aN%x1f%ae%x1f%aI%x1f%b';
+      const SEP = '\x1f';
+      const result = await git.raw(['log', sha, '--max-count=1', `--format=${fmt}`]);
+      if (!result.trim()) return null;
+
+      const p = result.split(SEP);
+      if (!p[1]?.trim()) return null;
 
       return {
-        sha: entry.hash,
-        message: entry.message,
-        author: entry.author_name,
-        authorEmail: entry.author_email,
-        date: entry.date,
-        body: entry.body,
+        sha:         p[1].trim(),
+        message:     p[2]?.trim() ?? '',
+        author:      p[3]?.trim() ?? '',
+        authorEmail: p[4]?.trim() ?? '',
+        date:        p[5]?.trim() ?? '',
+        body:        p[6]?.trim() ?? undefined,
       };
     } catch {
       return null;
     }
   }
 
-  async getCommitDiff(ownerName: string, repoSlug: string, sha: string): Promise<string> {
+  async getCommitDiff(ownerName: string, repoSlug: string, sha: string): Promise<DiffFile[]> {
     const repoPath = this.getRepoPath(ownerName, repoSlug);
     const git = this.getGit(repoPath);
-    return git.diff([`${sha}~1`, sha]);
+
+    let raw: string;
+    try {
+      // Try diff against parent first; falls back for initial commit
+      raw = await git.diff([`${sha}~1`, sha, '--no-color']);
+    } catch {
+      // Initial commit has no parent — use git show which works universally
+      raw = await git.raw(['show', sha, '-p', '--format=', '--no-color']);
+    }
+
+    return this.parseDiff(raw);
+  }
+
+  private parseDiff(rawDiff: string): DiffFile[] {
+    const files: DiffFile[] = [];
+    if (!rawDiff.trim()) return files;
+
+    // Split on "diff --git" markers
+    const fileDiffs = rawDiff.split(/^diff --git /m).filter(Boolean);
+
+    for (const fileDiff of fileDiffs) {
+      const lines = fileDiff.split('\n');
+      const gitLine = lines[0]; // "a/path b/path"
+      const gitMatch = gitLine.match(/^a\/(.+) b\/(.+)$/);
+      let filePath = gitMatch ? gitMatch[2] : (gitLine.split(' ').pop() ?? 'unknown');
+
+      let status: DiffFile['status'] = 'modified';
+      if (lines.some((l) => l.startsWith('new file mode'))) status = 'added';
+      else if (lines.some((l) => l.startsWith('deleted file mode'))) status = 'deleted';
+      else if (lines.some((l) => l.startsWith('rename to '))) {
+        status = 'renamed';
+        const renameLine = lines.find((l) => l.startsWith('rename to '));
+        if (renameLine) filePath = renameLine.slice('rename to '.length);
+      }
+
+      const hunks: DiffHunk[] = [];
+      let currentHunk: DiffHunk | null = null;
+      let additions = 0;
+      let deletions = 0;
+      let oldLine = 0;
+      let newLine = 0;
+
+      for (const line of lines) {
+        if (line.startsWith('@@ ')) {
+          const m = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+          currentHunk = { header: line, lines: [] };
+          hunks.push(currentHunk);
+          oldLine = m ? parseInt(m[1], 10) : 1;
+          newLine = m ? parseInt(m[2], 10) : 1;
+        } else if (currentHunk) {
+          if (line.startsWith('+') && !line.startsWith('+++')) {
+            currentHunk.lines.push({ type: 'add', content: line.slice(1), newLineNumber: newLine++ });
+            additions++;
+          } else if (line.startsWith('-') && !line.startsWith('---')) {
+            currentHunk.lines.push({ type: 'del', content: line.slice(1), oldLineNumber: oldLine++ });
+            deletions++;
+          } else if (line !== '\\ No newline at end of file') {
+            currentHunk.lines.push({ type: 'context', content: line.slice(1), oldLineNumber: oldLine++, newLineNumber: newLine++ });
+          }
+        }
+      }
+
+      files.push({ filePath, status, additions, deletions, hunks });
+    }
+
+    return files;
   }
 
   async getDiffBetween(
@@ -366,5 +527,97 @@ export class GitService {
 
     const result = await git.revparse(['HEAD']);
     return result.trim();
+  }
+
+  /**
+   * Compute language breakdown by counting bytes of each file extension
+   * in the repository tree. Returns a map of language name → byte count.
+   */
+  async getLanguageBreakdown(
+    ownerName: string,
+    repoSlug: string,
+    branch: string,
+  ): Promise<Record<string, number>> {
+    const repoPath = this.getRepoPath(ownerName, repoSlug);
+    const git = this.getGit(repoPath);
+
+    try {
+      // ls-tree -r -l -z lists all blobs with sizes, null-terminated
+      const result = await git.raw(['ls-tree', '-r', '-l', '-z', branch]);
+      if (!result.trim()) return {};
+
+      const extLangMap: Record<string, string> = {
+        ts: 'TypeScript', tsx: 'TypeScript', js: 'JavaScript', jsx: 'JavaScript',
+        py: 'Python', rb: 'Ruby', java: 'Java', kt: 'Kotlin', kts: 'Kotlin',
+        go: 'Go', rs: 'Rust', c: 'C', h: 'C', cpp: 'C++', cc: 'C++',
+        cs: 'C#', swift: 'Swift', m: 'Objective-C', php: 'PHP',
+        scala: 'Scala', clj: 'Clojure', ex: 'Elixir', exs: 'Elixir',
+        hs: 'Haskell', lua: 'Lua', r: 'R', dart: 'Dart', vue: 'Vue',
+        svelte: 'Svelte', css: 'CSS', scss: 'SCSS', less: 'Less',
+        html: 'HTML', htm: 'HTML', xml: 'XML', json: 'JSON', yaml: 'YAML',
+        yml: 'YAML', toml: 'TOML', md: 'Markdown', mdx: 'Markdown',
+        sql: 'SQL', sh: 'Shell', bash: 'Shell', zsh: 'Shell',
+        ps1: 'PowerShell', bat: 'Batch', dockerfile: 'Dockerfile',
+        prisma: 'Prisma', graphql: 'GraphQL', gql: 'GraphQL',
+        proto: 'Protocol Buffers', tf: 'HCL', zig: 'Zig', nim: 'Nim',
+        pl: 'Perl', pm: 'Perl', erl: 'Erlang',
+      };
+
+      const breakdown: Record<string, number> = {};
+      const lines = result.split('\0').filter(Boolean);
+
+      for (const line of lines) {
+        // Format: "<mode> <type> <hash> <size>\t<name>"
+        const tabIdx = line.indexOf('\t');
+        if (tabIdx === -1) continue;
+        const meta = line.slice(0, tabIdx).trim();
+        const name = line.slice(tabIdx + 1);
+
+        const parts = meta.split(/\s+/);
+        if (parts[1] !== 'blob') continue;
+        const size = parseInt(parts[3], 10) || 0;
+
+        const ext = name.includes('.') ? name.split('.').pop()!.toLowerCase() : name.toLowerCase();
+        const lang = extLangMap[ext];
+        if (lang) {
+          breakdown[lang] = (breakdown[lang] || 0) + size;
+        }
+      }
+
+      return breakdown;
+    } catch (err) {
+      this.logger.error(`getLanguageBreakdown failed: ${(err as Error).message}`);
+      return {};
+    }
+  }
+
+  /**
+   * Return unique contributor names + emails from the commit log.
+   */
+  async getContributors(
+    ownerName: string,
+    repoSlug: string,
+    branch: string,
+  ): Promise<{ name: string; email: string; commits: number }[]> {
+    const repoPath = this.getRepoPath(ownerName, repoSlug);
+    const git = this.getGit(repoPath);
+
+    try {
+      // shortlog -sne gives count + author + email
+      const result = await git.raw(['shortlog', '-sne', '--no-merges', branch]);
+      if (!result.trim()) return [];
+
+      return result
+        .trim()
+        .split('\n')
+        .map((line) => {
+          const match = line.trim().match(/^(\d+)\t(.+?)\s+<(.+?)>$/);
+          if (!match) return null;
+          return { name: match[2], email: match[3], commits: parseInt(match[1], 10) };
+        })
+        .filter(Boolean) as { name: string; email: string; commits: number }[];
+    } catch {
+      return [];
+    }
   }
 }

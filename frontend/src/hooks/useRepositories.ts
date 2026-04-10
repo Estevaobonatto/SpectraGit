@@ -77,10 +77,25 @@ export function useFileTree(owner: string, repo: string, branch: string, path?: 
   });
 }
 
-export function useFileContent(owner: string, repo: string, branch: string, filePath: string) {
+export function useFileContent(
+  owner: string,
+  repo: string,
+  branch: string,
+  filePath: string,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ['file-content', owner, repo, branch, filePath],
     queryFn: () => repositoriesService.getBlob(owner, repo, branch, filePath),
-    enabled: !!owner && !!repo && !!branch && !!filePath,
+    enabled: (options?.enabled ?? true) && !!owner && !!repo && !!branch && !!filePath,
+  });
+}
+
+export function useRepoStats(owner: string, repo: string) {
+  return useQuery({
+    queryKey: ['repo-stats', owner, repo],
+    queryFn: () => repositoriesService.getStats(owner, repo),
+    enabled: !!owner && !!repo,
+    staleTime: 60_000, // Cache for 1 minute
   });
 }

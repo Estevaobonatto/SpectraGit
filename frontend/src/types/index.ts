@@ -251,6 +251,54 @@ export interface GitHubRepo {
   updatedAt: string;
 }
 
+export interface RepoContributor {
+  name: string;
+  email: string;
+  commits: number;
+}
+
+export interface RepoStats {
+  languages: Record<string, number>;
+  contributors: RepoContributor[];
+  branchCount: number;
+  tagCount: number;
+  openIssueCount: number;
+  openPrCount: number;
+  labelCount: number;
+}
+
+export type ImportJobStatus =
+  | 'PENDING'
+  | 'CLONING'
+  | 'SEEDING_BRANCHES'
+  | 'IMPORTING_LABELS'
+  | 'IMPORTING_MILESTONES'
+  | 'IMPORTING_ISSUES'
+  | 'IMPORTING_PRS'
+  | 'IMPORTING_TAGS'
+  | 'COMPLETED'
+  | 'FAILED';
+
+export interface ImportJobResponse {
+  jobId: string | null;
+  repositorySlug: string;
+  ownerUsername: string;
+  alreadyRunning?: boolean;
+  alreadyImported?: boolean;
+}
+
+export interface ImportJobStatusResponse {
+  id: string;
+  status: ImportJobStatus;
+  progress: number;
+  currentStep: string | null;
+  error: string | null;
+  repositorySlug: string | null;
+  ownerUsername: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   meta: {

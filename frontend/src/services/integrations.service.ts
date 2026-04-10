@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { GitHubRepo } from '@/types';
+import type { GitHubRepo, ImportJobResponse, ImportJobStatusResponse } from '@/types';
 
 export const integrationsService = {
   getGitHubProfile: () =>
@@ -8,10 +8,13 @@ export const integrationsService = {
   listGitHubRepos: () =>
     api.get<{ data: GitHubRepo[] }>('/integrations/github/repos').then((r) => r.data.data),
 
-  importRepo: (fullName: string) => {
+  importRepo: (fullName: string): Promise<ImportJobResponse> => {
     const [owner, repo] = fullName.split('/');
-    return api.post(`/integrations/github/repos/${owner}/${repo}/import`);
+    return api.post<{ data: ImportJobResponse }>(`/integrations/github/repos/${owner}/${repo}/import`).then((r) => r.data.data);
   },
+
+  getImportStatus: (jobId: string): Promise<ImportJobStatusResponse> =>
+    api.get<{ data: ImportJobStatusResponse }>(`/integrations/github/import/${jobId}/status`).then((r) => r.data.data),
 
   syncRepo: (fullName: string) => {
     const [owner, repo] = fullName.split('/');

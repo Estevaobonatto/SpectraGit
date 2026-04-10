@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useParams, useOutletContext } from 'react-router-dom';
-import { File, Folder, ChevronDown, GitBranch, History, Copy, Download } from 'lucide-react';
-import { useFileTree } from '@/hooks/useRepositories';
+import { File, Folder, ChevronDown, GitBranch, History, Copy, Download, BookOpen } from 'lucide-react';
+import { useFileTree, useFileContent } from '@/hooks/useRepositories';
 import { useBranches } from '@/hooks/useBranches';
 import { useCommits } from '@/hooks/useBranches';
 import { cn, formatRelativeTime } from '@/lib/utils';
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { InlineLoader } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
+import { MarkdownRenderer } from '@/components/repo/MarkdownRenderer';
 import { motion } from 'motion/react';
 import type { Repository, FileTreeItem } from '@/types';
 
@@ -42,6 +43,32 @@ export default function CodeBrowserPage() {
     if (a.type === b.type) return a.name.localeCompare(b.name);
     return a.type === 'directory' ? -1 : 1;
   });
+
+  // Detect renderable files at root (README, LICENSE, etc.)
+  const RENDERABLE_FILES = [
+    'readme.md', 'readme.mdx', 'readme.markdown', 'readme',
+    'license.md', 'license', 'licence.md', 'licence',
+    'contributing.md', 'changelog.md', 'code_of_conduct.md',
+  ];
+  const renderableFile = useMemo(() => {
+    if (currentPath || !tree) return null;
+    for (const name of RENDERABLE_FILES) {
+      const found = tree.find(
+        (f) => f.type === 'file' && f.name.toLowerCase() === name,
+      );
+      if (found) return found;
+    }
+    return null;
+  }, [tree, currentPath]);
+
+  const isMarkdownFile = renderableFile
+    ? /\.(md|mdx|markdown)$/i.test(renderableFile.name)
+    : false;
+
+  const { data: renderableContent } = useFileContent(
+    owner!, repo!, currentBranch, renderableFile?.path ?? '',
+    { enabled: !!renderableFile },
+  );
 
   const pathSegments = currentPath ? currentPath.split('/').filter(Boolean) : [];
 
@@ -166,6 +193,35 @@ export default function CodeBrowserPage() {
             </motion.div>
           ))}
         </div>
+      )}
+
+      {/* Render README / LICENSE below file tree */}
+      {renderableFile && renderableContent && (
+        <motion.div
+          className="rounded-[var(--radius-md)] border border-border overflow-hidden"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
+        >
+          <div className="flex items-center gap-2 border-b border-border bg-surface-hover px-4 py-2 text-sm">
+            <BookOpen className="h-4 w-4 text-text-tertiary" />
+            <Link
+              to={`/${owner}/${repo}/blob/${currentBranch}/${renderableFile.path}`}
+              className="font-medium hover:text-primary-500 transition-colors"
+            >
+              {renderableFile.name}
+            </Link>
+          </div>
+          <div className="px-6 py-5">
+            {isMarkdownFile ? (
+              <MarkdownRenderer content={renderableContent.content} />
+            ) : (
+              <pre className="text-sm text-text-secondary whitespace-pre-wrap font-mono">
+                {renderableContent.content}
+              </pre>
+            )}
+          </div>
+        </motion.div>
       )}
     </div>
   );

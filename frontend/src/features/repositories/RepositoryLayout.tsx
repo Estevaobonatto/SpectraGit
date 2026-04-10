@@ -2,6 +2,7 @@ import { Outlet, useParams } from 'react-router-dom';
 import { useRepository } from '@/hooks/useRepositories';
 import { RepoHeader } from '@/components/layout/RepoHeader';
 import { RepoTabs } from '@/components/layout/RepoTabs';
+import { RepoSidebar } from '@/components/repo/RepoSidebar';
 import { PageLoader } from '@/components/ui/spinner';
 import { Alert } from '@/components/ui/alert';
 
@@ -23,8 +24,11 @@ export default function RepositoryLayout() {
     <div className="space-y-4">
       <RepoHeader repo={repository} />
       <RepoTabs />
-      <div className="pt-2">
-        <Outlet context={{ repository }} />
+      <div className="grid grid-cols-1 gap-8 pt-2 lg:grid-cols-[1fr_280px]">
+        <div className="min-w-0">
+          <Outlet context={{ repository }} />
+        </div>
+        <RepoSidebar repo={repository} />
       </div>
     </div>
   );

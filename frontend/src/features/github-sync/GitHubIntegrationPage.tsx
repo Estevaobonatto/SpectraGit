@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ExternalLink, RefreshCw, Download, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
 import { integrationsService } from '@/services/integrations.service';
 import { Button } from '@/components/ui/button';
@@ -6,16 +7,25 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { PageLoader, Spinner } from '@/components/ui/spinner';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { GitHubRepo } from '@/types';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import type { GitHubRepo, ImportJobResponse } from '@/types';
 import { motion, AnimatePresence } from 'motion/react';
+import ImportProgressModal from './ImportProgressModal';
 
 type RepoImportState = 'importing' | 'success' | 'error';
 
+interface ActiveImport {
+  jobId: string;
+  repositorySlug: string;
+  ownerUsername: string;
+  repoFullName: string;
+}
+
 export default function GitHubIntegrationPage() {
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [repoStates, setRepoStates] = useState<Record<string, RepoImportState>>({});
   const [repoErrors, setRepoErrors] = useState<Record<string, string>>({});
+  const [activeImport, setActiveImport] = useState<ActiveImport | null>(null);
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['github-profile'],
@@ -31,11 +41,26 @@ export default function GitHubIntegrationPage() {
 
   const importMutation = useMutation({
     mutationFn: (repoFullName: string) => integrationsService.importRepo(repoFullName),
-    onSuccess: (_data, repoFullName) => {
-      setRepoStates((s) => ({ ...s, [repoFullName]: 'success' }));
-      queryClient.invalidateQueries({ queryKey: ['repositories'] });
+    onSuccess: (data: ImportJobResponse, repoFullName: string) => {
+      if (data.alreadyImported) {
+        // Already imported, navigate directly
+        setRepoStates((s) => ({ ...s, [repoFullName]: 'success' }));
+        navigate(`/${data.ownerUsername}/${data.repositorySlug}`);
+        return;
+      }
+
+      if (data.jobId) {
+        // Open progress modal
+        setRepoStates((s) => ({ ...s, [repoFullName]: 'importing' }));
+        setActiveImport({
+          jobId: data.jobId,
+          repositorySlug: data.repositorySlug,
+          ownerUsername: data.ownerUsername,
+          repoFullName,
+        });
+      }
     },
-    onError: (err: unknown, repoFullName) => {
+    onError: (err: unknown, repoFullName: string) => {
       const message =
         (err as { response?: { data?: { message?: string } }; message?: string })
           ?.response?.data?.message ??
@@ -50,6 +75,21 @@ export default function GitHubIntegrationPage() {
     setRepoStates((s) => ({ ...s, [repo.fullName]: 'importing' }));
     setRepoErrors((e) => { const n = { ...e }; delete n[repo.fullName]; return n; });
     importMutation.mutate(repo.fullName);
+  };
+
+  const handleImportModalClose = () => {
+    if (activeImport) {
+      setRepoStates((s) => ({ ...s, [activeImport.repoFullName]: 'error' }));
+    }
+    setActiveImport(null);
+  };
+
+  const handleImportRetry = () => {
+    if (activeImport) {
+      setActiveImport(null);
+      const repo = repos?.find((r: GitHubRepo) => r.fullName === activeImport.repoFullName);
+      if (repo) handleImport(repo);
+    }
   };
 
   if (profileLoading) return <PageLoader />;
@@ -180,6 +220,16 @@ export default function GitHubIntegrationPage() {
           </div>
         )}
       </div>
+
+      {/* Import Progress Modal */}
+      <ImportProgressModal
+        open={!!activeImport}
+        jobId={activeImport?.jobId ?? null}
+        repositorySlug={activeImport?.repositorySlug ?? ''}
+        ownerUsername={activeImport?.ownerUsername ?? ''}
+        onClose={handleImportModalClose}
+        onRetry={handleImportRetry}
+      />
     </div>
   );
 }

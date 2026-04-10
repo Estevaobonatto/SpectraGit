@@ -37,6 +37,7 @@ model User {
   orgMembers     OrganizationMember[]
   teamMembers    TeamMember[]
   auditLogs      AuditLog[]
+  importJobs     ImportJob[]
 
   @@map("users")
 }
@@ -272,17 +273,18 @@ enum IssueStatus {
 }
 
 model Issue {
-  id           String      @id @default(uuid()) @db.Uuid
-  repositoryId String      @map("repository_id") @db.Uuid
-  authorId     String      @map("author_id") @db.Uuid
-  assigneeId   String?     @map("assignee_id") @db.Uuid
-  number       Int
-  title        String      @db.VarChar(255)
-  body         String?     @db.Text
-  status       IssueStatus @default(OPEN)
-  milestoneId  String?     @map("milestone_id") @db.Uuid
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
+  id               String      @id @default(uuid()) @db.Uuid
+  repositoryId     String      @map("repository_id") @db.Uuid
+  authorId         String      @map("author_id") @db.Uuid
+  assigneeId       String?     @map("assignee_id") @db.Uuid
+  number           Int
+  title            String      @db.VarChar(255)
+  body             String?     @db.Text
+  status           IssueStatus @default(OPEN)
+  milestoneId      String?     @map("milestone_id") @db.Uuid
+  githubExternalId String?     @map("github_external_id") @db.VarChar(255)
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
 
   repository Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
   author     User         @relation("IssueAuthor", fields: [authorId], references: [id])
@@ -294,6 +296,7 @@ model Issue {
   @@unique([repositoryId, number])
   @@index([repositoryId])
   @@index([authorId])
+  @@index([repositoryId, githubExternalId])
   @@map("issues")
 }
 
@@ -355,20 +358,21 @@ enum MergeStrategy {
 }
 
 model PullRequest {
-  id             String         @id @default(uuid()) @db.Uuid
-  repositoryId   String         @map("repository_id") @db.Uuid
-  authorId       String         @map("author_id") @db.Uuid
-  number         Int
-  sourceBranch   String         @map("source_branch") @db.VarChar(255)
-  targetBranch   String         @map("target_branch") @db.VarChar(255)
-  title          String         @db.VarChar(255)
-  body           String?        @db.Text
-  status         PRStatus       @default(OPEN)
-  mergeStrategy  MergeStrategy? @map("merge_strategy")
-  mergedBy       String?        @map("merged_by") @db.Uuid
-  mergedAt       DateTime?      @map("merged_at")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  id               String         @id @default(uuid()) @db.Uuid
+  repositoryId     String         @map("repository_id") @db.Uuid
+  authorId         String         @map("author_id") @db.Uuid
+  number           Int
+  sourceBranch     String         @map("source_branch") @db.VarChar(255)
+  targetBranch     String         @map("target_branch") @db.VarChar(255)
+  title            String         @db.VarChar(255)
+  body             String?        @db.Text
+  status           PRStatus       @default(OPEN)
+  mergeStrategy    MergeStrategy? @map("merge_strategy")
+  mergedBy         String?        @map("merged_by") @db.Uuid
+  mergedAt         DateTime?      @map("merged_at")
+  githubExternalId String?        @map("github_external_id") @db.VarChar(255)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
 
   repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
   author     User       @relation("PRAuthor", fields: [authorId], references: [id])
@@ -380,6 +384,7 @@ model PullRequest {
   @@unique([repositoryId, number])
   @@index([repositoryId])
   @@index([authorId])
+  @@index([repositoryId, githubExternalId])
   @@map("pull_requests")
 }
 
@@ -496,4 +501,40 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ─── Import Jobs ─────────────────────────────────────────────
+
+enum ImportJobStatus {
+  PENDING
+  CLONING
+  SEEDING_BRANCHES
+  IMPORTING_LABELS
+  IMPORTING_MILESTONES
+  IMPORTING_ISSUES
+  IMPORTING_PRS
+  IMPORTING_TAGS
+  COMPLETED
+  FAILED
+}
+
+model ImportJob {
+  id                  String          @id @default(uuid()) @db.Uuid
+  userId              String          @map("user_id") @db.Uuid
+  repositoryId        String?         @map("repository_id") @db.Uuid
+  githubRepoFullName  String          @map("github_repo_full_name") @db.VarChar(255)
+  status              ImportJobStatus @default(PENDING)
+  progress            Int             @default(0)
+  currentStep         String?         @map("current_step") @db.VarChar(255)
+  error               String?         @db.Text
+  repositorySlug      String?         @map("repository_slug") @db.VarChar(100)
+  ownerUsername        String?         @map("owner_username") @db.VarChar(39)
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("import_jobs")
 }

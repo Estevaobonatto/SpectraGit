@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { Repository, FileTreeItem, FileContent, Branch, Commit, CommitDetail, DiffFile } from '@/types';
+import type { Repository, FileTreeItem, FileContent, Branch, Commit, CommitDetail, DiffFile, RepoStats } from '@/types';
 
 export const repositoriesService = {
   list: (params?: { page?: number; limit?: number }) =>
@@ -35,6 +35,9 @@ export const repositoriesService = {
     api
       .get<{ data: FileContent }>(`/repos/${owner}/${repo}/blob/${branch}/${filePath}`)
       .then((r) => r.data.data),
+
+  getStats: (owner: string, repo: string) =>
+    api.get<{ data: RepoStats }>(`/repos/${owner}/${repo}/stats`).then((r) => r.data.data),
 };
 
 export const branchesService = {

@@ -23,7 +23,7 @@ export function AppShell() {
       <div className="min-h-screen bg-background">
         <Topbar />
         <main className="pt-14 min-h-screen">
-          <div className="mx-auto max-w-6xl px-6 py-6">
+            <div className="mx-auto max-w-7xl px-6 py-6">
             <AnimatePresence mode="wait">
               <motion.div
                 key={getRouteKey(location.pathname)}

@@ -288,4 +288,36 @@ export class RepositoriesService {
     if (!user) throw new NotFoundException('User not found');
     return user.username;
   }
+
+  async getStats(ownerName: string, slug: string, userId?: string) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+
+    const [
+      languages,
+      contributors,
+      branchCount,
+      tagCount,
+      openIssueCount,
+      openPrCount,
+      labelCount,
+    ] = await Promise.all([
+      this.gitService.getLanguageBreakdown(ownerName, slug, repo.defaultBranch),
+      this.gitService.getContributors(ownerName, slug, repo.defaultBranch),
+      this.prisma.branch.count({ where: { repositoryId: repo.id } }),
+      this.prisma.tag.count({ where: { repositoryId: repo.id } }),
+      this.prisma.issue.count({ where: { repositoryId: repo.id, status: 'OPEN' } }),
+      this.prisma.pullRequest.count({ where: { repositoryId: repo.id, status: 'OPEN' } }),
+      this.prisma.label.count({ where: { repositoryId: repo.id } }),
+    ]);
+
+    return {
+      languages,
+      contributors,
+      branchCount,
+      tagCount,
+      openIssueCount,
+      openPrCount,
+      labelCount,
+    };
+  }
 }
