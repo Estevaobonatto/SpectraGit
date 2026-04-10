@@ -4,8 +4,8 @@ import type { Issue, Comment } from '@/types';
 export const issuesService = {
   list: (owner: string, repo: string, params?: { status?: string; page?: number; limit?: number }) =>
     api
-      .get<{ data: Issue[]; meta: { total: number } }>(`/repos/${owner}/${repo}/issues`, { params })
-      .then((r) => r.data),
+      .get<{ data: { items: Issue[]; total: number; page: number; totalPages: number }; meta: unknown }>(`/repos/${owner}/${repo}/issues`, { params })
+      .then((r) => ({ data: r.data.data.items, meta: { total: r.data.data.total } })),
 
   get: (owner: string, repo: string, number: number) =>
     api.get<{ data: Issue }>(`/repos/${owner}/${repo}/issues/${number}`).then((r) => r.data.data),

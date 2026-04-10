@@ -127,7 +127,7 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
-    return user;
+    return payload;
   }
 
   private async createSession(

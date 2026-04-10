@@ -4,8 +4,8 @@ import type { PullRequest, Comment, Review, DiffFile } from '@/types';
 export const pullRequestsService = {
   list: (owner: string, repo: string, params?: { status?: string; page?: number; limit?: number }) =>
     api
-      .get<{ data: PullRequest[]; meta: { total: number } }>(`/repos/${owner}/${repo}/pulls`, { params })
-      .then((r) => r.data),
+      .get<{ data: { items: PullRequest[]; total: number; page: number; totalPages: number }; meta: unknown }>(`/repos/${owner}/${repo}/pulls`, { params })
+      .then((r) => ({ data: r.data.data.items, meta: { total: r.data.data.total } })),
 
   get: (owner: string, repo: string, number: number) =>
     api.get<{ data: PullRequest }>(`/repos/${owner}/${repo}/pulls/${number}`).then((r) => r.data.data),

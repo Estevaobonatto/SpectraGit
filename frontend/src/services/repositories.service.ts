@@ -3,7 +3,8 @@ import type { Repository, FileTreeItem, FileContent, Branch, Commit, CommitDetai
 
 export const repositoriesService = {
   list: (params?: { page?: number; limit?: number }) =>
-    api.get<{ data: Repository[]; meta: { total: number } }>('/repos', { params }).then((r) => r.data),
+    api.get<{ data: { items: Repository[]; total: number; page: number; limit: number; totalPages: number }; meta: unknown }>('/repos', { params })
+      .then((r) => ({ data: r.data.data.items, meta: { total: r.data.data.total, page: r.data.data.page, totalPages: r.data.data.totalPages } })),
 
   get: (owner: string, repo: string) =>
     api.get<{ data: Repository }>(`/repos/${owner}/${repo}`).then((r) => r.data.data),
