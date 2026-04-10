@@ -23,8 +23,8 @@ export const repositoriesService = {
 
   delete: (owner: string, repo: string) => api.delete(`/repos/${owner}/${repo}`),
 
-  fork: (owner: string, repo: string) =>
-    api.post<{ data: Repository }>(`/repos/${owner}/${repo}/fork`).then((r) => r.data.data),
+  fork: (owner: string, repo: string, name?: string) =>
+    api.post<{ data: Repository }>(`/repos/${owner}/${repo}/fork`, name ? { name } : {}).then((r) => r.data.data),
 
   pulse: (owner: string, repo: string) =>
     api.post<{ data: { count: number; isActive: boolean } }>(`/repos/${owner}/${repo}/pulse`).then((r) => r.data.data),

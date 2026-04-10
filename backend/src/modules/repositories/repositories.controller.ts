@@ -5,6 +5,7 @@ import { RepositoriesService } from './repositories.service';
 import { GitService } from '../git/git.service';
 import { CreateRepositoryDto } from './dto/create-repository.dto';
 import { UpdateRepositoryDto } from './dto/update-repository.dto';
+import { ForkRepositoryDto } from './dto/fork-repository.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -73,8 +74,9 @@ export class RepositoriesController {
     @Param('owner') owner: string,
     @Param('repo') repo: string,
     @CurrentUser() user: JwtPayload,
+    @Body() dto: ForkRepositoryDto,
   ) {
-    return this.reposService.fork(owner, repo, user.sub);
+    return this.reposService.fork(owner, repo, user.sub, dto);
   }
 
   @Post(':owner/:repo/pulse')

@@ -62,7 +62,7 @@ export function useForkRepository(owner: string, repo: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => repositoriesService.fork(owner, repo),
+    mutationFn: (name?: string) => repositoriesService.fork(owner, repo, name),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repositories'] });
       queryClient.invalidateQueries({ queryKey: ['repository', owner, repo] });

@@ -8,6 +8,7 @@ import { RepoVisibility } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GitService } from '../git/git.service';
 import { CreateRepositoryDto } from './dto/create-repository.dto';
+import { ForkRepositoryDto } from './dto/fork-repository.dto';
 import { UpdateRepositoryDto } from './dto/update-repository.dto';
 import { PaginationDto, PaginatedResult } from '../../common/dto/pagination.dto';
 
@@ -199,23 +200,34 @@ export class RepositoriesService {
     return { message: 'Repository deleted' };
   }
 
-  async fork(ownerName: string, slug: string, userId: string) {
+  async fork(ownerName: string, slug: string, userId: string, dto?: ForkRepositoryDto) {
     const sourceRepo = await this.findByOwnerAndSlug(ownerName, slug, userId);
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
+    if (sourceRepo.ownerUser?.id === userId) {
+      throw new ConflictException(
+        'You cannot fork your own repository. Choose a different name to create a copy.',
+      );
+    }
+
+    const forkName = dto?.name ?? sourceRepo.name;
+    const forkSlug = forkName.toLowerCase().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+
     const existing = await this.prisma.repository.findFirst({
-      where: { ownerUserId: userId, slug },
+      where: { ownerUserId: userId, slug: forkSlug },
     });
     if (existing) {
-      throw new ConflictException('You already have a repository with this name');
+      throw new ConflictException(
+        `You already have a repository named "${forkSlug}". Choose a different name.`,
+      );
     }
 
     const forkedRepo = await this.prisma.repository.create({
       data: {
         ownerUserId: userId,
-        name: sourceRepo.name,
-        slug: sourceRepo.slug,
+        name: forkName,
+        slug: forkSlug,
         description: sourceRepo.description,
         visibility: RepoVisibility.PUBLIC,
         defaultBranch: sourceRepo.defaultBranch,
@@ -230,7 +242,7 @@ export class RepositoriesService {
     try {
       await this.gitService.cloneLocal(ownerName, slug, user.username, forkedRepo.slug);
 
-      // Create branch records from the source repo's branches
+      // Create branch records from the forked repo's actual branches on disk
       const sourceBranches = await this.gitService.getLocalBranchesWithSha(
         user.username,
         forkedRepo.slug,
