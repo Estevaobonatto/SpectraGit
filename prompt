@@ -1,0 +1,16 @@
+monte o documentato SDD .md do Projeto, determine requisitos, arquitetura , freatures e requisitos funcionais e não funcionais
+
+O projeto vai ser um "github like"
+
+- o usuario vai poder gerenciar repositorios git e fazer operaçoes nele
+- interface moderna desenvolvida em react com shadcn customizado, design system isnpirado no google com bordas arredondadas, sem sombras ou degrades, cores pasteis mas fortes, foco em tons de roxo e lilás, tipografia clean e legível, com espaçamento generoso para uma melhor experiência de leitura e navegação, navegaçaõ em tabs e menu lateral para facilitar o acesso às principais funcionalidades, além de um sistema de notificações para manter os usuários informados sobre as atividades em seus repositórios. Arquitetura moderna de frontend utilizando React, com componentes reutilizáveis e uma estrutura de pastas organizada para facilitar a manutenção e escalabilidade do código.
+
+- Backend com alguma tecnologia que faça sentido como nest js ou outro framework, arquitetura moderna e escalável, utilizando uma base de dados relacional como PostgreSQL, para armazenar informações sobre os usuários, repositórios, commits, branches, pull requests e outras funcionalidades relacionadas ao gerenciamento de repositórios git. 
+
+- autenticação via oauth google e github se possivel, para facilitar o acesso dos usuários e garantir a segurança das contas dos usuários. foco na segurança e criptografia dos dados, utilizando práticas recomendadas para proteger as informações dos usuários e garantir a integridade dos dados armazenados.
+
+- integração com a API do GitHub para permitir que os usuários possam importar seus repositórios existentes e sincronizar as alterações feitas em nosso sistema com o GitHub, garantindo uma experiência fluida e consistente para os usuários que já possuem repositórios no GitHub. (se possivel)
+
+- funcionalidades adicionais como gerenciamento de issues, pull requests, revisão de código e colaboração em equipe, para oferecer uma experiência completa de gerenciamento de repositórios git e facilitar a colaboração entre os membros da equipe.
+
+- sistema de notificações para manter os usuários informados sobre as atividades em seus repositórios, como novos commits, pull requests, comentários e outras atualizações relevantes, garantindo que os usuários estejam sempre atualizados sobre as atividades em seus repositórios.

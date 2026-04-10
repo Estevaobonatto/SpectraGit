@@ -1,0 +1,13 @@
+# Secrets — never commit these
+.env
+.env.local
+.env.*.local
+
+# Docker volumes
+postgres_data/
+redis_data/
+git_storage/
+
+# OS
+.DS_Store
+Thumbs.db

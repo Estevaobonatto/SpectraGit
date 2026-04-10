@@ -1,0 +1,63 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { BullModule } from '@nestjs/bullmq';
+import configuration from './config/configuration';
+import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { RepositoriesModule } from './modules/repositories/repositories.module';
+import { GitModule } from './modules/git/git.module';
+import { CommitsModule } from './modules/commits/commits.module';
+import { BranchesModule } from './modules/branches/branches.module';
+import { IssuesModule } from './modules/issues/issues.module';
+import { PullRequestsModule } from './modules/pull-requests/pull-requests.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { OrganizationsModule } from './modules/organizations/organizations.module';
+import { IntegrationsModule } from './modules/integrations/integrations.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { EventsModule } from './events/events.module';
+import { JobsModule } from './jobs/jobs.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [configuration],
+    }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          host: config.get('redis.host'),
+          port: config.get('redis.port'),
+          password: config.get('redis.password'),
+        },
+      }),
+    }),
+    PrismaModule,
+    AuthModule,
+    UsersModule,
+    RepositoriesModule,
+    GitModule,
+    CommitsModule,
+    BranchesModule,
+    IssuesModule,
+    PullRequestsModule,
+    ReviewsModule,
+    NotificationsModule,
+    OrganizationsModule,
+    IntegrationsModule,
+    AuditModule,
+    EventsModule,
+    JobsModule,
+  ],
+})
+export class AppModule {}
