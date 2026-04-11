@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsService } from '@/services/notifications.service';
+import { useAuthStore } from '@/stores/auth.store';
 
 export function useNotifications(params?: { page?: number; limit?: number }) {
   return useQuery({
@@ -9,10 +10,12 @@ export function useNotifications(params?: { page?: number; limit?: number }) {
 }
 
 export function useNotificationCount() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
     queryKey: ['notification-count'],
     queryFn: () => notificationsService.unreadCount(),
     refetchInterval: 30000,
+    enabled: isAuthenticated,
   });
 }
 

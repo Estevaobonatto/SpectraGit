@@ -182,7 +182,13 @@ export class OrganizationsService {
         },
       },
     });
-    return memberships.map((m) => ({ ...m.organization, role: m.role }));
+    return memberships.map((m) => ({
+      id: m.id,
+      userId: m.userId,
+      role: m.role,
+      createdAt: m.createdAt,
+      organization: m.organization,
+    }));
   }
 
   private async ensureOrgAdmin(name: string, userId: string) {

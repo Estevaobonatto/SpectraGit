@@ -21,7 +21,6 @@ import { UpdateReleaseDto } from './dto/update-release.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtPayload } from '../../common/types/request.types';
-import * as fs from 'fs';
 
 @ApiTags('Releases')
 @Controller('repos/:owner/:repo/releases')
@@ -129,7 +128,7 @@ export class ReleasesController {
       `attachment; filename="${encodeURIComponent(asset.fileName)}"`,
     );
     res.setHeader('Content-Length', String(asset.size));
-    const stream = fs.createReadStream(asset.filePath);
+    const stream = await this.releasesService.getAssetStream(asset.filePath);
     stream.pipe(res);
   }
 

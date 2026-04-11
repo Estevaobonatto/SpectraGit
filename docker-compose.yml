@@ -63,9 +63,13 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       GIT_STORAGE_PATH: /data/repositories
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_REGION: ${S3_REGION:-nbg1}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
     volumes:
       - git_storage:/data/repositories
-      - release_assets:/data/release-assets
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,4 +101,3 @@ volumes:
   postgres_data:
   redis_data:
   git_storage:
-  release_assets:

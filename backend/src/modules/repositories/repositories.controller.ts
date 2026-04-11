@@ -6,6 +6,7 @@ import { GitService } from '../git/git.service';
 import { CreateRepositoryDto } from './dto/create-repository.dto';
 import { UpdateRepositoryDto } from './dto/update-repository.dto';
 import { ForkRepositoryDto } from './dto/fork-repository.dto';
+import { ListRepositoriesQueryDto } from './dto/list-repositories-query.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -30,11 +31,11 @@ export class RepositoriesController {
   @Get()
   @ApiOperation({ summary: 'List repositories' })
   async findAll(
-    @Query() pagination: PaginationDto,
-    @Query('scope') scope?: 'mine' | 'all',
+    @Query() query: ListRepositoriesQueryDto,
     @CurrentUser() user?: JwtPayload,
   ) {
-    return this.reposService.findAll(user?.sub || null, pagination, scope);
+    const { scope, ...pagination } = query;
+    return this.reposService.findAll(user?.sub || null, pagination as PaginationDto, scope);
   }
 
   @Public()

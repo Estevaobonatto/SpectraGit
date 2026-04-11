@@ -20,4 +20,9 @@ export const validationSchema = Joi.object({
   GIT_STORAGE_PATH: Joi.string().default('/data/repositories'),
   SSH_PORT: Joi.number().default(2222),
   CORS_ORIGINS: Joi.string().default('http://localhost:5173'),
+  S3_ENDPOINT: Joi.string().required(),
+  S3_REGION: Joi.string().default('nbg1'),
+  S3_BUCKET: Joi.string().required(),
+  S3_ACCESS_KEY_ID: Joi.string().required(),
+  S3_SECRET_ACCESS_KEY: Joi.string().required(),
 });

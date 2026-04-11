@@ -31,9 +31,7 @@ COPY --from=builder --chown=spectragit:spectragit /app/package.json ./
 
 RUN npx prisma generate && \
     mkdir -p /data/repositories && \
-    mkdir -p /data/release-assets && \
-    chown -R spectragit:spectragit /data/repositories && \
-    chown -R spectragit:spectragit /data/release-assets
+    chown -R spectragit:spectragit /data/repositories
 
 USER spectragit
 
