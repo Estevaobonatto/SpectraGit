@@ -72,6 +72,7 @@ model User {
   personalAccessTokens PersonalAccessToken[]
   activityEvents       ActivityEvent[]
   authoredReleases     Release[]      @relation("ReleaseAuthor")
+  profile              UserProfile?
 
   @@map("users")
 }
@@ -91,6 +92,110 @@ model OAuthAccount {
 
   @@unique([provider, providerUserId])
   @@map("oauth_accounts")
+}
+
+// ─── User Profile Customization ──────────────────────────────
+
+model UserProfile {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @unique @map("user_id") @db.Uuid
+  readmeContent     String?  @map("readme_content") @db.Text
+  aboutMe           String?  @map("about_me") @db.Text
+  backgroundType    String   @default("solid") @map("background_type") @db.VarChar(20)
+  backgroundColor   String?  @map("background_color") @db.VarChar(20)
+  backgroundImage   String?  @map("background_image") @db.VarChar(512)
+  customCss         String?  @map("custom_css") @db.Text
+  commitChartColor  String?  @map("commit_chart_color") @db.VarChar(20)
+  commitChartStyle  String?  @map("commit_chart_style") @db.VarChar(20)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user            User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections        UserProfileSection[]
+  socialLinks     UserSocialLink[]
+  pinnedRepos     UserPinnedRepository[]
+  skills          UserSkill[]
+  projects        UserProfileProject[]
+
+  @@map("user_profiles")
+}
+
+model UserProfileSection {
+  id            String   @id @default(uuid()) @db.Uuid
+  profileId     String   @map("profile_id") @db.Uuid
+  title         String   @db.VarChar(100)
+  content       String   @db.Text
+  sortOrder     Int      @default(0) @map("sort_order")
+  isVisible     Boolean  @default(true) @map("is_visible")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  profile UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, sortOrder])
+  @@map("user_profile_sections")
+}
+
+model UserSocialLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @map("profile_id") @db.Uuid
+  platform  String   @db.VarChar(50)
+  label     String   @db.VarChar(100)
+  url       String   @db.VarChar(512)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  profile UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("user_social_links")
+}
+
+model UserPinnedRepository {
+  id           String   @id @default(uuid()) @db.Uuid
+  profileId    String   @map("profile_id") @db.Uuid
+  repositoryId String   @map("repository_id") @db.Uuid
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  profile    UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  repository Repository  @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, repositoryId])
+  @@index([profileId, sortOrder])
+  @@map("user_pinned_repositories")
+}
+
+model UserSkill {
+  id              String   @id @default(uuid()) @db.Uuid
+  profileId       String   @map("profile_id") @db.Uuid
+  name            String   @db.VarChar(100)
+  proficiency     Int      @default(50)
+  relatedProjects String[] @map("related_projects")
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  profile UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("user_skills")
+}
+
+model UserProfileProject {
+  id          String   @id @default(uuid()) @db.Uuid
+  profileId   String   @map("profile_id") @db.Uuid
+  name        String   @db.VarChar(200)
+  description String?  @db.Text
+  repoUrl     String?  @map("repo_url") @db.VarChar(512)
+  liveUrl     String?  @map("live_url") @db.VarChar(512)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  profile UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("user_profile_projects")
 }
 
 model Session {
@@ -246,6 +351,7 @@ model Repository {
   activityEvents ActivityEvent[]
   releases       Release[]
   webhooks       Webhook[]
+  pinnedBy       UserPinnedRepository[]
 
   @@unique([ownerUserId, slug])
   @@unique([ownerOrgId, slug])

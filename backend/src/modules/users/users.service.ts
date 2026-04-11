@@ -38,6 +38,8 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         bio: true,
+        location: true,
+        website: true,
         createdAt: true,
         _count: { select: { ownedRepos: true } },
       },

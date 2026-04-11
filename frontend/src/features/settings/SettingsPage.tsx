@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { NavLink, Outlet, Navigate } from 'react-router-dom';
-import { Settings, Key, Monitor, Link2, Bell, AlertTriangle, KeyRound } from 'lucide-react';
+import { Settings, Key, Monitor, Link2, Bell, AlertTriangle, KeyRound, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PageLoader } from '@/components/ui/spinner';
 import { motion } from 'motion/react';
@@ -12,9 +12,11 @@ const SessionsSection = lazy(() => import('./sections/SessionsSection'));
 const ConnectedAccountsSection = lazy(() => import('./sections/ConnectedAccountsSection'));
 const NotificationsSection = lazy(() => import('./sections/NotificationsSection'));
 const DangerZoneSection = lazy(() => import('./sections/DangerZoneSection'));
+const ProfileCustomizationSection = lazy(() => import('./sections/ProfileCustomizationSection'));
 
 const NAV_ITEMS = [
   { to: '/settings', label: 'Profile', icon: Settings, end: true },
+  { to: '/settings/customization', label: 'Profile Customization', icon: Palette },
   { to: '/settings/ssh-keys', label: 'SSH Keys', icon: Key },
   { to: '/settings/tokens', label: 'Access Tokens', icon: KeyRound },
   { to: '/settings/sessions', label: 'Sessions', icon: Monitor },
@@ -96,6 +98,10 @@ export function SettingsAccountsPage() {
 
 export function SettingsNotificationsPage() {
   return <Suspense fallback={<PageLoader />}><NotificationsSection /></Suspense>;
+}
+
+export function SettingsProfileCustomizationPage() {
+  return <Suspense fallback={<PageLoader />}><ProfileCustomizationSection /></Suspense>;
 }
 
 export function SettingsDangerZonePage() {

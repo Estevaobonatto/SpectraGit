@@ -11,6 +11,104 @@ export interface User {
   updatedAt: string;
 }
 
+export interface UserProfile {
+  id: string;
+  userId: string;
+  readmeContent: string | null;
+  aboutMe: string | null;
+  backgroundType: 'solid' | 'image' | 'css';
+  backgroundColor: string | null;
+  backgroundImage: string | null;
+  customCss: string | null;
+  commitChartColor: string | null;
+  commitChartStyle: string | null;
+  sections: ProfileSection[];
+  socialLinks: SocialLink[];
+  pinnedRepos: PinnedRepository[];
+  skills: UserSkill[];
+  projects: ProfileProject[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProfileSection {
+  id: string;
+  title: string;
+  content: string;
+  sortOrder: number;
+  isVisible: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SocialLink {
+  id: string;
+  platform: string;
+  label: string;
+  url: string;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface PinnedRepository {
+  id: string;
+  repositoryId: string;
+  sortOrder: number;
+  repository: Pick<Repository, 'id' | 'name' | 'slug' | 'description' | 'visibility'> & {
+    ownerUser?: { username: string } | null;
+    ownerOrg?: { name: string } | null;
+    topics?: string[];
+    updatedAt?: string;
+  };
+  createdAt: string;
+}
+
+export interface UserSkill {
+  id: string;
+  name: string;
+  proficiency: number;
+  relatedProjects: string[];
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface ProfileProject {
+  id: string;
+  name: string;
+  description: string | null;
+  repoUrl: string | null;
+  liveUrl: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LanguageStat {
+  language: string;
+  bytes: number;
+  percentage: number;
+}
+
+export interface CommitHeatmapData {
+  heatmap: Record<string, number>;
+  totalContributions: number;
+  startDate: string;
+  endDate: string;
+}
+
+export interface PublicUserProfile {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  location: string | null;
+  website: string | null;
+  createdAt: string;
+  profile: UserProfile | null;
+  _count: { ownedRepos: number };
+}
+
 export interface SSHKey {
   id: string;
   title: string;

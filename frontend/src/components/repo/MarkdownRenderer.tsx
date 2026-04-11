@@ -1,6 +1,9 @@
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import remarkGfm from 'remark-gfm';
+import remarkEmoji from 'remark-emoji';
+import rehypeRaw from 'rehype-raw';
 import { cn } from '@/lib/utils';
 
 interface MarkdownRendererProps {
@@ -9,9 +12,14 @@ interface MarkdownRendererProps {
 }
 
 export function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
+  // Strip HTML comments before rendering
+  const sanitized = content.replace(/<!--[\s\S]*?-->/g, '');
+
   return (
     <div className={cn('prose prose-sm max-w-none dark:prose-invert', className)}>
       <ReactMarkdown
+        remarkPlugins={[remarkGfm, [remarkEmoji, { accessible: true }]]}
+        rehypePlugins={[rehypeRaw]}
         components={{
           code({ className: codeClassName, children, ...props }) {
             const match = /language-(\w+)/.exec(codeClassName || '');
@@ -105,12 +113,13 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
             <td className="border border-border px-3 py-2 text-text-secondary">{children}</td>
           ),
           hr: () => <hr className="border-border my-4" />,
-          img: ({ src, alt }) => (
+          img: ({ src, alt, ...props }) => (
             <img
               src={src}
               alt={alt || ''}
-              className="max-w-full h-auto rounded-[var(--radius-md)] my-2"
+              className="max-w-full h-auto rounded-[var(--radius-md)] my-2 inline-block"
               loading="lazy"
+              {...(props as React.ImgHTMLAttributes<HTMLImageElement>)}
             />
           ),
           pre: ({ children }) => (
@@ -120,7 +129,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
           ),
         }}
       >
-        {content}
+        {sanitized}
       </ReactMarkdown>
     </div>
   );

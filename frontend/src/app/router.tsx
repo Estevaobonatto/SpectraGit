@@ -55,6 +55,7 @@ const SettingsSessionsPage = lazy(() => SettingsLayoutModule.then((m) => ({ defa
 const SettingsAccountsPage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsAccountsPage })));
 const SettingsNotificationsPage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsNotificationsPage })));
 const SettingsDangerZonePage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsDangerZonePage })));
+const SettingsProfileCustomizationPage = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsProfileCustomizationPage })));
 
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
@@ -163,6 +164,7 @@ export const router = createBrowserRouter([
         element: <AuthRequired><SuspenseWrapper><SettingsLayout /></SuspenseWrapper></AuthRequired>,
         children: [
           { index: true, element: <SuspenseWrapper><SettingsProfilePage /></SuspenseWrapper> },
+          { path: 'customization', element: <SuspenseWrapper><SettingsProfileCustomizationPage /></SuspenseWrapper> },
           { path: 'ssh-keys', element: <SuspenseWrapper><SettingsSSHKeysPage /></SuspenseWrapper> },
           { path: 'tokens', element: <SuspenseWrapper><SettingsTokensPage /></SuspenseWrapper> },
           { path: 'sessions', element: <SuspenseWrapper><SettingsSessionsPage /></SuspenseWrapper> },

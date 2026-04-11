@@ -752,6 +752,42 @@ export class GitService {
   }
 
   /**
+   * Return all commit dates (YYYY-MM-DD) authored by the given email across
+   * ALL branches of a repository, within the last `days` days.
+   * Uses `--author` regex matched against the committer email.
+   */
+  async getCommitDatesByAuthor(
+    ownerName: string,
+    repoSlug: string,
+    authorEmail: string,
+    days: number = 365,
+  ): Promise<string[]> {
+    const repoPath = this.getRepoPath(ownerName, repoSlug);
+    if (!fs.existsSync(repoPath)) return [];
+    const git = this.getGit(repoPath);
+    try {
+      const since = new Date();
+      since.setDate(since.getDate() - days);
+      const sinceStr = since.toISOString().split('T')[0];
+      // --all covers every branch; --no-merges avoids double-counting;
+      // --format=%ad with --date=short gives YYYY-MM-DD
+      const result = await git.raw([
+        'log',
+        '--all',
+        '--no-merges',
+        `--author=${authorEmail}`,
+        `--after=${sinceStr}`,
+        '--format=%ad',
+        '--date=short',
+      ]);
+      if (!result.trim()) return [];
+      return result.trim().split('\n').filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * Return unique contributor names + emails from the commit log.
    */
   async getContributors(
