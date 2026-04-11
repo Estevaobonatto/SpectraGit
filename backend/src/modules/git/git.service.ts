@@ -105,6 +105,30 @@ export class GitService {
     }
   }
 
+  async moveRepository(
+    oldOwner: string,
+    oldSlug: string,
+    newOwner: string,
+    newSlug: string,
+  ): Promise<void> {
+    const oldPath = this.getRepoPath(oldOwner, oldSlug);
+    const newPath = this.getRepoPath(newOwner, newSlug);
+
+    if (!fs.existsSync(oldPath)) {
+      throw new InternalServerErrorException(
+        `Source repository not found on disk: ${oldOwner}/${oldSlug}`,
+      );
+    }
+
+    const newOwnerDir = path.dirname(newPath);
+    if (!fs.existsSync(newOwnerDir)) {
+      fs.mkdirSync(newOwnerDir, { recursive: true });
+    }
+
+    fs.renameSync(oldPath, newPath);
+    this.logger.log(`Repository moved: ${oldOwner}/${oldSlug} -> ${newOwner}/${newSlug}`);
+  }
+
   /**
    * Clone a local repository into another local path (fast filesystem copy).
    * Used for fork operations.

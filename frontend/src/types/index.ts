@@ -50,8 +50,17 @@ export interface Repository {
   name: string;
   slug: string;
   description: string | null;
+  website: string | null;
+  topics: string[];
   visibility: 'PUBLIC' | 'PRIVATE';
   defaultBranch: string;
+  hasIssuesEnabled: boolean;
+  hasPRsEnabled: boolean;
+  hasWikiEnabled: boolean;
+  allowMergeCommit: boolean;
+  allowSquashMerge: boolean;
+  allowRebaseMerge: boolean;
+  autoDeleteBranch: boolean;
   isArchived: boolean;
   isFork: boolean;
   forkSourceRepoId: string | null;
@@ -252,7 +261,10 @@ export type NotificationType =
   | 'MENTION'
   | 'REPO_PUSHED'
   | 'REPO_INVITE'
-  | 'ORG_INVITE';
+  | 'ORG_INVITE'
+  | 'COLLABORATOR_ADDED'
+  | 'COLLABORATOR_REMOVED'
+  | 'COLLABORATOR_ROLE_CHANGED';
 
 export interface Organization {
   id: string;
@@ -262,6 +274,24 @@ export interface Organization {
   avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type RepoRole = 'ADMIN' | 'MAINTAINER' | 'WRITE' | 'READ';
+
+export interface Collaborator {
+  id: string;
+  userId: string;
+  role: RepoRole;
+  createdAt: string;
+  user: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'> & { email?: string };
+}
+
+export interface CollaboratorSearchUser {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  orgRole?: string;
 }
 
 export interface OrganizationMember {
@@ -372,4 +402,54 @@ export interface ApiResponse<T> {
     code: string;
     message: string;
   };
+}
+
+// ─── Branch Protection ───────────────────────────────────────
+
+export interface BranchProtectionRule {
+  id: string;
+  branchId: string;
+  requirePullRequest: boolean;
+  requiredReviewCount: number;
+  dismissStaleReviews: boolean;
+  requireCodeOwnerReview: boolean;
+  restrictPushes: boolean;
+  allowForcePushes: boolean;
+  allowDeletions: boolean;
+  requireLinearHistory: boolean;
+  lockBranch: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BranchProtection {
+  branchName: string;
+  isProtected: boolean;
+  protection: BranchProtectionRule | null;
+}
+
+// ─── Webhooks ────────────────────────────────────────────────
+
+export type WebhookEvent =
+  | 'push'
+  | 'pull_request'
+  | 'issues'
+  | 'issue_comment'
+  | 'create'
+  | 'delete'
+  | 'release'
+  | 'fork'
+  | 'watch';
+
+export interface Webhook {
+  id: string;
+  url: string;
+  contentType: string;
+  events: string[];
+  isActive: boolean;
+  lastStatus: number | null;
+  lastError: string | null;
+  lastCalledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }

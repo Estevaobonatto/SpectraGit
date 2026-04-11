@@ -7,6 +7,9 @@ import { CreateRepositoryDto } from './dto/create-repository.dto';
 import { UpdateRepositoryDto } from './dto/update-repository.dto';
 import { ForkRepositoryDto } from './dto/fork-repository.dto';
 import { ListRepositoriesQueryDto } from './dto/list-repositories-query.dto';
+import { UpdateBranchProtectionDto } from './dto/update-branch-protection.dto';
+import { CreateWebhookDto, UpdateWebhookDto } from './dto/webhook.dto';
+import { TransferRepositoryDto } from './dto/transfer-repository.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -208,5 +211,108 @@ export class RepositoriesController {
     res.setHeader('Content-Length', buffer.length);
     res.setHeader('Cache-Control', 'public, max-age=3600');
     res.end(buffer);
+  }
+
+  // ─── Branch Protection ─────────────────────────────────────
+
+  @Get(':owner/:repo/branches/:branch/protection')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get branch protection rules' })
+  async getBranchProtection(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('branch') branch: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reposService.getBranchProtection(owner, repo, branch, user.sub);
+  }
+
+  @Put(':owner/:repo/branches/:branch/protection')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update branch protection rules' })
+  async updateBranchProtection(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('branch') branch: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateBranchProtectionDto,
+  ) {
+    return this.reposService.updateBranchProtection(owner, repo, branch, user.sub, dto);
+  }
+
+  @Delete(':owner/:repo/branches/:branch/protection')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove branch protection' })
+  async removeBranchProtection(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('branch') branch: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reposService.removeBranchProtection(owner, repo, branch, user.sub);
+  }
+
+  // ─── Webhooks ──────────────────────────────────────────────
+
+  @Get(':owner/:repo/webhooks')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List webhooks' })
+  async listWebhooks(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reposService.listWebhooks(owner, repo, user.sub);
+  }
+
+  @Post(':owner/:repo/webhooks')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a webhook' })
+  async createWebhook(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateWebhookDto,
+  ) {
+    return this.reposService.createWebhook(owner, repo, user.sub, dto);
+  }
+
+  @Put(':owner/:repo/webhooks/:webhookId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a webhook' })
+  async updateWebhook(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('webhookId') webhookId: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateWebhookDto,
+  ) {
+    return this.reposService.updateWebhook(owner, repo, webhookId, user.sub, dto);
+  }
+
+  @Delete(':owner/:repo/webhooks/:webhookId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete a webhook' })
+  async deleteWebhook(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('webhookId') webhookId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reposService.deleteWebhook(owner, repo, webhookId, user.sub);
+  }
+
+  // ─── Transfer ──────────────────────────────────────────────
+
+  @Post(':owner/:repo/transfer')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Transfer repository to another owner' })
+  async transferRepository(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: TransferRepositoryDto,
+  ) {
+    return this.reposService.transferRepository(owner, repo, user.sub, dto);
   }
 }

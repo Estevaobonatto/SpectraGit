@@ -22,16 +22,18 @@ export default function RepositoryLayout() {
   }
 
   const isSettings = location.pathname.endsWith('/settings');
+  const isCollaborators = location.pathname.endsWith('/collaborators');
+  const hideSidebar = isSettings || isCollaborators;
 
   return (
     <div className="space-y-4">
       <RepoHeader repo={repository} />
       <RepoTabs />
-      <div className={`grid grid-cols-1 gap-8 pt-2 ${!isSettings ? 'lg:grid-cols-[1fr_280px]' : ''}`}>
+      <div className={`grid grid-cols-1 gap-8 pt-2 ${!hideSidebar ? 'lg:grid-cols-[1fr_280px]' : ''}`}>
         <div className="min-w-0">
           <Outlet context={{ repository }} />
         </div>
-        {!isSettings && <RepoSidebar repo={repository} />}
+        {!hideSidebar && <RepoSidebar repo={repository} />}
       </div>
     </div>
   );

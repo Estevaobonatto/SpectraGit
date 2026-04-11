@@ -25,6 +25,7 @@ import { PatModule } from './modules/auth/pat/pat.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { SetupModule } from './modules/setup/setup.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { CollaboratorsModule } from './modules/collaborators/collaborators.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { AdminModule } from './modules/admin/admin.module';
     ActivityModule,
     SetupModule,
     AdminModule,
+    CollaboratorsModule,
   ],
 })
 export class AppModule {}

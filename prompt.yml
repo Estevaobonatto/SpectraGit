@@ -1,0 +1,12 @@
+Vamos melhorar a pagina de perfil:
+
+ - O usuario vai poder customizar a pagina de perfil com um arquivo .md para toda a descrição principal
+  - O usuario vai poder customizar a pagina de perfil com um arquivo .md para cada seção (habilidades, experiencia, etc)
+  - Vai ter um side bar customizado mostrando o use de cada linguagem e a porsentagem contanto todos os repositorios publicos do usuario
+  - O usuario vai poder selecionar alguns de seus repositorios para marcar como favoritos, isso vai ficar fixado na pagina de perfil
+  - O usuario vai poder custoimizar o fundo da pagina de perfil com imagens, cor sólida ou css customizado
+  - O usuario vai poder visualizar um visualizador de historico de commits, como no github de todos os seus repositorios, outras pessoas veram apenas de repositorios publicos, o usuario vai poder customizar a visualização dos commits com cores e estilos personalizados se quiser
+  - O usuario vai poder adicionar links personalizados para suas redes sociais, portifolio, etc
+  - O usuario vai poder adicionar uma seção de "Sobre mim" com um texto personalizado 
+  - O usuario vai poder adicionar uma seção de "Projetos" onde ele pode destacar alguns projetos específicos, com descrições e links para os repositorios
+  - O usuario vai poder adicionar uma seção de "Habilidades" onde ele pode listar suas habilidades técnicas, com níveis de proficiência e exemplos de projetos relacionados

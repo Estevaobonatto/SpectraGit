@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { RepoVisibility } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -10,6 +11,9 @@ import { GitService } from '../git/git.service';
 import { CreateRepositoryDto } from './dto/create-repository.dto';
 import { ForkRepositoryDto } from './dto/fork-repository.dto';
 import { UpdateRepositoryDto } from './dto/update-repository.dto';
+import { UpdateBranchProtectionDto } from './dto/update-branch-protection.dto';
+import { CreateWebhookDto, UpdateWebhookDto } from './dto/webhook.dto';
+import { TransferRepositoryDto } from './dto/transfer-repository.dto';
 import { PaginationDto, PaginatedResult } from '../../common/dto/pagination.dto';
 
 @Injectable()
@@ -490,5 +494,255 @@ export class RepositoriesService {
       openPrCount,
       labelCount,
     };
+  }
+
+  // ─── Branch Protection ─────────────────────────────────────
+
+  async getBranchProtection(ownerName: string, slug: string, branchName: string, userId: string) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+    await this.ensureAdmin(repo.id, userId, repo.ownerUser?.id);
+
+    const branch = await this.prisma.branch.findFirst({
+      where: { repositoryId: repo.id, name: branchName },
+      include: { protectionRule: true },
+    });
+    if (!branch) throw new NotFoundException('Branch not found');
+
+    return {
+      branchName: branch.name,
+      isProtected: branch.isProtected,
+      protection: branch.protectionRule,
+    };
+  }
+
+  async updateBranchProtection(
+    ownerName: string,
+    slug: string,
+    branchName: string,
+    userId: string,
+    dto: UpdateBranchProtectionDto,
+  ) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+    await this.ensureAdmin(repo.id, userId, repo.ownerUser?.id);
+
+    const branch = await this.prisma.branch.findFirst({
+      where: { repositoryId: repo.id, name: branchName },
+    });
+    if (!branch) throw new NotFoundException('Branch not found');
+
+    await this.prisma.branch.update({
+      where: { id: branch.id },
+      data: { isProtected: true },
+    });
+
+    const protection = await this.prisma.branchProtectionRule.upsert({
+      where: { branchId: branch.id },
+      create: { branchId: branch.id, ...dto },
+      update: dto,
+    });
+
+    return {
+      branchName: branch.name,
+      isProtected: true,
+      protection,
+    };
+  }
+
+  async removeBranchProtection(ownerName: string, slug: string, branchName: string, userId: string) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+    await this.ensureAdmin(repo.id, userId, repo.ownerUser?.id);
+
+    const branch = await this.prisma.branch.findFirst({
+      where: { repositoryId: repo.id, name: branchName },
+    });
+    if (!branch) throw new NotFoundException('Branch not found');
+
+    await this.prisma.branchProtectionRule.deleteMany({
+      where: { branchId: branch.id },
+    });
+
+    await this.prisma.branch.update({
+      where: { id: branch.id },
+      data: { isProtected: false },
+    });
+
+    return { message: 'Branch protection removed' };
+  }
+
+  // ─── Webhooks ──────────────────────────────────────────────
+
+  async listWebhooks(ownerName: string, slug: string, userId: string) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+    await this.ensureAdmin(repo.id, userId, repo.ownerUser?.id);
+
+    return this.prisma.webhook.findMany({
+      where: { repositoryId: repo.id },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        url: true,
+        contentType: true,
+        events: true,
+        isActive: true,
+        lastStatus: true,
+        lastError: true,
+        lastCalledAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async createWebhook(ownerName: string, slug: string, userId: string, dto: CreateWebhookDto) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+    await this.ensureAdmin(repo.id, userId, repo.ownerUser?.id);
+
+    // Validate URL
+    try {
+      const parsed = new URL(dto.url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        throw new BadRequestException('Webhook URL must use HTTP or HTTPS');
+      }
+    } catch {
+      throw new BadRequestException('Invalid webhook URL');
+    }
+
+    return this.prisma.webhook.create({
+      data: {
+        repositoryId: repo.id,
+        url: dto.url,
+        secret: dto.secret,
+        contentType: dto.contentType || 'application/json',
+        events: dto.events || ['push'],
+        isActive: dto.isActive ?? true,
+      },
+    });
+  }
+
+  async updateWebhook(
+    ownerName: string,
+    slug: string,
+    webhookId: string,
+    userId: string,
+    dto: UpdateWebhookDto,
+  ) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+    await this.ensureAdmin(repo.id, userId, repo.ownerUser?.id);
+
+    const webhook = await this.prisma.webhook.findFirst({
+      where: { id: webhookId, repositoryId: repo.id },
+    });
+    if (!webhook) throw new NotFoundException('Webhook not found');
+
+    if (dto.url) {
+      try {
+        const parsed = new URL(dto.url);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          throw new BadRequestException('Webhook URL must use HTTP or HTTPS');
+        }
+      } catch {
+        throw new BadRequestException('Invalid webhook URL');
+      }
+    }
+
+    return this.prisma.webhook.update({
+      where: { id: webhookId },
+      data: dto,
+    });
+  }
+
+  async deleteWebhook(ownerName: string, slug: string, webhookId: string, userId: string) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+    await this.ensureAdmin(repo.id, userId, repo.ownerUser?.id);
+
+    const webhook = await this.prisma.webhook.findFirst({
+      where: { id: webhookId, repositoryId: repo.id },
+    });
+    if (!webhook) throw new NotFoundException('Webhook not found');
+
+    await this.prisma.webhook.delete({ where: { id: webhookId } });
+    return { message: 'Webhook deleted' };
+  }
+
+  // ─── Transfer Repository ──────────────────────────────────
+
+  async transferRepository(
+    ownerName: string,
+    slug: string,
+    userId: string,
+    dto: TransferRepositoryDto,
+  ) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+
+    // Only the owner can transfer
+    if (repo.ownerUser?.id !== userId) {
+      throw new ForbiddenException('Only the repository owner can transfer ownership');
+    }
+
+    const newSlug = dto.newName
+      ? dto.newName.toLowerCase().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '')
+      : slug;
+
+    // Check if transferring to a user or org
+    const targetUser = await this.prisma.user.findUnique({
+      where: { username: dto.newOwner },
+    });
+    const targetOrg = targetUser
+      ? null
+      : await this.prisma.organization.findUnique({
+          where: { name: dto.newOwner },
+        });
+
+    if (!targetUser && !targetOrg) {
+      throw new NotFoundException('Target user or organization not found');
+    }
+
+    // If transferring to org, ensure the user is an admin/owner of that org
+    if (targetOrg) {
+      const membership = await this.prisma.organizationMember.findUnique({
+        where: { orgId_userId: { orgId: targetOrg.id, userId } },
+      });
+      if (!membership || membership.role === 'MEMBER') {
+        throw new ForbiddenException(
+          'You must be an admin or owner of the target organization',
+        );
+      }
+    }
+
+    // Check name uniqueness in target
+    const existingInTarget = targetUser
+      ? await this.prisma.repository.findFirst({
+          where: { ownerUserId: targetUser.id, slug: newSlug },
+        })
+      : await this.prisma.repository.findFirst({
+          where: { ownerOrgId: targetOrg!.id, slug: newSlug },
+        });
+
+    if (existingInTarget) {
+      throw new ConflictException(
+        `A repository named "${newSlug}" already exists for the target owner`,
+      );
+    }
+
+    // Move git directory on disk
+    const newOwnerName = targetUser ? targetUser.username : targetOrg!.name;
+    await this.gitService.moveRepository(ownerName, slug, newOwnerName, newSlug);
+
+    // Update database
+    const updatedRepo = await this.prisma.repository.update({
+      where: { id: repo.id },
+      data: {
+        ownerUserId: targetUser ? targetUser.id : null,
+        ownerOrgId: targetOrg ? targetOrg.id : null,
+        name: dto.newName || repo.name,
+        slug: newSlug,
+      },
+      include: {
+        ownerUser: { select: { username: true } },
+        ownerOrg: { select: { name: true } },
+      },
+    });
+
+    return updatedRepo;
   }
 }

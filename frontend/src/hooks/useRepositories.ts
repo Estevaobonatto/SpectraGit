@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { repositoriesService } from '@/services/repositories.service';
-import type { Repository } from '@/types';
+import type { Repository, BranchProtection, Webhook } from '@/types';
 
 export function useRepositories(params?: { page?: number; limit?: number; scope?: 'mine' | 'all' }) {
   return useQuery({
@@ -160,5 +160,93 @@ export function useRepoStats(owner: string, repo: string) {
     queryFn: () => repositoriesService.getStats(owner, repo),
     enabled: !!owner && !!repo,
     staleTime: 60_000, // Cache for 1 minute
+  });
+}
+
+// ─── Branch Protection ───────────────────────────────────────
+
+export function useBranchProtection(owner: string, repo: string, branch: string) {
+  return useQuery({
+    queryKey: ['branch-protection', owner, repo, branch],
+    queryFn: () => repositoriesService.getBranchProtection(owner, repo, branch),
+    enabled: !!owner && !!repo && !!branch,
+  });
+}
+
+export function useUpdateBranchProtection(owner: string, repo: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ branch, data }: { branch: string; data: Partial<BranchProtection['protection']> }) =>
+      repositoriesService.updateBranchProtection(owner, repo, branch, data),
+    onSuccess: (_, { branch }) => {
+      queryClient.invalidateQueries({ queryKey: ['branch-protection', owner, repo, branch] });
+      queryClient.invalidateQueries({ queryKey: ['branches', owner, repo] });
+    },
+  });
+}
+
+export function useRemoveBranchProtection(owner: string, repo: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (branch: string) => repositoriesService.removeBranchProtection(owner, repo, branch),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['branch-protection'] });
+      queryClient.invalidateQueries({ queryKey: ['branches', owner, repo] });
+    },
+  });
+}
+
+// ─── Webhooks ────────────────────────────────────────────────
+
+export function useWebhooks(owner: string, repo: string) {
+  return useQuery({
+    queryKey: ['webhooks', owner, repo],
+    queryFn: () => repositoriesService.listWebhooks(owner, repo),
+    enabled: !!owner && !!repo,
+  });
+}
+
+export function useCreateWebhook(owner: string, repo: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { url: string; secret?: string; events?: string[]; isActive?: boolean }) =>
+      repositoriesService.createWebhook(owner, repo, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['webhooks', owner, repo] });
+    },
+  });
+}
+
+export function useUpdateWebhook(owner: string, repo: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ webhookId, data }: { webhookId: string; data: Partial<Webhook> }) =>
+      repositoriesService.updateWebhook(owner, repo, webhookId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['webhooks', owner, repo] });
+    },
+  });
+}
+
+export function useDeleteWebhook(owner: string, repo: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (webhookId: string) => repositoriesService.deleteWebhook(owner, repo, webhookId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['webhooks', owner, repo] });
+    },
+  });
+}
+
+// ─── Transfer ────────────────────────────────────────────────
+
+export function useTransferRepository(owner: string, repo: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { newOwner: string; newName?: string }) =>
+      repositoriesService.transferRepository(owner, repo, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['repositories'] });
+    },
   });
 }

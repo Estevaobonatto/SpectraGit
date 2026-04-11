@@ -41,6 +41,7 @@ const OrganizationNewPage = lazy(() => import('@/features/organizations/Organiza
 const OrganizationDetailPage = lazy(() => import('@/features/organizations/OrganizationDetailPage'));
 const GitHubIntegrationPage = lazy(() => import('@/features/github-sync/GitHubIntegrationPage'));
 const RepositorySettingsPage = lazy(() => import('@/features/repositories/RepositorySettingsPage'));
+const CollaboratorsPage = lazy(() => import('@/features/repositories/CollaboratorsPage'));
 const ActivityFeedPage = lazy(() => import('@/features/activity/ActivityFeedPage'));
 const ProfilePage = lazy(() => import('@/features/settings/ProfilePage'));
 
@@ -243,6 +244,10 @@ export const router = createBrowserRouter([
           {
             path: 'settings',
             element: <AuthRequired><SuspenseWrapper><RepositorySettingsPage /></SuspenseWrapper></AuthRequired>,
+          },
+          {
+            path: 'collaborators',
+            element: <SuspenseWrapper><CollaboratorsPage /></SuspenseWrapper>,
           },
         ],
       },

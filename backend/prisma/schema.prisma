@@ -211,8 +211,17 @@ model Repository {
   name              String         @db.VarChar(100)
   slug              String         @db.VarChar(100)
   description       String?        @db.VarChar(500)
+  website           String?        @db.VarChar(512)
+  topics            String[]       @default([])
   visibility        RepoVisibility @default(PUBLIC)
   defaultBranch     String         @default("main") @map("default_branch") @db.VarChar(255)
+  hasIssuesEnabled  Boolean        @default(true) @map("has_issues_enabled")
+  hasPRsEnabled     Boolean        @default(true) @map("has_prs_enabled")
+  hasWikiEnabled    Boolean        @default(false) @map("has_wiki_enabled")
+  allowMergeCommit  Boolean        @default(true) @map("allow_merge_commit")
+  allowSquashMerge  Boolean        @default(true) @map("allow_squash_merge")
+  allowRebaseMerge  Boolean        @default(false) @map("allow_rebase_merge")
+  autoDeleteBranch  Boolean        @default(false) @map("auto_delete_branch")
   isArchived        Boolean        @default(false) @map("is_archived")
   isFork            Boolean        @default(false) @map("is_fork")
   forkSourceRepoId  String?        @map("fork_source_repo_id") @db.Uuid
@@ -236,6 +245,7 @@ model Repository {
   watches        RepositoryWatch[]
   activityEvents ActivityEvent[]
   releases       Release[]
+  webhooks       Webhook[]
 
   @@unique([ownerUserId, slug])
   @@unique([ownerOrgId, slug])
@@ -283,10 +293,53 @@ model Branch {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  repository      Repository           @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  protectionRule  BranchProtectionRule?
 
   @@unique([repositoryId, name])
   @@map("branches")
+}
+
+model BranchProtectionRule {
+  id                      String  @id @default(uuid()) @db.Uuid
+  branchId                String  @unique @map("branch_id") @db.Uuid
+  requirePullRequest      Boolean @default(true) @map("require_pull_request")
+  requiredReviewCount     Int     @default(1) @map("required_review_count")
+  dismissStaleReviews     Boolean @default(false) @map("dismiss_stale_reviews")
+  requireCodeOwnerReview  Boolean @default(false) @map("require_code_owner_review")
+  restrictPushes          Boolean @default(true) @map("restrict_pushes")
+  allowForcePushes        Boolean @default(false) @map("allow_force_pushes")
+  allowDeletions          Boolean @default(false) @map("allow_deletions")
+  requireLinearHistory    Boolean @default(false) @map("require_linear_history")
+  lockBranch              Boolean @default(false) @map("lock_branch")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@map("branch_protection_rules")
+}
+
+// ─── Webhooks ────────────────────────────────────────────────
+
+model Webhook {
+  id           String    @id @default(uuid()) @db.Uuid
+  repositoryId String    @map("repository_id") @db.Uuid
+  url          String    @db.VarChar(2048)
+  secret       String?   @db.VarChar(255)
+  contentType  String    @default("application/json") @map("content_type") @db.VarChar(50)
+  events       String[]  @default(["push"])
+  isActive     Boolean   @default(true) @map("is_active")
+  lastStatus   Int?      @map("last_status")
+  lastError    String?   @map("last_error") @db.Text
+  lastCalledAt DateTime? @map("last_called_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@index([repositoryId])
+  @@map("webhooks")
 }
 
 model Tag {
@@ -544,6 +597,9 @@ enum NotificationType {
   MENTION
   REPO_INVITE
   ORG_INVITE
+  COLLABORATOR_ADDED
+  COLLABORATOR_REMOVED
+  COLLABORATOR_ROLE_CHANGED
 }
 
 model Notification {

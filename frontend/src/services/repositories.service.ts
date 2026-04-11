@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { Repository, FileTreeItem, FileContent, Branch, Commit, CommitDetail, DiffFile, RepoStats, Tag, Release, ReleaseAsset } from '@/types';
+import type { Repository, FileTreeItem, FileContent, Branch, Commit, CommitDetail, DiffFile, RepoStats, Tag, Release, ReleaseAsset, BranchProtection, Webhook } from '@/types';
 
 export const repositoriesService = {
   list: (params?: { page?: number; limit?: number; scope?: 'mine' | 'all' }) =>
@@ -50,6 +50,33 @@ export const repositoriesService = {
 
   getStats: (owner: string, repo: string) =>
     api.get<{ data: RepoStats }>(`/repos/${owner}/${repo}/stats`).then((r) => r.data.data),
+
+  // Branch protection
+  getBranchProtection: (owner: string, repo: string, branch: string) =>
+    api.get<{ data: BranchProtection }>(`/repos/${owner}/${repo}/branches/${branch}/protection`).then((r) => r.data.data),
+
+  updateBranchProtection: (owner: string, repo: string, branch: string, data: Partial<BranchProtection['protection']>) =>
+    api.put<{ data: BranchProtection }>(`/repos/${owner}/${repo}/branches/${branch}/protection`, data).then((r) => r.data.data),
+
+  removeBranchProtection: (owner: string, repo: string, branch: string) =>
+    api.delete(`/repos/${owner}/${repo}/branches/${branch}/protection`),
+
+  // Webhooks
+  listWebhooks: (owner: string, repo: string) =>
+    api.get<{ data: Webhook[] }>(`/repos/${owner}/${repo}/webhooks`).then((r) => r.data.data),
+
+  createWebhook: (owner: string, repo: string, data: { url: string; secret?: string; events?: string[]; isActive?: boolean }) =>
+    api.post<{ data: Webhook }>(`/repos/${owner}/${repo}/webhooks`, data).then((r) => r.data.data),
+
+  updateWebhook: (owner: string, repo: string, webhookId: string, data: Partial<Webhook>) =>
+    api.put<{ data: Webhook }>(`/repos/${owner}/${repo}/webhooks/${webhookId}`, data).then((r) => r.data.data),
+
+  deleteWebhook: (owner: string, repo: string, webhookId: string) =>
+    api.delete(`/repos/${owner}/${repo}/webhooks/${webhookId}`),
+
+  // Transfer
+  transferRepository: (owner: string, repo: string, data: { newOwner: string; newName?: string }) =>
+    api.post<{ data: Repository }>(`/repos/${owner}/${repo}/transfer`, data).then((r) => r.data.data),
 };
 
 export const branchesService = {

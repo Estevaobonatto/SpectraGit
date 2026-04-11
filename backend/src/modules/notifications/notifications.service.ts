@@ -84,6 +84,9 @@ export class NotificationsService {
       'MENTION',
       'REPO_INVITE',
       'ORG_INVITE',
+      'COLLABORATOR_ADDED',
+      'COLLABORATOR_REMOVED',
+      'COLLABORATOR_ROLE_CHANGED',
     ];
 
     const saved = await this.prisma.notificationPreference.findMany({

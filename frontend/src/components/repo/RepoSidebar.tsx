@@ -13,6 +13,8 @@ import {
   CircleDot,
   GitPullRequest,
   Package,
+  Globe,
+  Hash,
 } from 'lucide-react';
 import { useRepoStats } from '@/hooks/useRepositories';
 import { useReleases } from '@/hooks/useReleases';
@@ -106,6 +108,34 @@ export function RepoSidebar({ repo }: RepoSidebarProps) {
               </p>
             )}
 
+            {/* Website */}
+            {repo.website && (
+              <a
+                href={repo.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-primary-500 hover:text-primary-600 transition-colors truncate"
+              >
+                <Globe className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{repo.website.replace(/^https?:\/\//, '')}</span>
+              </a>
+            )}
+
+            {/* Topics */}
+            {repo.topics && repo.topics.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {repo.topics.map((topic) => (
+                  <span
+                    key={topic}
+                    className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-700 border border-primary-200 hover:bg-primary-100 transition-colors cursor-default"
+                  >
+                    <Hash className="h-2.5 w-2.5" />
+                    {topic}
+                  </span>
+                ))}
+              </div>
+            )}
+
             {/* Resources */}
             <div className="space-y-2">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
@@ -145,18 +175,22 @@ export function RepoSidebar({ repo }: RepoSidebarProps) {
                   to={`/${owner}/${repo.slug}/branches`}
                 />
                 <StatItem icon={Tag} label="Tags" value={stats?.tagCount ?? 0} />
-                <StatItem
-                  icon={CircleDot}
-                  label="Issues"
-                  value={stats?.openIssueCount ?? 0}
-                  to={`/${owner}/${repo.slug}/issues`}
-                />
-                <StatItem
-                  icon={GitPullRequest}
-                  label="Pull Requests"
-                  value={stats?.openPrCount ?? 0}
-                  to={`/${owner}/${repo.slug}/pull-requests`}
-                />
+                {repo.hasIssuesEnabled !== false && (
+                  <StatItem
+                    icon={CircleDot}
+                    label="Issues"
+                    value={stats?.openIssueCount ?? 0}
+                    to={`/${owner}/${repo.slug}/issues`}
+                  />
+                )}
+                {repo.hasPRsEnabled !== false && (
+                  <StatItem
+                    icon={GitPullRequest}
+                    label="Pull Requests"
+                    value={stats?.openPrCount ?? 0}
+                    to={`/${owner}/${repo.slug}/pull-requests`}
+                  />
+                )}
                 <StatItem icon={Users} label="Contributors" value={stats?.contributors?.length ?? 0} />
               </div>
             </div>
