@@ -42,4 +42,14 @@ export const usersService = {
     api.post<{ data: SSHKey }>('/me/ssh-keys', data).then((r) => r.data.data),
 
   deleteSSHKey: (id: string) => api.delete(`/me/ssh-keys/${id}`),
+
+  uploadAvatar: (file: File) => {
+    const form = new FormData();
+    form.append('avatar', file);
+    return api
+      .post<{ data: User }>('/me/avatar', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data.data);
+  },
 };

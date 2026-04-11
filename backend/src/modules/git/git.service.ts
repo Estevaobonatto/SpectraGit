@@ -658,8 +658,25 @@ export class GitService {
     const git = this.getGit(repoPath);
 
     try {
+      // Try the requested branch first; fall back to HEAD for repos whose
+      // DB default-branch name doesn't match the actual ref yet (e.g. an
+      // empty repo, or one initialized with 'master' instead of 'main').
+      let treeRef = branch;
+      try {
+        await git.raw(['rev-parse', '--verify', branch]);
+      } catch {
+        // Branch ref doesn't resolve – try HEAD instead
+        try {
+          await git.raw(['rev-parse', '--verify', 'HEAD']);
+          treeRef = 'HEAD';
+        } catch {
+          // Repo has no commits at all; nothing to analyse
+          return {};
+        }
+      }
+
       // ls-tree -r -l -z lists all blobs with sizes, null-terminated
-      const result = await git.raw(['ls-tree', '-r', '-l', '-z', branch]);
+      const result = await git.raw(['ls-tree', '-r', '-l', '-z', treeRef]);
       if (!result.trim()) return {};
 
       const extLangMap: Record<string, string> = {
@@ -746,7 +763,11 @@ export class GitService {
 
       return breakdown;
     } catch (err) {
-      this.logger.error(`getLanguageBreakdown failed: ${(err as Error).message}`);
+      const msg = (err as Error).message ?? '';
+      // Silent for expected "empty repo / bad ref" cases
+      if (!msg.includes('Not a valid object name') && !msg.includes('does not have any commits')) {
+        this.logger.error(`getLanguageBreakdown failed: ${msg}`);
+      }
       return {};
     }
   }

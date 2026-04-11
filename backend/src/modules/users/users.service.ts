@@ -5,13 +5,44 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { randomUUID } from 'crypto';
+import * as path from 'path';
+import { ConfigService } from '@nestjs/config';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
+import type { Readable } from 'stream';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateSSHKeyDto } from './dto/ssh-key.dto';
+import 'multer';
+
+// S3 key prefix for avatar objects
+const AVATAR_PREFIX = 'avatars';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly s3: S3Client;
+  private readonly bucket: string;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
+    this.bucket = this.configService.get<string>('s3.bucket')!;
+    this.s3 = new S3Client({
+      endpoint: this.configService.get<string>('s3.endpoint'),
+      region: this.configService.get<string>('s3.region'),
+      credentials: {
+        accessKeyId: this.configService.get<string>('s3.accessKeyId')!,
+        secretAccessKey: this.configService.get<string>('s3.secretAccessKey')!,
+      },
+      forcePathStyle: false,
+    });
+  }
 
   async getMe(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -136,6 +167,74 @@ export class UsersService {
         createdAt: true,
       },
     });
+  }
+
+  async uploadAvatar(userId: string, file: Express.Multer.File) {
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException('File must be an image (jpeg, png, gif, webp)');
+    }
+
+    const ext = path.extname(file.originalname).toLowerCase() || `.${file.mimetype.split('/')[1]}`;
+    const filename = `${randomUUID()}${ext}`;
+    const s3Key = `${AVATAR_PREFIX}/${userId}/${filename}`;
+
+    // Delete old avatar from S3 if it was previously uploaded here
+    const existingUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true },
+    });
+    if (existingUser?.avatarUrl) {
+      const oldKey = this.extractS3KeyFromAvatarUrl(existingUser.avatarUrl);
+      if (oldKey) {
+        try {
+          await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: oldKey }));
+        } catch {
+          // Best-effort deletion; do not block upload on cleanup failure
+        }
+      }
+    }
+
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: s3Key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      }),
+    );
+
+    // Store a backend-served URL so no public bucket ACL is needed
+    const avatarUrl = `/api/v1/${AVATAR_PREFIX}/${userId}/${filename}`;
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl },
+    });
+  }
+
+  async getAvatarStream(userId: string, filename: string): Promise<{ stream: Readable; contentType: string }> {
+    // Validate the filename to prevent path traversal
+    if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
+      throw new BadRequestException('Invalid filename');
+    }
+    const s3Key = `${AVATAR_PREFIX}/${userId}/${filename}`;
+    const response = await this.s3.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: s3Key }),
+    );
+    return {
+      stream: response.Body as Readable,
+      contentType: response.ContentType ?? 'application/octet-stream',
+    };
+  }
+
+  /** Returns the S3 key if the given avatarUrl was uploaded via this service, otherwise null. */
+  private extractS3KeyFromAvatarUrl(avatarUrl: string): string | null {
+    const prefix = `/api/v1/${AVATAR_PREFIX}/`;
+    if (avatarUrl.startsWith(prefix)) {
+      return `${AVATAR_PREFIX}/${avatarUrl.slice(prefix.length)}`;
+    }
+    return null;
   }
 
   async deleteAccount(userId: string) {

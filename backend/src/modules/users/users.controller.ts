@@ -1,5 +1,21 @@
-import { Controller, Get, Put, Post, Delete, Body, Param, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Put,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Res,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { Response } from 'express';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CreateSSHKeyDto } from './dto/ssh-key.dto';
@@ -73,5 +89,37 @@ export class UsersController {
   @ApiOperation({ summary: 'Search users' })
   async searchUsers(@Query('q') query: string, @Query('limit') limit?: number) {
     return this.usersService.searchUsers(query, limit);
+  }
+
+  @Post('me/avatar')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Upload profile avatar' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('avatar'))
+  async uploadAvatar(
+    @CurrentUser() user: JwtPayload,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 })], // 5 MB
+        fileIsRequired: true,
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.usersService.uploadAvatar(user.sub, file);
+  }
+
+  @Public()
+  @Get('avatars/:userId/:filename')
+  @ApiOperation({ summary: 'Serve uploaded avatar image' })
+  async serveAvatar(
+    @Param('userId') userId: string,
+    @Param('filename') filename: string,
+    @Res() res: Response,
+  ) {
+    const { stream, contentType } = await this.usersService.getAvatarStream(userId, filename);
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    stream.pipe(res);
   }
 }

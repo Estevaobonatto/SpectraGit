@@ -70,6 +70,20 @@ export function useDeleteSSHKey() {
   });
 }
 
+export function useUploadAvatar() {
+  const queryClient = useQueryClient();
+  const { setUser } = useAuthStore();
+
+  return useMutation({
+    mutationFn: (file: File) => usersService.uploadAvatar(file),
+    onSuccess: (user) => {
+      setUser(user);
+      queryClient.setQueryData(['me'], user);
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    },
+  });
+}
+
 // ── Sessions ────────────────────────────────────────────────
 
 export function useSessions() {

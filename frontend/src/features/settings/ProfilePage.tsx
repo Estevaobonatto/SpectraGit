@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   MapPin,
@@ -17,9 +17,11 @@ import {
   Pencil,
   Check,
   X,
+  Camera,
+  Loader2,
 } from 'lucide-react';
 import { usePublicProfile, useLanguageStats, useCommitHeatmap, useUpdateProfileCustomization } from '@/hooks/useProfile';
-import { useUpdateProfile } from '@/hooks/useAuth';
+import { useUpdateProfile, useUploadAvatar } from '@/hooks/useAuth';
 import { useRepositories } from '@/hooks/useRepositories';
 import { useAuthStore } from '@/stores/auth.store';
 import { Avatar } from '@/components/ui/avatar';
@@ -320,6 +322,15 @@ export default function ProfilePage() {
 
   const updateUser = useUpdateProfile();
   const updateCustomization = useUpdateProfileCustomization();
+  const uploadAvatar = useUploadAvatar();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadAvatar.mutate(file);
+    // Reset so the same file can be re-selected
+    e.target.value = '';
+  };
 
   if (isLoading || !profile) return <PageLoader />;
 
@@ -365,7 +376,34 @@ export default function ProfilePage() {
       >
         {/* Profile sidebar */}
         <aside className="w-72 shrink-0 space-y-4">
-          <Avatar src={profile.avatarUrl} alt={profile.username} size="lg" className="h-64 w-64 rounded-full" />
+          {/* Avatar — clickable for owner */}
+          {isOwner ? (
+            <div className="relative h-64 w-64 group">
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <Avatar src={profile.avatarUrl} alt={profile.username} size="lg" className="h-64 w-64 rounded-full" />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadAvatar.isPending}
+                className="absolute inset-0 rounded-full flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer disabled:cursor-wait"
+                aria-label="Change profile picture"
+              >
+                {uploadAvatar.isPending ? (
+                  <Loader2 className="h-8 w-8 text-white animate-spin" />
+                ) : (
+                  <Camera className="h-8 w-8 text-white" />
+                )}
+              </button>
+            </div>
+          ) : (
+            <Avatar src={profile.avatarUrl} alt={profile.username} size="lg" className="h-64 w-64 rounded-full" />
+          )}
           <div>
             {isOwner ? (
               <h1 className="text-2xl font-bold text-text-primary">
