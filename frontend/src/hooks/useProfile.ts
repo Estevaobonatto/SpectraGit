@@ -45,6 +45,7 @@ export function useUpdateProfileCustomization() {
       profileService.updateCustomization(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['my-profile'] });
+      qc.invalidateQueries({ queryKey: ['profile'] });
     },
   });
 }

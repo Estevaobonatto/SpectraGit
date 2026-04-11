@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   MapPin,
@@ -13,11 +14,19 @@ import {
   Globe,
   Briefcase,
   MessageCircle,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
-import { usePublicProfile, useLanguageStats, useCommitHeatmap } from '@/hooks/useProfile';
+import { usePublicProfile, useLanguageStats, useCommitHeatmap, useUpdateProfileCustomization } from '@/hooks/useProfile';
+import { useUpdateProfile } from '@/hooks/useAuth';
 import { useRepositories } from '@/hooks/useRepositories';
+import { useAuthStore } from '@/stores/auth.store';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageLoader } from '@/components/ui/spinner';
@@ -180,10 +189,137 @@ function MarkdownContent({ content }: { content: string }) {
   return <MarkdownRenderer content={content} />;
 }
 
+// ── Inline Edit Helpers ────────────────────────────────────
+
+function InlineEditText({
+  value,
+  placeholder,
+  onSave,
+  isOwner,
+  className,
+}: {
+  value: string;
+  placeholder?: string;
+  onSave: (v: string) => void;
+  isOwner: boolean;
+  className?: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  if (!isOwner) return <span className={className}>{value || placeholder}</span>;
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { onSave(draft); setEditing(false); }
+            if (e.key === 'Escape') { setDraft(value); setEditing(false); }
+          }}
+          className="h-7 text-sm"
+          placeholder={placeholder}
+        />
+        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { onSave(draft); setEditing(false); }}>
+          <Check className="h-3.5 w-3.5" />
+        </Button>
+        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setDraft(value); setEditing(false); }}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <span
+      className={`${className ?? ''} group/edit cursor-pointer inline-flex items-center gap-1`}
+      onClick={() => { setDraft(value); setEditing(true); }}
+    >
+      {value || <span className="text-text-tertiary italic">{placeholder}</span>}
+      <Pencil className="h-3 w-3 text-text-tertiary opacity-0 group-hover/edit:opacity-100 transition-opacity" />
+    </span>
+  );
+}
+
+function InlineEditMarkdown({
+  value,
+  label,
+  onSave,
+  isOwner,
+}: {
+  value: string;
+  label: string;
+  onSave: (v: string) => void;
+  isOwner: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  if (editing && isOwner) {
+    return (
+      <Card>
+        <CardHeader className="pb-2 flex-row items-center justify-between">
+          <CardTitle className="text-sm font-medium">{label} (editing)</CardTitle>
+          <div className="flex gap-1">
+            <Button size="sm" variant="default" onClick={() => { onSave(draft); setEditing(false); }}>
+              <Check className="h-3.5 w-3.5 mr-1" /> Save
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setDraft(value); setEditing(false); }}>
+              <X className="h-3.5 w-3.5 mr-1" /> Cancel
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={10}
+            className="font-mono text-sm"
+            placeholder="Write your content using Markdown..."
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // View mode
+  const hasContent = !!value.trim();
+  if (!hasContent && !isOwner) return null;
+
+  return (
+    <Card className={isOwner ? 'group/md relative' : ''}>
+      <CardContent className="pt-6">
+        {hasContent ? (
+          <MarkdownContent content={value} />
+        ) : (
+          <p className="text-sm text-text-tertiary italic">Click to add {label.toLowerCase()}...</p>
+        )}
+      </CardContent>
+      {isOwner && (
+        <button
+          className="absolute top-3 right-3 opacity-0 group-hover/md:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-surface-hover"
+          onClick={() => { setDraft(value); setEditing(true); }}
+        >
+          <Pencil className="h-4 w-4 text-text-tertiary" />
+        </button>
+      )}
+    </Card>
+  );
+}
+
 export default function ProfilePage() {
   const { owner } = useParams();
   const { data: profile, isLoading } = usePublicProfile(owner!);
   const { data: repos } = useRepositories();
+  const currentUser = useAuthStore((s) => s.user);
+  const isOwner = !!currentUser && currentUser.username === owner;
+
+  const updateUser = useUpdateProfile();
+  const updateCustomization = useUpdateProfileCustomization();
 
   if (isLoading || !profile) return <PageLoader />;
 
@@ -205,6 +341,14 @@ export default function ProfilePage() {
     bgStyle.backgroundPosition = 'center';
   }
 
+  const saveUserField = (field: 'displayName' | 'bio' | 'location' | 'website') => (value: string) => {
+    updateUser.mutate({ [field]: value || null });
+  };
+
+  const saveProfileField = (field: 'readmeContent' | 'aboutMe') => (value: string) => {
+    updateCustomization.mutate({ [field]: value || undefined });
+  };
+
   return (
     <>
       {/* Custom CSS (scoped) */}
@@ -223,23 +367,65 @@ export default function ProfilePage() {
         <aside className="w-72 shrink-0 space-y-4">
           <Avatar src={profile.avatarUrl} alt={profile.username} size="lg" className="h-64 w-64 rounded-full" />
           <div>
-            {profile.displayName && <h1 className="text-2xl font-bold text-text-primary">{profile.displayName}</h1>}
+            {isOwner ? (
+              <h1 className="text-2xl font-bold text-text-primary">
+                <InlineEditText
+                  value={profile.displayName ?? ''}
+                  placeholder="Add display name"
+                  onSave={saveUserField('displayName')}
+                  isOwner={isOwner}
+                />
+              </h1>
+            ) : (
+              profile.displayName && <h1 className="text-2xl font-bold text-text-primary">{profile.displayName}</h1>
+            )}
             <p className="text-lg text-text-tertiary">@{profile.username}</p>
           </div>
-          {profile.bio && <p className="text-sm text-text-secondary">{profile.bio}</p>}
+
+          {/* Bio */}
+          {isOwner ? (
+            <div className="text-sm text-text-secondary">
+              <InlineEditText
+                value={profile.bio ?? ''}
+                placeholder="Add a bio"
+                onSave={saveUserField('bio')}
+                isOwner={isOwner}
+              />
+            </div>
+          ) : (
+            profile.bio && <p className="text-sm text-text-secondary">{profile.bio}</p>
+          )}
+
           <div className="space-y-1 text-sm text-text-secondary">
-            {profile.location && (
+            {/* Location */}
+            {(profile.location || isOwner) && (
               <p className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-text-tertiary" />
-                {profile.location}
+                <InlineEditText
+                  value={profile.location ?? ''}
+                  placeholder="Add location"
+                  onSave={saveUserField('location')}
+                  isOwner={isOwner}
+                />
               </p>
             )}
-            {profile.website && (
+            {/* Website */}
+            {(profile.website || isOwner) && (
               <p className="flex items-center gap-2">
                 <LinkIcon className="h-4 w-4 text-text-tertiary" />
-                <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
-                  {profile.website.replace(/^https?:\/\//, '')}
-                </a>
+                {isOwner ? (
+                  <InlineEditText
+                    value={profile.website ?? ''}
+                    placeholder="Add website"
+                    onSave={saveUserField('website')}
+                    isOwner={isOwner}
+                    className="text-primary-600"
+                  />
+                ) : (
+                  <a href={profile.website!} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
+                    {profile.website!.replace(/^https?:\/\//, '')}
+                  </a>
+                )}
               </p>
             )}
             {profile.createdAt && (
@@ -281,27 +467,37 @@ export default function ProfilePage() {
         {/* Main content */}
         <main className="flex-1 space-y-6 min-w-0">
           {/* Readme / Main description */}
-          {userProfile?.readmeContent && (
-            <Card>
-              <CardContent className="pt-6">
-                <MarkdownContent content={userProfile.readmeContent} />
-              </CardContent>
-            </Card>
-          )}
+          <InlineEditMarkdown
+            value={userProfile?.readmeContent ?? ''}
+            label="Main Description"
+            onSave={saveProfileField('readmeContent')}
+            isOwner={isOwner}
+          />
 
           {/* About Me */}
-          {userProfile?.aboutMe && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <UserIcon className="h-4 w-4" />
-                  About Me
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MarkdownContent content={userProfile.aboutMe} />
-              </CardContent>
-            </Card>
+          {(userProfile?.aboutMe || isOwner) && (
+            <>
+              {!isOwner && userProfile?.aboutMe ? (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <UserIcon className="h-4 w-4" />
+                      About Me
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <MarkdownContent content={userProfile.aboutMe} />
+                  </CardContent>
+                </Card>
+              ) : isOwner ? (
+                <InlineEditMarkdown
+                  value={userProfile?.aboutMe ?? ''}
+                  label="About Me"
+                  onSave={saveProfileField('aboutMe')}
+                  isOwner={isOwner}
+                />
+              ) : null}
+            </>
           )}
 
           {/* Commit Heatmap */}
