@@ -42,9 +42,7 @@ interface SSHKeyRecord {
  * Look up an SSH public key by its SHA-256 fingerprint.
  * Returns the userId and stored public key string, or null if not found.
  */
-async function lookupPublicKey(
-  keyData: Buffer,
-): Promise<SSHKeyRecord | null> {
+async function lookupPublicKey(keyData: Buffer): Promise<SSHKeyRecord | null> {
   const fingerprint = createHash('sha256').update(keyData).digest('hex');
   const db = getPrisma();
 
@@ -56,9 +54,7 @@ async function lookupPublicKey(
   if (!sshKey) return null;
 
   // Update lastUsedAt (fire-and-forget)
-  db.sSHKey
-    .update({ where: { id: sshKey.id }, data: { lastUsedAt: new Date() } })
-    .catch(() => {});
+  db.sSHKey.update({ where: { id: sshKey.id }, data: { lastUsedAt: new Date() } }).catch(() => {});
 
   return { userId: sshKey.userId, publicKey: sshKey.publicKey };
 }
@@ -212,9 +208,7 @@ async function onPostReceive(
 
     logger.log(`Post-receive sync completed for ${owner}/${repo}`);
   } catch (err) {
-    logger.error(
-      `Post-receive sync failed for ${owner}/${repo}: ${(err as Error).message}`,
-    );
+    logger.error(`Post-receive sync failed for ${owner}/${repo}: ${(err as Error).message}`);
   }
 }
 
@@ -242,10 +236,13 @@ function getOrCreateHostKey(storagePath: string): Buffer {
 
   // Use ssh-keygen to generate an ed25519 key in OpenSSH format
   execFileSync('ssh-keygen', [
-    '-t', 'ed25519',
-    '-f', keyPath,
-    '-N', '',    // empty passphrase
-    '-q',        // quiet
+    '-t',
+    'ed25519',
+    '-f',
+    keyPath,
+    '-N',
+    '', // empty passphrase
+    '-q', // quiet
   ]);
 
   // Remove the .pub file — we only need the private key
@@ -298,10 +295,7 @@ function parseGitCommand(command: string): ParsedGitCommand | null {
  * Uses the ssh2 library to implement the SSH transport layer.
  * Public key authentication is verified against the SSHKey table.
  */
-export async function startGitSSHServer(
-  storagePath: string,
-  port: number,
-): Promise<net.Server> {
+export async function startGitSSHServer(storagePath: string, port: number): Promise<net.Server> {
   // Dynamic import of ssh2 (has native bindings)
   const ssh2Module = await import('ssh2');
   const Server = ssh2Module.Server;
@@ -311,79 +305,79 @@ export async function startGitSSHServer(
 
   const hostKey = getOrCreateHostKey(storagePath);
 
-  const server = new Server(
-    { hostKeys: [hostKey] },
-    (client: Connection) => {
-      let authenticatedUserId: string | null = null;
+  const server = new Server({ hostKeys: [hostKey] }, (client: Connection) => {
+    let authenticatedUserId: string | null = null;
 
-      client.on('authentication', (ctx: AuthContext) => {
-        if (ctx.method === 'publickey') {
-          const pkCtx = ctx as PublicKeyAuthContext;
-          const keyData = pkCtx.key.data;
+    client.on('authentication', (ctx: AuthContext) => {
+      if (ctx.method === 'publickey') {
+        const pkCtx = ctx as PublicKeyAuthContext;
+        const keyData = pkCtx.key.data;
 
-          if (!pkCtx.signature) {
-            // ── Phase 1: key query ─────────────────────────────────────────
-            // The client is checking whether this key is acceptable before
-            // sending the signed request.  We only confirm it's registered;
-            // no authentication happens yet.
-            lookupPublicKey(keyData)
-              .then((record) => {
-                if (record) ctx.accept();
-                else ctx.reject(['publickey']);
-              })
-              .catch(() => ctx.reject(['publickey']));
-            return;
-          }
-
-          // ── Phase 2: signed auth ───────────────────────────────────────
-          // The client sent a proper signed request.  We must:
-          //   1. Confirm the key is registered in the DB.
-          //   2. Cryptographically verify the signature to prevent replay /
-          //      impersonation attacks.
+        if (!pkCtx.signature) {
+          // ── Phase 1: key query ─────────────────────────────────────────
+          // The client is checking whether this key is acceptable before
+          // sending the signed request.  We only confirm it's registered;
+          // no authentication happens yet.
           lookupPublicKey(keyData)
             .then((record) => {
-              if (!record) {
-                ctx.reject(['publickey']);
-                return;
-              }
-
-              // Parse the stored public key and verify the signature
-              const parsedKey = (sshUtils as any).parseKey(record.publicKey);
-              if (!parsedKey || parsedKey instanceof Error) {
-                logger.error('Failed to parse stored SSH public key');
-                ctx.reject(['publickey']);
-                return;
-              }
-
-              const verified = parsedKey.verify(
-                pkCtx.blob as Buffer,
-                pkCtx.signature as Buffer,
-                pkCtx.hashAlgo as string,
-              );
-
-              if (verified !== true) {
-                logger.warn('SSH signature verification failed');
-                ctx.reject(['publickey']);
-                return;
-              }
-
-              authenticatedUserId = record.userId;
-              ctx.accept();
+              if (record) ctx.accept();
+              else ctx.reject(['publickey']);
             })
             .catch(() => ctx.reject(['publickey']));
-        } else {
-          // Reject password, keyboard-interactive, etc.
-          ctx.reject(['publickey']);
+          return;
         }
-      });
 
-      client.on('ready', () => {
-        logger.debug(`SSH client authenticated (userId=${authenticatedUserId})`);
+        // ── Phase 2: signed auth ───────────────────────────────────────
+        // The client sent a proper signed request.  We must:
+        //   1. Confirm the key is registered in the DB.
+        //   2. Cryptographically verify the signature to prevent replay /
+        //      impersonation attacks.
+        lookupPublicKey(keyData)
+          .then((record) => {
+            if (!record) {
+              ctx.reject(['publickey']);
+              return;
+            }
 
-        client.on('session', (accept: () => SSH2Session) => {
-          const session = accept();
+            // Parse the stored public key and verify the signature
+            const parsedKey = (sshUtils as any).parseKey(record.publicKey);
+            if (!parsedKey || parsedKey instanceof Error) {
+              logger.error('Failed to parse stored SSH public key');
+              ctx.reject(['publickey']);
+              return;
+            }
 
-          session.on('exec', (accept: (rejectOrAccept?: boolean) => any, reject: () => void, info: ExecInfo) => {
+            const verified = parsedKey.verify(
+              pkCtx.blob as Buffer,
+              pkCtx.signature as Buffer,
+              pkCtx.hashAlgo as string,
+            );
+
+            if (verified !== true) {
+              logger.warn('SSH signature verification failed');
+              ctx.reject(['publickey']);
+              return;
+            }
+
+            authenticatedUserId = record.userId;
+            ctx.accept();
+          })
+          .catch(() => ctx.reject(['publickey']));
+      } else {
+        // Reject password, keyboard-interactive, etc.
+        ctx.reject(['publickey']);
+      }
+    });
+
+    client.on('ready', () => {
+      logger.debug(`SSH client authenticated (userId=${authenticatedUserId})`);
+
+      client.on('session', (accept: () => SSH2Session) => {
+        const session = accept();
+
+        session.on(
+          'exec',
+          (accept: (rejectOrAccept?: boolean) => any, reject: () => void, info: ExecInfo) => {
             const command = info.command;
             logger.debug(`SSH exec: ${command}`);
 
@@ -402,9 +396,7 @@ export async function startGitSSHServer(
 
             if (!fs.existsSync(repoPath)) {
               const channel = accept();
-              channel.stderr.write(
-                `ERROR: Repository '${owner}/${repo}' not found.\n`,
-              );
+              channel.stderr.write(`ERROR: Repository '${owner}/${repo}' not found.\n`);
               channel.exit(128);
               channel.close();
               return;
@@ -415,9 +407,7 @@ export async function startGitSSHServer(
               .then((hasAccess) => {
                 if (!hasAccess) {
                   const channel = accept();
-                  channel.stderr.write(
-                    `ERROR: Permission denied to '${owner}/${repo}'.\n`,
-                  );
+                  channel.stderr.write(`ERROR: Permission denied to '${owner}/${repo}'.\n`);
                   channel.exit(128);
                   channel.close();
                   return;
@@ -458,9 +448,7 @@ export async function startGitSSHServer(
 
                   // Post-receive hook for push
                   if (code === 0 && cmd === 'receive-pack' && authenticatedUserId) {
-                    onPostReceive(storagePath, owner, repo, authenticatedUserId).catch(
-                      () => {},
-                    );
+                    onPostReceive(storagePath, owner, repo, authenticatedUserId).catch(() => {});
                   }
                 });
 
@@ -476,16 +464,16 @@ export async function startGitSSHServer(
                 channel.exit(128);
                 channel.close();
               });
-          });
-        });
+          },
+        );
       });
+    });
 
-      client.on('error', (err) => {
-        // Client-level errors (e.g. protocol issues) — log and ignore
-        logger.debug(`SSH client error: ${err.message}`);
-      });
-    },
-  );
+    client.on('error', (err) => {
+      // Client-level errors (e.g. protocol issues) — log and ignore
+      logger.debug(`SSH client error: ${err.message}`);
+    });
+  });
 
   return new Promise((resolve, reject) => {
     server.listen(port, '0.0.0.0', () => {

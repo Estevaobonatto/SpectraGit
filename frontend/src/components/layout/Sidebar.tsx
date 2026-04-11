@@ -37,7 +37,7 @@ export function Sidebar() {
     return location.pathname.startsWith(path);
   };
 
-  const renderItem = (item: (typeof navItems)[0], index: number) => {
+  const renderItem = (item: (typeof navItems)[0]) => {
     const active = isActive(item.to);
     const link = (
       <Link

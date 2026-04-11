@@ -103,10 +103,7 @@ export class RepositoriesService {
     let where;
     if (userId && scope === 'mine') {
       where = {
-        OR: [
-          { ownerUserId: userId },
-          { members: { some: { userId } } },
-        ],
+        OR: [{ ownerUserId: userId }, { members: { some: { userId } } }],
       };
     } else if (userId) {
       where = {
@@ -153,7 +150,16 @@ export class RepositoriesService {
       include: {
         ownerUser: { select: { id: true, username: true, avatarUrl: true } },
         ownerOrg: { select: { id: true, name: true, avatarUrl: true } },
-        _count: { select: { issues: true, pullRequests: true, branches: true, forks: true, pulses: true, watches: true } },
+        _count: {
+          select: {
+            issues: true,
+            pullRequests: true,
+            branches: true,
+            forks: true,
+            pulses: true,
+            watches: true,
+          },
+        },
       },
     });
 
@@ -226,7 +232,10 @@ export class RepositoriesService {
     }
 
     const forkName = dto?.name ?? sourceRepo.name;
-    const forkSlug = forkName.toLowerCase().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+    const forkSlug = forkName
+      .toLowerCase()
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
 
     const existing = await this.prisma.repository.findFirst({
       where: { ownerUserId: userId, slug: forkSlug },

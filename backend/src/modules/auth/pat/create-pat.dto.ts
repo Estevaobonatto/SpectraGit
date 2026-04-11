@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, MaxLength, IsOptional, IsArray, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  MaxLength,
+  IsOptional,
+  IsArray,
+  IsDateString,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreatePatDto {

@@ -23,6 +23,8 @@ import { EventsModule } from './events/events.module';
 import { JobsModule } from './jobs/jobs.module';
 import { PatModule } from './modules/auth/pat/pat.module';
 import { ActivityModule } from './modules/activity/activity.module';
+import { SetupModule } from './modules/setup/setup.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -66,6 +68,8 @@ import { ActivityModule } from './modules/activity/activity.module';
     JobsModule,
     PatModule,
     ActivityModule,
+    SetupModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

@@ -276,8 +276,7 @@ export function createGitHttpMiddleware(storagePath: string) {
     // Determine if this is a write (push) operation
     const service = req.query['service'] as string | undefined;
     const isWrite =
-      suffix === '/git-receive-pack' ||
-      (suffix === '/info/refs' && service === 'git-receive-pack');
+      suffix === '/git-receive-pack' || (suffix === '/info/refs' && service === 'git-receive-pack');
 
     // Authenticate via HTTP Basic Auth (username ignored, password = PAT)
     let userId: string | null = null;
@@ -427,9 +426,7 @@ function serveStatelessRpc(
 
   proc.stdout.pipe(res);
 
-  proc.stderr.on('data', (d: Buffer) =>
-    logger.warn(`git ${cmd}: ${d.toString().trimEnd()}`),
-  );
+  proc.stderr.on('data', (d: Buffer) => logger.warn(`git ${cmd}: ${d.toString().trimEnd()}`));
 
   proc.on('error', (err) => {
     logger.error(`git ${cmd} spawn error: ${err.message}`);

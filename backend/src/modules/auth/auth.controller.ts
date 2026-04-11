@@ -128,10 +128,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke a specific session' })
-  async revokeSession(
-    @CurrentUser() user: JwtPayload,
-    @Param('id') sessionId: string,
-  ) {
+  async revokeSession(@CurrentUser() user: JwtPayload, @Param('id') sessionId: string) {
     await this.authService.revokeSession(user.sub, sessionId);
     return { message: 'Session revoked' };
   }

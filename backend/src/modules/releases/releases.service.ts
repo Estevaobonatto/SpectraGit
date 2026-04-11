@@ -103,7 +103,13 @@ export class ReleasesService {
     });
   }
 
-  async update(owner: string, repo: string, releaseId: string, userId: string, dto: UpdateReleaseDto) {
+  async update(
+    owner: string,
+    repo: string,
+    releaseId: string,
+    userId: string,
+    dto: UpdateReleaseDto,
+  ) {
     const repoEntity = await this.reposService.findByOwnerAndSlug(owner, repo, userId);
 
     const release = await this.prisma.release.findFirst({
@@ -209,7 +215,13 @@ export class ReleasesService {
     return asset;
   }
 
-  async deleteAsset(owner: string, repo: string, releaseId: string, assetId: string, userId: string) {
+  async deleteAsset(
+    owner: string,
+    repo: string,
+    releaseId: string,
+    assetId: string,
+    userId: string,
+  ) {
     const repoEntity = await this.reposService.findByOwnerAndSlug(owner, repo, userId);
     const release = await this.prisma.release.findFirst({
       where: { repositoryId: repoEntity.id, id: releaseId },

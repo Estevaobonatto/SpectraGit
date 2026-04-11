@@ -22,7 +22,12 @@ import { PrismaModule } from '../prisma/prisma.module';
     IntegrationsModule,
     PrismaModule,
   ],
-  providers: [GitReconciliationProcessor, NotificationProcessor, GitHubSyncProcessor, GitHubImportProcessor],
+  providers: [
+    GitReconciliationProcessor,
+    NotificationProcessor,
+    GitHubSyncProcessor,
+    GitHubImportProcessor,
+  ],
   exports: [BullModule],
 })
 export class JobsModule {}

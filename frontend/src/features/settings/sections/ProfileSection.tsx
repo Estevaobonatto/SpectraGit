@@ -21,6 +21,8 @@ export default function ProfileSection() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Sync form fields when user data loads from the API.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (user) {
       setDisplayName(user.displayName ?? '');
@@ -30,6 +32,7 @@ export default function ProfileSection() {
       setDirty(false);
     }
   }, [user]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (isLoading || !user) return <PageLoader />;
 

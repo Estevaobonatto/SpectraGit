@@ -124,7 +124,10 @@ export class ReleasesController {
   ) {
     const asset = await this.releasesService.getAsset(owner, repo, releaseId, assetId, user?.sub);
     res.setHeader('Content-Type', asset.contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(asset.fileName)}"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(asset.fileName)}"`,
+    );
     res.setHeader('Content-Length', String(asset.size));
     const stream = fs.createReadStream(asset.filePath);
     stream.pipe(res);

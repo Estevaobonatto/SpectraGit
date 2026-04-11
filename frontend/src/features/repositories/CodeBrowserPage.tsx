@@ -24,6 +24,13 @@ import { MarkdownRenderer } from '@/components/repo/MarkdownRenderer';
 import { motion } from 'motion/react';
 import type { Repository, FileTreeItem } from '@/types';
 
+// Stable constant — defined outside component to avoid recreating on every render
+const RENDERABLE_FILES = [
+  'readme.md', 'readme.mdx', 'readme.markdown', 'readme',
+  'license.md', 'license', 'licence.md', 'licence',
+  'contributing.md', 'changelog.md', 'code_of_conduct.md',
+];
+
 export default function CodeBrowserPage() {
   const { owner, repo, branch: branchParam, '*': pathParam } = useParams();
   const { repository } = useOutletContext<{ repository: Repository }>();
@@ -65,11 +72,6 @@ export default function CodeBrowserPage() {
   });
 
   // Detect renderable files at root (README, LICENSE, etc.)
-  const RENDERABLE_FILES = [
-    'readme.md', 'readme.mdx', 'readme.markdown', 'readme',
-    'license.md', 'license', 'licence.md', 'licence',
-    'contributing.md', 'changelog.md', 'code_of_conduct.md',
-  ];
   const renderableFile = useMemo(() => {
     if (currentPath || !tree) return null;
     for (const name of RENDERABLE_FILES) {

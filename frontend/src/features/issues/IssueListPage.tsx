@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { CircleDot, CircleCheck, Plus, Search } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { useIssues } from '@/hooks/useIssues';
 import { useAuthStore } from '@/stores/auth.store';
 import { Button } from '@/components/ui/button';

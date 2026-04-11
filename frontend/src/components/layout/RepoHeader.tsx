@@ -22,13 +22,16 @@ import type { Repository } from '@/types';
 // Bolt particle spawned on pulse activation
 interface Bolt { id: number; angle: number; dist: number; size: number }
 
+// Pre-computed at module scope — random values are stable across re-renders
+const BOLT_TEMPLATES: Bolt[] = Array.from({ length: 8 }, (_, i) => ({
+  id: i,
+  angle: (360 / 8) * i + Math.random() * 20 - 10,
+  dist: 22 + Math.random() * 10,
+  size: 8 + Math.random() * 5,
+}));
+
 function PulseBurst({ trigger }: { trigger: number }) {
-  const bolts: Bolt[] = Array.from({ length: 8 }, (_, i) => ({
-    id: i,
-    angle: (360 / 8) * i + Math.random() * 20 - 10,
-    dist: 22 + Math.random() * 10,
-    size: 8 + Math.random() * 5,
-  }));
+  const bolts = BOLT_TEMPLATES;
 
   return (
     <AnimatePresence>

@@ -75,9 +75,15 @@ export class NotificationsService {
 
   async getPreferences(userId: string) {
     const allTypes: NotificationType[] = [
-      'ISSUE_CREATED', 'ISSUE_COMMENT',
-      'PR_CREATED', 'PR_COMMENT', 'PR_REVIEW', 'PR_MERGED',
-      'MENTION', 'REPO_INVITE', 'ORG_INVITE',
+      'ISSUE_CREATED',
+      'ISSUE_COMMENT',
+      'PR_CREATED',
+      'PR_COMMENT',
+      'PR_REVIEW',
+      'PR_MERGED',
+      'MENTION',
+      'REPO_INVITE',
+      'ORG_INVITE',
     ];
 
     const saved = await this.prisma.notificationPreference.findMany({

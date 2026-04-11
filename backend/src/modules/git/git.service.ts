@@ -58,10 +58,7 @@ export class GitService {
 
   private getGit(repoPath: string): SimpleGit {
     return simpleGit(repoPath, {
-      config: [
-        'user.name=SpectraGit',
-        'user.email=noreply@spectragit.local',
-      ],
+      config: ['user.name=SpectraGit', 'user.email=noreply@spectragit.local'],
     });
   }
 
@@ -300,11 +297,11 @@ export class GitService {
     const { execFile } = await import('child_process');
     const { promisify } = await import('util');
     const execFileAsync = promisify(execFile);
-    const { stdout } = await execFileAsync(
-      'git',
-      ['cat-file', 'blob', blobHash.trim()],
-      { cwd: repoPath, encoding: 'buffer', maxBuffer: 50 * 1024 * 1024 },
-    );
+    const { stdout } = await execFileAsync('git', ['cat-file', 'blob', blobHash.trim()], {
+      cwd: repoPath,
+      encoding: 'buffer',
+      maxBuffer: 50 * 1024 * 1024,
+    });
     return stdout;
   }
 
@@ -322,11 +319,12 @@ export class GitService {
       // Use git's %xNN escapes for separators so they survive the process arg boundary.
       const fmt = '%x1f%H%x1f%s%x1f%aN%x1f%ae%x1f%aI%x1f%b%x1e';
       const SEP = '\x1f';
-      const RS  = '\x1e';
-      const safeLimit  = Number.isFinite(limit)  ? limit  : 30;
+      const RS = '\x1e';
+      const safeLimit = Number.isFinite(limit) ? limit : 30;
       const safeOffset = Number.isFinite(offset) ? offset : 0;
       const result = await git.raw([
-        'log', branch,
+        'log',
+        branch,
         `--max-count=${safeLimit}`,
         `--skip=${safeOffset}`,
         `--format=${fmt}`,
@@ -340,12 +338,12 @@ export class GitService {
         .map((record) => {
           const p = record.split(SEP);
           return {
-            sha:         p[1]?.trim() ?? '',
-            message:     p[2]?.trim() ?? '',
-            author:      p[3]?.trim() ?? '',
+            sha: p[1]?.trim() ?? '',
+            message: p[2]?.trim() ?? '',
+            author: p[3]?.trim() ?? '',
             authorEmail: p[4]?.trim() ?? '',
-            date:        p[5]?.trim() ?? '',
-            body:        p[6]?.trim() ?? undefined,
+            date: p[5]?.trim() ?? '',
+            body: p[6]?.trim() ?? undefined,
           };
         })
         .filter((c) => c.sha);
@@ -372,12 +370,12 @@ export class GitService {
       if (!p[1]?.trim()) return null;
 
       return {
-        sha:         p[1].trim(),
-        message:     p[2]?.trim() ?? '',
-        author:      p[3]?.trim() ?? '',
+        sha: p[1].trim(),
+        message: p[2]?.trim() ?? '',
+        author: p[3]?.trim() ?? '',
         authorEmail: p[4]?.trim() ?? '',
-        date:        p[5]?.trim() ?? '',
-        body:        p[6]?.trim() ?? undefined,
+        date: p[5]?.trim() ?? '',
+        body: p[6]?.trim() ?? undefined,
       };
     } catch {
       return null;
@@ -438,13 +436,26 @@ export class GitService {
           newLine = m ? parseInt(m[2], 10) : 1;
         } else if (currentHunk) {
           if (line.startsWith('+') && !line.startsWith('+++')) {
-            currentHunk.lines.push({ type: 'add', content: line.slice(1), newLineNumber: newLine++ });
+            currentHunk.lines.push({
+              type: 'add',
+              content: line.slice(1),
+              newLineNumber: newLine++,
+            });
             additions++;
           } else if (line.startsWith('-') && !line.startsWith('---')) {
-            currentHunk.lines.push({ type: 'del', content: line.slice(1), oldLineNumber: oldLine++ });
+            currentHunk.lines.push({
+              type: 'del',
+              content: line.slice(1),
+              oldLineNumber: oldLine++,
+            });
             deletions++;
           } else if (line !== '\\ No newline at end of file') {
-            currentHunk.lines.push({ type: 'context', content: line.slice(1), oldLineNumber: oldLine++, newLineNumber: newLine++ });
+            currentHunk.lines.push({
+              type: 'context',
+              content: line.slice(1),
+              oldLineNumber: oldLine++,
+              newLineNumber: newLine++,
+            });
           }
         }
       }
@@ -528,11 +539,20 @@ export class GitService {
     ownerName: string,
     repoSlug: string,
     tagName: string,
-  ): Promise<{ commitSha: string; message: string | null; taggerName: string | null; taggerDate: string | null }> {
+  ): Promise<{
+    commitSha: string;
+    message: string | null;
+    taggerName: string | null;
+    taggerDate: string | null;
+  }> {
     const repoPath = this.getRepoPath(ownerName, repoSlug);
     const git = this.getGit(repoPath);
     try {
-      const raw = await git.raw(['for-each-ref', `refs/tags/${tagName}`, '--format=%(objectname)%0a%(*objectname)%0a%(contents)%0a%(taggername)%0a%(taggerdate:iso)']);
+      const raw = await git.raw([
+        'for-each-ref',
+        `refs/tags/${tagName}`,
+        '--format=%(objectname)%0a%(*objectname)%0a%(contents)%0a%(taggername)%0a%(taggerdate:iso)',
+      ]);
       const lines = raw.trim().split('\n');
       const dereferenced = lines[1] || lines[0];
       const commitSha = dereferenced || lines[0];
@@ -619,20 +639,64 @@ export class GitService {
       if (!result.trim()) return {};
 
       const extLangMap: Record<string, string> = {
-        ts: 'TypeScript', tsx: 'TypeScript', js: 'JavaScript', jsx: 'JavaScript',
-        py: 'Python', rb: 'Ruby', java: 'Java', kt: 'Kotlin', kts: 'Kotlin',
-        go: 'Go', rs: 'Rust', c: 'C', h: 'C', cpp: 'C++', cc: 'C++',
-        cs: 'C#', swift: 'Swift', m: 'Objective-C', php: 'PHP',
-        scala: 'Scala', clj: 'Clojure', ex: 'Elixir', exs: 'Elixir',
-        hs: 'Haskell', lua: 'Lua', r: 'R', dart: 'Dart', vue: 'Vue',
-        svelte: 'Svelte', css: 'CSS', scss: 'SCSS', less: 'Less',
-        html: 'HTML', htm: 'HTML', xml: 'XML', json: 'JSON', yaml: 'YAML',
-        yml: 'YAML', toml: 'TOML', md: 'Markdown', mdx: 'Markdown',
-        sql: 'SQL', sh: 'Shell', bash: 'Shell', zsh: 'Shell',
-        ps1: 'PowerShell', bat: 'Batch', dockerfile: 'Dockerfile',
-        prisma: 'Prisma', graphql: 'GraphQL', gql: 'GraphQL',
-        proto: 'Protocol Buffers', tf: 'HCL', zig: 'Zig', nim: 'Nim',
-        pl: 'Perl', pm: 'Perl', erl: 'Erlang',
+        ts: 'TypeScript',
+        tsx: 'TypeScript',
+        js: 'JavaScript',
+        jsx: 'JavaScript',
+        py: 'Python',
+        rb: 'Ruby',
+        java: 'Java',
+        kt: 'Kotlin',
+        kts: 'Kotlin',
+        go: 'Go',
+        rs: 'Rust',
+        c: 'C',
+        h: 'C',
+        cpp: 'C++',
+        cc: 'C++',
+        cs: 'C#',
+        swift: 'Swift',
+        m: 'Objective-C',
+        php: 'PHP',
+        scala: 'Scala',
+        clj: 'Clojure',
+        ex: 'Elixir',
+        exs: 'Elixir',
+        hs: 'Haskell',
+        lua: 'Lua',
+        r: 'R',
+        dart: 'Dart',
+        vue: 'Vue',
+        svelte: 'Svelte',
+        css: 'CSS',
+        scss: 'SCSS',
+        less: 'Less',
+        html: 'HTML',
+        htm: 'HTML',
+        xml: 'XML',
+        json: 'JSON',
+        yaml: 'YAML',
+        yml: 'YAML',
+        toml: 'TOML',
+        md: 'Markdown',
+        mdx: 'Markdown',
+        sql: 'SQL',
+        sh: 'Shell',
+        bash: 'Shell',
+        zsh: 'Shell',
+        ps1: 'PowerShell',
+        bat: 'Batch',
+        dockerfile: 'Dockerfile',
+        prisma: 'Prisma',
+        graphql: 'GraphQL',
+        gql: 'GraphQL',
+        proto: 'Protocol Buffers',
+        tf: 'HCL',
+        zig: 'Zig',
+        nim: 'Nim',
+        pl: 'Perl',
+        pm: 'Perl',
+        erl: 'Erlang',
       };
 
       const breakdown: Record<string, number> = {};

@@ -65,12 +65,12 @@ export function RepoSidebar({ repo }: RepoSidebarProps) {
         percent: ((bytes / total) * 100),
         color: LANG_COLORS[lang] || '#8b8b8b',
       }));
-  }, [stats?.languages]);
+  }, [stats]);
 
   const topContributors = useMemo(() => {
     if (!stats?.contributors) return [];
     return stats.contributors.slice(0, 10);
-  }, [stats?.contributors]);
+  }, [stats]);
 
   if (isLoading) {
     return (

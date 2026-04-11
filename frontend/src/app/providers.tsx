@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { useAuthStore } from '@/stores/auth.store';
 import { usersService } from '@/services/auth.service';
+import { adminService } from '@/services/admin.service';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,12 +42,29 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Fetches branding on first load and applies the primary color as a CSS variable. */
+function BrandingInjector({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    adminService.getBranding().then((branding) => {
+      if (branding.primaryColor) {
+        document.documentElement.style.setProperty('--color-primary', branding.primaryColor);
+      }
+    }).catch(() => {
+      // Non-critical — ignore if branding endpoint is unavailable (setup not done yet).
+    });
+  }, []);
+
+  return <>{children}</>;
+}
+
 export function AppProviders() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthInitializer>
-        <RouterProvider router={router} />
-      </AuthInitializer>
+      <BrandingInjector>
+        <AuthInitializer>
+          <RouterProvider router={router} />
+        </AuthInitializer>
+      </BrandingInjector>
     </QueryClientProvider>
   );
 }

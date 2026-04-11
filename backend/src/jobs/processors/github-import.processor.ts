@@ -2,7 +2,13 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { Octokit } from '@octokit/rest';
-import { ImportJobStatus, IssueStatus, PRStatus, CommentType, RepoVisibility } from '@prisma/client';
+import {
+  ImportJobStatus,
+  IssueStatus,
+  PRStatus,
+  CommentType,
+  RepoVisibility,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GitService } from '../../modules/git/git.service';
 
@@ -13,19 +19,40 @@ interface ImportJobPayload {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-interface GHLabel { name: string; color: string; description: string | null; }
-interface GHMilestone { number: number; title: string; description: string | null; due_on: string | null; }
+interface GHLabel {
+  name: string;
+  color: string;
+  description: string | null;
+}
+interface GHMilestone {
+  number: number;
+  title: string;
+  description: string | null;
+  due_on: string | null;
+}
 interface GHIssue {
-  number: number; title: string; body: string | null; state: string;
-  pull_request?: any; milestone?: { number: number } | null;
-  labels: Array<string | { name: string }>; comments: number;
+  number: number;
+  title: string;
+  body: string | null;
+  state: string;
+  pull_request?: any;
+  milestone?: { number: number } | null;
+  labels: Array<string | { name: string }>;
+  comments: number;
 }
 interface GHPullRequest {
-  number: number; title: string; body: string | null; state: string;
-  merged_at: string | null; head?: { ref: string }; base?: { ref: string };
+  number: number;
+  title: string;
+  body: string | null;
+  state: string;
+  merged_at: string | null;
+  head?: { ref: string };
+  base?: { ref: string };
   labels: Array<string | { name: string }>;
 }
-interface GHComment { body: string | null; }
+interface GHComment {
+  body: string | null;
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 @Processor('github-import')
@@ -100,7 +127,12 @@ export class GitHubImportProcessor extends WorkerHost {
       await this.updateProgress(jobId, ImportJobStatus.CLONING, 60, 'Clone complete');
 
       // ── Step 4: Seed branches (60–65%) ──
-      await this.updateProgress(jobId, ImportJobStatus.SEEDING_BRANCHES, 61, 'Importing branches...');
+      await this.updateProgress(
+        jobId,
+        ImportJobStatus.SEEDING_BRANCHES,
+        61,
+        'Importing branches...',
+      );
 
       const branches = await this.gitService.getLocalBranchesWithSha(user.username, slug);
       if (branches.length > 0) {
@@ -115,7 +147,12 @@ export class GitHubImportProcessor extends WorkerHost {
         });
       }
 
-      await this.updateProgress(jobId, ImportJobStatus.SEEDING_BRANCHES, 65, `${branches.length} branches imported`);
+      await this.updateProgress(
+        jobId,
+        ImportJobStatus.SEEDING_BRANCHES,
+        65,
+        `${branches.length} branches imported`,
+      );
 
       // ── Step 5: Import labels (65–70%) ──
       await this.updateProgress(jobId, ImportJobStatus.IMPORTING_LABELS, 66, 'Importing labels...');
@@ -145,18 +182,33 @@ export class GitHubImportProcessor extends WorkerHost {
         this.logger.warn(`Labels import partial failure: ${(e as Error).message}`);
       }
 
-      await this.updateProgress(jobId, ImportJobStatus.IMPORTING_LABELS, 70, `${labelMap.size} labels imported`);
+      await this.updateProgress(
+        jobId,
+        ImportJobStatus.IMPORTING_LABELS,
+        70,
+        `${labelMap.size} labels imported`,
+      );
 
       // ── Step 6: Import milestones (70–75%) ──
-      await this.updateProgress(jobId, ImportJobStatus.IMPORTING_MILESTONES, 71, 'Importing milestones...');
+      await this.updateProgress(
+        jobId,
+        ImportJobStatus.IMPORTING_MILESTONES,
+        71,
+        'Importing milestones...',
+      );
 
       const milestoneMap = new Map<number, string>(); // GitHub milestone number → SpectraGit ID
       try {
-        const ghMilestones = await this.fetchAllPages<GHMilestone>(octokit, 'issues', 'listMilestones', {
-          owner,
-          repo: repoName,
-          state: 'all' as const,
-        });
+        const ghMilestones = await this.fetchAllPages<GHMilestone>(
+          octokit,
+          'issues',
+          'listMilestones',
+          {
+            owner,
+            repo: repoName,
+            state: 'all' as const,
+          },
+        );
         for (const gm of ghMilestones) {
           const milestone = await this.prisma.milestone.upsert({
             where: {
@@ -176,7 +228,12 @@ export class GitHubImportProcessor extends WorkerHost {
         this.logger.warn(`Milestones import partial failure: ${(e as Error).message}`);
       }
 
-      await this.updateProgress(jobId, ImportJobStatus.IMPORTING_MILESTONES, 75, `${milestoneMap.size} milestones imported`);
+      await this.updateProgress(
+        jobId,
+        ImportJobStatus.IMPORTING_MILESTONES,
+        75,
+        `${milestoneMap.size} milestones imported`,
+      );
 
       // ── Step 7: Import issues (75–88%) ──
       await this.updateProgress(jobId, ImportJobStatus.IMPORTING_ISSUES, 76, 'Importing issues...');
@@ -216,7 +273,7 @@ export class GitHubImportProcessor extends WorkerHost {
               title: String(gi.title).slice(0, 255),
               body: gi.body ?? null,
               status: gi.state === 'open' ? IssueStatus.OPEN : IssueStatus.CLOSED,
-              milestoneId: gi.milestone ? milestoneMap.get(gi.milestone.number) ?? null : null,
+              milestoneId: gi.milestone ? (milestoneMap.get(gi.milestone.number) ?? null) : null,
               githubExternalId: ghExtId,
             },
           });
@@ -226,9 +283,11 @@ export class GitHubImportProcessor extends WorkerHost {
             for (const l of gi.labels) {
               const labelName = typeof l === 'string' ? l : l.name;
               if (labelName && labelMap.has(labelName)) {
-                await this.prisma.issueLabel.create({
-                  data: { issueId: issue.id, labelId: labelMap.get(labelName)! },
-                }).catch(() => {}); // skip duplicates
+                await this.prisma.issueLabel
+                  .create({
+                    data: { issueId: issue.id, labelId: labelMap.get(labelName)! },
+                  })
+                  .catch(() => {}); // skip duplicates
               }
             }
           }
@@ -236,20 +295,27 @@ export class GitHubImportProcessor extends WorkerHost {
           // Import issue comments
           if (gi.comments > 0) {
             try {
-              const comments = await this.fetchAllPages<GHComment>(octokit, 'issues', 'listComments', {
-                owner,
-                repo: repoName,
-                issue_number: gi.number,
-              });
+              const comments = await this.fetchAllPages<GHComment>(
+                octokit,
+                'issues',
+                'listComments',
+                {
+                  owner,
+                  repo: repoName,
+                  issue_number: gi.number,
+                },
+              );
               for (const c of comments) {
-                await this.prisma.comment.create({
-                  data: {
-                    authorId: userId,
-                    type: CommentType.ISSUE,
-                    issueId: issue.id,
-                    body: c.body ?? '',
-                  },
-                }).catch(() => {});
+                await this.prisma.comment
+                  .create({
+                    data: {
+                      authorId: userId,
+                      type: CommentType.ISSUE,
+                      issueId: issue.id,
+                      body: c.body ?? '',
+                    },
+                  })
+                  .catch(() => {});
               }
             } catch {
               // Non-critical: continue
@@ -258,16 +324,31 @@ export class GitHubImportProcessor extends WorkerHost {
 
           issueCount++;
           const issueProgress = Math.round(76 + (issueCount / Math.max(ghIssues.length, 1)) * 12);
-          await this.updateProgress(jobId, ImportJobStatus.IMPORTING_ISSUES, Math.min(issueProgress, 88), `Importing issues (${issueCount})...`);
+          await this.updateProgress(
+            jobId,
+            ImportJobStatus.IMPORTING_ISSUES,
+            Math.min(issueProgress, 88),
+            `Importing issues (${issueCount})...`,
+          );
         }
       } catch (e) {
         this.logger.warn(`Issues import partial failure: ${(e as Error).message}`);
       }
 
-      await this.updateProgress(jobId, ImportJobStatus.IMPORTING_ISSUES, 88, `${issueCount} issues imported`);
+      await this.updateProgress(
+        jobId,
+        ImportJobStatus.IMPORTING_ISSUES,
+        88,
+        `${issueCount} issues imported`,
+      );
 
       // ── Step 8: Import pull requests (88–96%) ──
-      await this.updateProgress(jobId, ImportJobStatus.IMPORTING_PRS, 89, 'Importing pull requests...');
+      await this.updateProgress(
+        jobId,
+        ImportJobStatus.IMPORTING_PRS,
+        89,
+        'Importing pull requests...',
+      );
 
       let prCount = 0;
       try {
@@ -319,29 +400,38 @@ export class GitHubImportProcessor extends WorkerHost {
             for (const l of gp.labels) {
               const labelName = typeof l === 'string' ? l : l.name;
               if (labelName && labelMap.has(labelName)) {
-                await this.prisma.pRLabel.create({
-                  data: { pullRequestId: pr.id, labelId: labelMap.get(labelName)! },
-                }).catch(() => {});
+                await this.prisma.pRLabel
+                  .create({
+                    data: { pullRequestId: pr.id, labelId: labelMap.get(labelName)! },
+                  })
+                  .catch(() => {});
               }
             }
           }
 
           // Import PR comments
           try {
-            const comments = await this.fetchAllPages<GHComment>(octokit, 'issues', 'listComments', {
-              owner,
-              repo: repoName,
-              issue_number: gp.number,
-            });
+            const comments = await this.fetchAllPages<GHComment>(
+              octokit,
+              'issues',
+              'listComments',
+              {
+                owner,
+                repo: repoName,
+                issue_number: gp.number,
+              },
+            );
             for (const c of comments) {
-              await this.prisma.comment.create({
-                data: {
-                  authorId: userId,
-                  type: CommentType.PULL_REQUEST,
-                  pullRequestId: pr.id,
-                  body: c.body ?? '',
-                },
-              }).catch(() => {});
+              await this.prisma.comment
+                .create({
+                  data: {
+                    authorId: userId,
+                    type: CommentType.PULL_REQUEST,
+                    pullRequestId: pr.id,
+                    body: c.body ?? '',
+                  },
+                })
+                .catch(() => {});
             }
           } catch {
             // Non-critical
@@ -349,13 +439,23 @@ export class GitHubImportProcessor extends WorkerHost {
 
           prCount++;
           const prProgress = Math.round(89 + (prCount / Math.max(ghPRs.length, 1)) * 7);
-          await this.updateProgress(jobId, ImportJobStatus.IMPORTING_PRS, Math.min(prProgress, 96), `Importing PRs (${prCount})...`);
+          await this.updateProgress(
+            jobId,
+            ImportJobStatus.IMPORTING_PRS,
+            Math.min(prProgress, 96),
+            `Importing PRs (${prCount})...`,
+          );
         }
       } catch (e) {
         this.logger.warn(`PRs import partial failure: ${(e as Error).message}`);
       }
 
-      await this.updateProgress(jobId, ImportJobStatus.IMPORTING_PRS, 96, `${prCount} pull requests imported`);
+      await this.updateProgress(
+        jobId,
+        ImportJobStatus.IMPORTING_PRS,
+        96,
+        `${prCount} pull requests imported`,
+      );
 
       // ── Step 9: Import tags (96–99%) ──
       await this.updateProgress(jobId, ImportJobStatus.IMPORTING_TAGS, 97, 'Importing tags...');
@@ -382,26 +482,32 @@ export class GitHubImportProcessor extends WorkerHost {
         this.logger.warn(`Tags import partial failure: ${(e as Error).message}`);
       }
 
-      await this.updateProgress(jobId, ImportJobStatus.IMPORTING_TAGS, 99, `${tagCount} tags imported`);
+      await this.updateProgress(
+        jobId,
+        ImportJobStatus.IMPORTING_TAGS,
+        99,
+        `${tagCount} tags imported`,
+      );
 
       // ── Step 10: Complete ──
       await this.updateProgress(jobId, ImportJobStatus.COMPLETED, 100, 'Import complete!');
 
       this.logger.log(`Import complete: ${githubRepoFullName} → ${user.username}/${slug}`);
       return { success: true, repositorySlug: slug, ownerUsername: user.username };
-
     } catch (error) {
       const msg = (error as Error).message ?? 'Unknown error';
       this.logger.error(`Import failed for ${githubRepoFullName}: ${msg}`, (error as Error).stack);
 
-      await this.prisma.importJob.update({
-        where: { id: jobId },
-        data: {
-          status: ImportJobStatus.FAILED,
-          error: msg.slice(0, 2000),
-          currentStep: 'Import failed',
-        },
-      }).catch(() => {});
+      await this.prisma.importJob
+        .update({
+          where: { id: jobId },
+          data: {
+            status: ImportJobStatus.FAILED,
+            error: msg.slice(0, 2000),
+            currentStep: 'Import failed',
+          },
+        })
+        .catch(() => {});
 
       throw error;
     }
@@ -413,12 +519,14 @@ export class GitHubImportProcessor extends WorkerHost {
     progress: number,
     currentStep: string,
   ): Promise<void> {
-    await this.prisma.importJob.update({
-      where: { id: jobId },
-      data: { status, progress, currentStep },
-    }).catch((e) => {
-      this.logger.warn(`Failed to update import progress: ${(e as Error).message}`);
-    });
+    await this.prisma.importJob
+      .update({
+        where: { id: jobId },
+        data: { status, progress, currentStep },
+      })
+      .catch((e) => {
+        this.logger.warn(`Failed to update import progress: ${(e as Error).message}`);
+      });
   }
 
   /**
@@ -436,7 +544,10 @@ export class GitHubImportProcessor extends WorkerHost {
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const ns = octokit[namespace as keyof Octokit] as Record<string, Function>;
+      const ns = octokit[namespace as keyof Octokit] as Record<
+        string,
+        (...args: unknown[]) => Promise<{ data: T[] }>
+      >;
       const { data } = await ns[method]({ ...params, per_page: perPage, page });
       if (!Array.isArray(data) || data.length === 0) break;
       results.push(...data);

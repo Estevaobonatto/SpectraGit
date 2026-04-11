@@ -8,19 +8,47 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Self-Hosted Instance Settings ──────────────────────────
+
+model InstanceSettings {
+  id                     String   @id @default("singleton") @db.VarChar(10)
+  appName                String   @default("SpectraGit") @map("app_name") @db.VarChar(100)
+  appLogoUrl             String?  @map("app_logo_url") @db.VarChar(512)
+  primaryColor           String   @default("#7C3AED") @map("primary_color") @db.VarChar(7)
+  baseUrl                String   @default("http://localhost") @map("base_url") @db.VarChar(512)
+  smtpHost               String?  @map("smtp_host") @db.VarChar(255)
+  smtpPort               Int?     @map("smtp_port")
+  smtpUser               String?  @map("smtp_user") @db.VarChar(255)
+  smtpFromEmail          String?  @map("smtp_from_email") @db.VarChar(255)
+  encryptedSmtpPassword  String?  @map("encrypted_smtp_password") @db.Text
+  isSetupComplete        Boolean  @default(false) @map("is_setup_complete")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("instance_settings")
+}
+
 // ─── Users & Auth ────────────────────────────────────────────
 
+enum SystemRole {
+  SYSTEM_ADMIN
+  USER
+}
+
 model User {
-  id          String   @id @default(uuid()) @db.Uuid
-  username    String   @unique @db.VarChar(39)
-  email       String   @unique @db.VarChar(255)
-  displayName String?  @map("display_name") @db.VarChar(100)
-  avatarUrl   String?  @map("avatar_url") @db.VarChar(512)
-  bio         String?  @db.VarChar(500)
-  location    String?  @db.VarChar(255)
-  website     String?  @db.VarChar(512)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String     @id @default(uuid()) @db.Uuid
+  username     String     @unique @db.VarChar(39)
+  email        String     @unique @db.VarChar(255)
+  displayName  String?    @map("display_name") @db.VarChar(100)
+  avatarUrl    String?    @map("avatar_url") @db.VarChar(512)
+  bio          String?    @db.VarChar(500)
+  location     String?    @db.VarChar(255)
+  website      String?    @db.VarChar(512)
+  passwordHash String?    @map("password_hash") @db.VarChar(255)
+  systemRole   SystemRole @default(USER) @map("system_role")
+  isDisabled   Boolean    @default(false) @map("is_disabled")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
 
   oauthAccounts  OAuthAccount[]
   sessions       Session[]

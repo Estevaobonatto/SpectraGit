@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { motion, type Variants } from 'motion/react';
+import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 interface AnimatedListProps {
@@ -10,15 +10,6 @@ interface AnimatedListProps {
   direction?: 'up' | 'down';
 }
 
-const containerVariants: Variants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.05,
-    },
-  },
-};
-
 export function AnimatedList({
   children,
   className,
@@ -26,7 +17,6 @@ export function AnimatedList({
   duration = 0.3,
   direction = 'up',
 }: AnimatedListProps) {
-  const custom = { staggerDelay, duration, direction };
 
   return (
     <motion.div

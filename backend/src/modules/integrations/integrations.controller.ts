@@ -38,15 +38,19 @@ export class IntegrationsController {
 
     // If there's a jobId and it's not already imported, enqueue the BullMQ job
     if (result.jobId && !(result as Record<string, unknown>).alreadyRunning) {
-      await this.importQueue.add('import', {
-        jobId: result.jobId,
-        userId: user.sub,
-        githubRepoFullName: `${owner}/${repo}`,
-      }, {
-        attempts: 1,
-        removeOnComplete: true,
-        removeOnFail: false,
-      });
+      await this.importQueue.add(
+        'import',
+        {
+          jobId: result.jobId,
+          userId: user.sub,
+          githubRepoFullName: `${owner}/${repo}`,
+        },
+        {
+          attempts: 1,
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
     }
 
     return result;

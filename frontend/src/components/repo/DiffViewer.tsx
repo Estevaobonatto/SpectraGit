@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronRight, File } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import type { DiffFile, DiffHunk, DiffLine } from '@/types';
 
 interface DiffViewerProps {

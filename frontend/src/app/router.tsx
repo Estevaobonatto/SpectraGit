@@ -1,8 +1,17 @@
+/* eslint-disable react-refresh/only-export-components */
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { PublicShell } from '@/components/layout/PublicShell';
-import { ProtectedRoute, PublicOnlyRoute, OptionalAuthRoute } from './guards';
+import { ProtectedRoute, PublicOnlyRoute, OptionalAuthRoute, AdminRoute } from './guards';
 import { PageLoader } from '@/components/ui/spinner';
+
+// Self-hosted: setup wizard + admin panel
+const SetupWizardPage = lazy(() => import('@/features/setup/SetupWizardPage'));
+const AdminLayout = lazy(() => import('@/features/admin/AdminLayout'));
+const AdminDashboardPage = lazy(() => import('@/features/admin/AdminDashboardPage'));
+const AdminUsersPage = lazy(() => import('@/features/admin/AdminUsersPage'));
+const AdminSettingsPage = lazy(() => import('@/features/admin/AdminSettingsPage'));
+const AdminHealthPage = lazy(() => import('@/features/admin/AdminHealthPage'));
 
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
 const OAuthCallbackPage = lazy(() => import('@/features/auth/OAuthCallbackPage'));
@@ -55,7 +64,33 @@ function AuthRequired({ children }: { children: React.ReactNode }) {
   return <ProtectedRoute>{children}</ProtectedRoute>;
 }
 
+function AdminRequired({ children }: { children: React.ReactNode }) {
+  return <AdminRoute>{children}</AdminRoute>;
+}
+
 export const router = createBrowserRouter([
+  /* ---------- First-time setup wizard (unauthenticated) ---------- */
+  {
+    path: '/setup',
+    element: <SuspenseWrapper><SetupWizardPage /></SuspenseWrapper>,
+  },
+
+  /* ---------- Admin panel (SYSTEM_ADMIN only) ---------- */
+  {
+    path: '/admin',
+    element: (
+      <AdminRequired>
+        <SuspenseWrapper><AdminLayout /></SuspenseWrapper>
+      </AdminRequired>
+    ),
+    children: [
+      { index: true, element: <SuspenseWrapper><AdminDashboardPage /></SuspenseWrapper> },
+      { path: 'users', element: <SuspenseWrapper><AdminUsersPage /></SuspenseWrapper> },
+      { path: 'settings', element: <SuspenseWrapper><AdminSettingsPage /></SuspenseWrapper> },
+      { path: 'health', element: <SuspenseWrapper><AdminHealthPage /></SuspenseWrapper> },
+    ],
+  },
+
   /* ---------- Auth pages ---------- */
   {
     path: '/login',

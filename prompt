@@ -1,7 +1,20 @@
-vamos fazer algumas mudanças:
+vamos adicionar suporte a self-hosted no sistema (front e backend) para que as empresas possam hospedar a solução internamente, garantindo maior controle sobre os dados e personalização conforme suas necessidades. Isso incluirá a criação de uma interface de configuração para facilitar a instalação e manutenção do sistema, além de fornecer documentação detalhada para auxiliar na implementação.
 
-quando o usuario entra na pagina incial (/) ele vai ver os repositorios publicos principais e uma aba de pesquisa e uam de "descobrir"
+Para o backend, será necessário desenvolver uma API que permita a comunicação entre o sistema e os servidores internos das empresas. Isso envolverá a criação de endpoints seguros para autenticação, gerenciamento de dados e integração com outros sistemas internos.
 
-vai ter uma navbar com login e criação de conta (para a pagina de login)
+No frontend, será importante garantir que a interface seja responsiva e fácil de usar, mesmo em ambientes self-hosted. Isso pode incluir a implementação de recursos de personalização para que as empresas possam adaptar a aparência e funcionalidade do sistema de acordo com suas necessidades específicas.
 
-- Os repositorios publicos vão poder ser acessados por usuarios não logados
+Além disso, será fundamental implementar medidas de segurança robustas para proteger os dados das empresas, como criptografia, autenticação de dois fatores e monitoramento de atividades suspeitas. Isso garantirá que as empresas possam confiar na solução self-hosted para proteger suas informações sensíveis.
+
+Para facilitar a adoção do sistema self-hosted, também será importante oferecer suporte técnico dedicado para as empresas que optarem por essa opção. Isso pode incluir treinamento, assistência na configuração e resolução de problemas, garantindo que as empresas possam aproveitar ao máximo os benefícios da solução self-hosted.
+
+Em resumo, a adição de suporte a self-hosted no sistema permitirá que as empresas tenham maior controle sobre seus dados e personalização, ao mesmo tempo em que oferece uma solução segura e fácil de usar. Com a implementação adequada, isso pode ser um diferencial importante para atrair mais clientes e expandir o alcance do sistema.
+
+ - Para implementar o suporte a self-hosted, será necessário realizar as seguintes etapas:
+  - Atualizar a api para permitir a comunicação com servidores internos das empresas.
+  - Desenvolver uma interface de configuração para facilitar a instalação e manutenção do sistema.
+  - Implementar recursos de personalização no frontend para adaptar a aparência e funcionalidade do sistema.
+  - Implementar medidas de segurança robustas para proteger os dados das empresas.
+  - Oferecer suporte técnico dedicado para as empresas que optarem por self-hosted.
+  - Criar documentação detalhada para auxiliar na implementação do sistema self-hosted.
+  - Deploy facilitado do backend e frontend com Docker e Docker Compose para simplificar a instalação e manutenção do sistema em ambientes self-hosted.

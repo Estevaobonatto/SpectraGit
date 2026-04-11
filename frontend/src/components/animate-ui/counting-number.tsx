@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { motion, useSpring, useTransform } from 'motion/react';
+import { useEffect, useState } from 'react';
+import { useSpring, useTransform } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 interface CountingNumberProps {
