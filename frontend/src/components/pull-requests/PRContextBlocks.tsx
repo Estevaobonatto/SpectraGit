@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useUpdateContextBlocks } from '@/hooks/usePullRequests';
+import { AnimatedList } from '@/components/animate-ui/animated-list';
 import type { ContextBlocks } from '@/types';
 
 type BlockKey = keyof ContextBlocks;
@@ -57,7 +58,7 @@ export function PRContextBlocks({ prNumber, owner, repo, contextBlocks, editable
   };
 
   return (
-    <div className="space-y-1 rounded-[var(--radius-md)] border border-border overflow-hidden">
+    <AnimatedList className="space-y-1 rounded-[var(--radius-md)] border border-border overflow-hidden" staggerDelay={0.06} duration={0.3}>
       {BLOCKS.map(({ key, label, placeholder }) => {
         const isOpen = expanded.has(key);
         const isEditing = editing.has(key);
@@ -145,6 +146,6 @@ export function PRContextBlocks({ prNumber, owner, repo, contextBlocks, editable
           </div>
         );
       })}
-    </div>
+    </AnimatedList>
   );
 }

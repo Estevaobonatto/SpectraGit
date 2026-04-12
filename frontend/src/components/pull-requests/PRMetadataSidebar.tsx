@@ -12,6 +12,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAddReviewer, useRemoveReviewer } from '@/hooks/usePullRequests';
 import { useCollaborators } from '@/hooks/useCollaborators';
+import { Fade } from '@/components/animate-ui/fade';
 import type { PullRequest } from '@/types';
 
 interface PRMetadataSidebarProps {
@@ -41,6 +42,7 @@ export function PRMetadataSidebar({ pr, owner, repo, canEdit = false }: PRMetada
   return (
     <div className="space-y-4 text-sm">
       {/* Branches */}
+      <Fade direction="left" delay={0.05} duration={0.3}>
       <div>
         <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <GitBranch className="h-3 w-3" />
@@ -61,10 +63,12 @@ export function PRMetadataSidebar({ pr, owner, repo, canEdit = false }: PRMetada
           </div>
         </div>
       </div>
+      </Fade>
 
       <Separator />
 
       {/* Reviewers */}
+      <Fade direction="left" delay={0.1} duration={0.3}>
       <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
@@ -124,10 +128,12 @@ export function PRMetadataSidebar({ pr, owner, repo, canEdit = false }: PRMetada
           </div>
         )}
       </div>
+      </Fade>
 
       <Separator />
 
       {/* Labels */}
+      <Fade direction="left" delay={0.15} duration={0.3}>
       <div>
         <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <Tag className="h-3 w-3" />
@@ -150,6 +156,7 @@ export function PRMetadataSidebar({ pr, owner, repo, canEdit = false }: PRMetada
           </div>
         )}
       </div>
+      </Fade>
     </div>
   );
 }

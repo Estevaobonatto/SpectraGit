@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAddDependency, useRemoveDependency } from '@/hooks/usePullRequests';
+import { AnimatedList } from '@/components/animate-ui/animated-list';
 import type { PullRequest } from '@/types';
 
 interface PRDependenciesProps {
@@ -46,7 +47,7 @@ export function PRDependencies({ pr, owner, repo, canEdit = false }: PRDependenc
         {out.length === 0 ? (
           <p className="text-xs text-text-tertiary">None.</p>
         ) : (
-          <div className="flex flex-col gap-1">
+          <AnimatedList className="flex flex-col gap-1" staggerDelay={0.05} duration={0.25}>
             {out.map(dep => (
               <div key={dep.id} className="flex items-center gap-2 group">
                 <GitPullRequest className="h-3.5 w-3.5 text-text-tertiary flex-shrink-0" />
@@ -65,7 +66,7 @@ export function PRDependencies({ pr, owner, repo, canEdit = false }: PRDependenc
                 )}
               </div>
             ))}
-          </div>
+          </AnimatedList>
         )}
       </div>
 
@@ -77,7 +78,7 @@ export function PRDependencies({ pr, owner, repo, canEdit = false }: PRDependenc
               <ArrowLeft className="h-3 w-3" />
               PRs that depend on this
             </h4>
-            <div className="flex flex-col gap-1">
+            <AnimatedList className="flex flex-col gap-1" staggerDelay={0.05} duration={0.25}>
               {inn.map(dep => (
                 <div key={dep.id} className="flex items-center gap-2">
                   <GitPullRequest className="h-3.5 w-3.5 text-text-tertiary flex-shrink-0" />
@@ -86,7 +87,7 @@ export function PRDependencies({ pr, owner, repo, canEdit = false }: PRDependenc
                   </Badge>
                 </div>
               ))}
-            </div>
+            </AnimatedList>
           </div>
         </>
       )}

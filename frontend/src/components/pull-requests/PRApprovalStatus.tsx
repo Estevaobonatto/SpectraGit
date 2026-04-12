@@ -1,5 +1,6 @@
 import { CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
+import { AnimatedList } from '@/components/animate-ui/animated-list';
 import type { PullRequestReviewer, Review } from '@/types';
 
 interface PRApprovalStatusProps {
@@ -47,7 +48,7 @@ export function PRApprovalStatus({ requestedReviewers, reviews }: PRApprovalStat
         </p>
       )}
 
-      <div className="space-y-1.5">
+      <AnimatedList className="space-y-1.5" staggerDelay={0.05} duration={0.25}>
         {requestedReviewers.map(reviewer => {
           const review = latestByUser[reviewer.userId];
           return (
@@ -71,7 +72,7 @@ export function PRApprovalStatus({ requestedReviewers, reviews }: PRApprovalStat
             </div>
           );
         })}
-      </div>
+      </AnimatedList>
     </div>
   );
 }

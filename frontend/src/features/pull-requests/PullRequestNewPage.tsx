@@ -13,7 +13,9 @@ import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { PageLoader } from '@/components/ui/spinner';
-import { motion } from 'motion/react';
+import { PageTransition } from '@/components/animate-ui/page-transition';
+import { Fade } from '@/components/animate-ui/fade';
+import { HoverScale } from '@/components/animate-ui/effects';
 
 export default function PullRequestNewPage() {
   const { owner, repo } = useParams();
@@ -48,11 +50,7 @@ export default function PullRequestNewPage() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-    >
+    <PageTransition>
       <Card className="mx-auto max-w-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -66,6 +64,7 @@ export default function PullRequestNewPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Step 1: Branch selection */}
+            <Fade direction="up" delay={0.05} duration={0.3}>
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-primary-700 text-xs font-bold">
@@ -132,10 +131,12 @@ export default function PullRequestNewPage() {
                 </div>
               )}
             </div>
+            </Fade>
 
             <Separator />
 
             {/* Step 2: Title */}
+            <Fade direction="up" delay={0.1} duration={0.3}>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-primary-700 text-xs font-bold">
@@ -151,10 +152,12 @@ export default function PullRequestNewPage() {
                 required
               />
             </div>
+            </Fade>
 
             <Separator />
 
             {/* Step 3: Description */}
+            <Fade direction="up" delay={0.15} duration={0.3}>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-primary-700 text-xs font-bold">
@@ -172,6 +175,7 @@ export default function PullRequestNewPage() {
                 className="resize-y"
               />
             </div>
+            </Fade>
 
             {createMutation.isError && (
               <Alert variant="error">
@@ -182,6 +186,7 @@ export default function PullRequestNewPage() {
             <Separator />
 
             {/* Actions */}
+            <Fade direction="up" delay={0.2} duration={0.3}>
             <div className="flex items-center justify-between">
               <p className="text-xs text-text-tertiary flex items-center gap-1.5">
                 <FileText className="h-3.5 w-3.5" />
@@ -191,15 +196,18 @@ export default function PullRequestNewPage() {
                 <Button type="button" variant="outline" onClick={() => navigate(-1)}>
                   Cancel
                 </Button>
+                <HoverScale>
                 <Button type="submit" disabled={createMutation.isPending || !isValid} className="gap-1.5">
                   <Send className="h-3.5 w-3.5" />
                   {createMutation.isPending ? 'Creating...' : 'Create pull request'}
                 </Button>
+                </HoverScale>
               </div>
             </div>
+            </Fade>
           </form>
         </CardContent>
       </Card>
-    </motion.div>
+    </PageTransition>
   );
 }

@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { motion } from 'motion/react';
 import type { RiskLevel } from '@/types';
 
 interface PRRiskBadgeProps {
@@ -13,11 +14,17 @@ const config: Record<RiskLevel, { label: string; classes: string }> = {
   CRITICAL: { label: 'Critical Risk', classes: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' },
 };
 
+const shouldPulse = (level: RiskLevel) => level === 'HIGH' || level === 'CRITICAL';
+
 export function PRRiskBadge({ level, className }: PRRiskBadgeProps) {
   const { label, classes } = config[level];
   return (
     <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', classes, className)}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+      <motion.span
+        className="h-1.5 w-1.5 rounded-full bg-current"
+        animate={shouldPulse(level) ? { scale: [1, 1.5, 1], opacity: [1, 0.6, 1] } : undefined}
+        transition={shouldPulse(level) ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : undefined}
+      />
       {label}
     </span>
   );

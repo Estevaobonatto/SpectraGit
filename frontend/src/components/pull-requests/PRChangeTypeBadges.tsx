@@ -1,5 +1,6 @@
 import type { PRDiffStats } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { AnimatedGroup } from '@/components/animate-ui/animated-list';
 
 interface PRChangeTypeBadgesProps {
   categories: PRDiffStats['categories'];
@@ -17,7 +18,7 @@ export function PRChangeTypeBadges({ categories }: PRChangeTypeBadgesProps) {
   const active = (Object.keys(categories) as (keyof typeof categories)[]).filter(k => categories[k] > 0);
   if (!active.length) return null;
   return (
-    <div className="flex flex-wrap gap-1">
+    <AnimatedGroup preset="blur-slide" className="flex flex-wrap gap-1">
       {active.map(key => {
         const { label, classes } = categoryConfig[key];
         return (
@@ -27,6 +28,6 @@ export function PRChangeTypeBadges({ categories }: PRChangeTypeBadgesProps) {
           </span>
         );
       })}
-    </div>
+    </AnimatedGroup>
   );
 }

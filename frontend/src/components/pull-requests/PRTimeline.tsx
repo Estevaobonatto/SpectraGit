@@ -14,6 +14,8 @@ import { Avatar } from '@/components/ui/avatar';
 import { PageLoader } from '@/components/ui/spinner';
 import { usePRTimeline } from '@/hooks/usePullRequests';
 import { formatRelativeTime } from '@/lib/utils';
+import { AnimatedList } from '@/components/animate-ui/animated-list';
+import { Fade } from '@/components/animate-ui/fade';
 import type { PRTimelineEvent } from '@/types';
 
 const typeIcon = (type: string) => {
@@ -72,18 +74,20 @@ export function PRTimeline({ owner, repo, prNumber }: PRTimelineProps) {
 
   if (events.length === 0) {
     return (
+      <Fade direction="up">
       <div className="rounded-[var(--radius-md)] border border-border bg-surface-hover p-8 text-center">
         <Clock className="h-8 w-8 text-text-tertiary mx-auto mb-2" />
         <p className="text-sm text-text-tertiary">No timeline events yet.</p>
       </div>
+      </Fade>
     );
   }
 
   return (
-    <div className="relative">
+    <AnimatedList className="relative" staggerDelay={0.04} duration={0.3}>
       {events.map((event, i) => (
         <TimelineItem key={i} event={event} />
       ))}
-    </div>
+    </AnimatedList>
   );
 }

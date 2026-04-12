@@ -35,7 +35,6 @@ import { Avatar } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { PageLoader } from '@/components/ui/spinner';
-import { DiffViewer } from '@/components/repo/DiffViewer';
 import { Alert } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -48,7 +47,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Repository, RiskLevel } from '@/types';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { PageTransition } from '@/components/animate-ui/page-transition';
+import { Fade } from '@/components/animate-ui/fade';
+import { AnimatedList } from '@/components/animate-ui/animated-list';
+import { CountingNumber } from '@/components/animate-ui/counting-number';
+import { HoverScale } from '@/components/animate-ui/effects';
 
 import { PRStepProgress } from '@/components/pull-requests/PRStepProgress';
 import { PRSummaryCard } from '@/components/pull-requests/PRSummaryCard';
@@ -59,7 +63,7 @@ import { PRDependencies } from '@/components/pull-requests/PRDependencies';
 import { PRChecklist } from '@/components/pull-requests/PRChecklist';
 import { PRContextBlocks } from '@/components/pull-requests/PRContextBlocks';
 import { PRTimeline } from '@/components/pull-requests/PRTimeline';
-import { PRGroupedFiles } from '@/components/pull-requests/PRGroupedFiles';
+import { DiffViewer } from '@/components/repo/DiffViewer';
 import { PRCompactToggle } from '@/components/pull-requests/PRCompactToggle';
 
 const STATUS_THEME = {
@@ -179,27 +183,19 @@ export default function PullRequestDetailPage() {
   const StatusIcon = theme.icon;
 
   return (
-    <motion.div
-      className="space-y-4"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-    >
+    <PageTransition className="space-y-4">
       {/* Success feedback */}
-      {showSuccessFeedback && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="rounded-[var(--radius-md)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2"
-        >
-          <CheckCircle2 className="h-4 w-4" />
-          {showSuccessFeedback}
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {showSuccessFeedback && (
+          <Fade direction="down" duration={0.3} className="rounded-[var(--radius-md)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            {showSuccessFeedback}
+          </Fade>
+        )}
+      </AnimatePresence>
 
       {/* ── Status banner + header ─── */}
-      <div className={`rounded-[var(--radius-lg)] border p-4 space-y-3 ${theme.banner}`}>
+      <Fade direction="up" delay={0.05} className={`rounded-[var(--radius-lg)] border p-4 space-y-3 ${theme.banner}`}>
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -230,16 +226,18 @@ export default function PullRequestDetailPage() {
           <PRCompactToggle isCompact={isCompact} onToggle={() => setIsCompact(c => !c)} />
         </div>
         <PRStepProgress pr={pr} reviews={reviewsList} />
-      </div>
+      </Fade>
 
       {/* ── Summary card ─── */}
       {summaryData && (
+        <Fade direction="up" delay={0.1}>
         <PRSummaryCard
           diffStats={summaryData.diffStats}
           riskLevel={summaryData.riskLevel as RiskLevel}
           commentCount={pr.comments?.length ?? 0}
           reviewCounts={reviewCounts}
         />
+        </Fade>
       )}
 
       {/* ── Blocker alerts ─── */}
@@ -248,6 +246,7 @@ export default function PullRequestDetailPage() {
       )}
 
       {/* ── Two-column layout ─── */}
+      <Fade direction="up" delay={0.15}>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
         {/* Main content */}
         <div className="min-w-0">
@@ -319,15 +318,9 @@ export default function PullRequestDetailPage() {
 
               {/* Comments timeline */}
               {pr.comments && pr.comments.length > 0 && (
-                <div className="space-y-3">
-                  {pr.comments.map((c, i) => (
-                    <motion.div
-                      key={c.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05, duration: 0.25 }}
-                    >
-                      <Card>
+                <AnimatedList className="space-y-3" staggerDelay={0.05} duration={0.25}>
+                  {pr.comments.map((c) => (
+                      <Card key={c.id}>
                         <CardContent className="pt-5">
                           <div className="flex items-start gap-3">
                             <Avatar src={c.author?.avatarUrl} alt={c.author?.username ?? ''} size="sm" />
@@ -341,9 +334,8 @@ export default function PullRequestDetailPage() {
                           </div>
                         </CardContent>
                       </Card>
-                    </motion.div>
                   ))}
-                </div>
+                </AnimatedList>
               )}
 
               {/* Comment box */}
@@ -433,7 +425,6 @@ export default function PullRequestDetailPage() {
         <TabsContent value="changes" className="mt-4 space-y-4">
           {diff.length > 0 ? (
             <>
-              {!isCompact && <PRGroupedFiles files={diff} />}
               <DiffViewer files={diff} />
             </>
           ) : (
@@ -447,14 +438,9 @@ export default function PullRequestDetailPage() {
         {/* ====== REVIEWS TAB ====== */}
         <TabsContent value="reviews" className="mt-4 space-y-4">
           {reviewsList.length > 0 ? (
-            reviewsList.map((review, i) => (
-              <motion.div
-                key={review.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05, duration: 0.25 }}
-              >
-                <Card>
+            <AnimatedList className="space-y-4" staggerDelay={0.05} duration={0.25}>
+              {reviewsList.map((review) => (
+                <Card key={review.id}>
                   <CardContent className="pt-5">
                     <div className="flex items-start gap-3">
                       <Avatar src={review.author?.avatarUrl} alt={review.author?.username ?? ''} size="sm" />
@@ -477,8 +463,8 @@ export default function PullRequestDetailPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
-            ))
+              ))}
+            </AnimatedList>
           ) : (
             <div className="rounded-[var(--radius-md)] border border-border bg-surface-hover p-8 text-center">
               <Eye className="h-8 w-8 text-text-tertiary mx-auto mb-2" />
@@ -620,6 +606,7 @@ export default function PullRequestDetailPage() {
           </div>
         </div>
       </div>
-    </motion.div>
+      </Fade>
+    </PageTransition>
   );
 }

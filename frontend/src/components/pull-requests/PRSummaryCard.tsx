@@ -2,6 +2,8 @@ import { GitCommit, Plus, Minus, FileCode2, MessageSquare, Eye } from 'lucide-re
 import { Card, CardContent } from '@/components/ui/card';
 import { PRRiskBadge } from './PRRiskBadge';
 import { PRChangeTypeBadges } from './PRChangeTypeBadges';
+import { CountingNumber } from '@/components/animate-ui/counting-number';
+import { Fade } from '@/components/animate-ui/fade';
 import type { PRDiffStats, RiskLevel } from '@/types';
 
 interface PRSummaryCardProps {
@@ -23,27 +25,27 @@ export function PRSummaryCard({ diffStats, riskLevel, commentCount, reviewCounts
           {/* Commit count */}
           <div className="flex items-center gap-1.5 text-sm text-text-secondary">
             <GitCommit className="h-4 w-4 text-text-tertiary" />
-            <span className="font-medium text-text-primary">{diffStats.commitCount}</span>
+            <CountingNumber value={diffStats.commitCount} className="font-medium text-text-primary" />
             <span>commits</span>
           </div>
 
           {/* Files changed */}
           <div className="flex items-center gap-1.5 text-sm text-text-secondary">
             <FileCode2 className="h-4 w-4 text-text-tertiary" />
-            <span className="font-medium text-text-primary">{diffStats.filesChanged}</span>
+            <CountingNumber value={diffStats.filesChanged} className="font-medium text-text-primary" />
             <span>files changed</span>
           </div>
 
           {/* Lines added */}
           <div className="flex items-center gap-1.5 text-sm">
             <Plus className="h-3.5 w-3.5 text-success" />
-            <span className="font-medium text-success">{diffStats.linesAdded}</span>
+            <CountingNumber value={diffStats.linesAdded} className="font-medium text-success" />
           </div>
 
           {/* Lines removed */}
           <div className="flex items-center gap-1.5 text-sm">
             <Minus className="h-3.5 w-3.5 text-error" />
-            <span className="font-medium text-error">{diffStats.linesRemoved}</span>
+            <CountingNumber value={diffStats.linesRemoved} className="font-medium text-error" />
           </div>
 
           {/* Reviews */}

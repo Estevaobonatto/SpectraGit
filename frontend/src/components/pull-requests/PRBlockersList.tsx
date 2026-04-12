@@ -2,6 +2,7 @@ import { AlertTriangle, XCircle, Clock, GitBranch } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
 import { PageLoader } from '@/components/ui/spinner';
 import { usePRBlockers } from '@/hooks/usePullRequests';
+import { AnimatedList } from '@/components/animate-ui/animated-list';
 import type { PRBlocker } from '@/types';
 
 const blockerConfig: Record<PRBlocker['type'], { icon: React.ReactNode; variant: 'error' | 'warning' | 'info' }> = {
@@ -38,7 +39,7 @@ export function PRBlockersList({ owner, repo, prNumber }: PRBlockersListProps) {
   if (blockers.length === 0) return null;
 
   return (
-    <div className="space-y-2">
+    <AnimatedList className="space-y-2" staggerDelay={0.06} duration={0.3}>
       {blockers.map((blocker, i) => {
         const { icon, variant } = blockerConfig[blocker.type] ?? { icon: <AlertTriangle className="h-4 w-4" />, variant: 'warning' as const };
         return (
@@ -48,6 +49,6 @@ export function PRBlockersList({ owner, repo, prNumber }: PRBlockersListProps) {
           </Alert>
         );
       })}
-    </div>
+    </AnimatedList>
   );
 }

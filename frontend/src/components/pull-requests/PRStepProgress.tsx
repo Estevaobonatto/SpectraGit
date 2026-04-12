@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { motion } from 'motion/react';
 import type { PullRequest, Review } from '@/types';
 
 type PRStep =
@@ -74,7 +75,12 @@ export function PRStepProgress({ pr, reviews, className }: PRStepProgressProps) 
         return (
           <div key={step.key} className="flex items-center flex-1 min-w-0">
             <div className="flex flex-col items-center gap-1 min-w-0">
-              <div className={cn('h-3 w-3 rounded-full flex-shrink-0 transition-all', dotColor)} />
+              <motion.div
+                className={cn('h-3 w-3 rounded-full flex-shrink-0 transition-all', dotColor)}
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: i * 0.08, type: 'spring', stiffness: 300, damping: 20 }}
+              />
               <span
                 className={cn(
                   'text-[10px] leading-tight text-center whitespace-nowrap',

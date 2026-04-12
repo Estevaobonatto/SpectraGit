@@ -35,6 +35,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { PageTransition } from '@/components/animate-ui/page-transition';
+import { Fade } from '@/components/animate-ui/fade';
+import { AnimatedList } from '@/components/animate-ui/animated-list';
+import { HoverScale } from '@/components/animate-ui/effects';
 
 type SortField = 'createdAt' | 'updatedAt' | 'title';
 type SortOrder = 'asc' | 'desc';
@@ -96,8 +100,9 @@ export default function PullRequestListPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <PageTransition className="space-y-5">
       {/* Header bar */}
+      <Fade direction="down" duration={0.3}>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-1 rounded-[var(--radius-md)] border border-border bg-surface p-1">
           {(['OPEN', 'MERGED', 'CLOSED'] as const).map((s) => {
@@ -157,15 +162,18 @@ export default function PullRequestListPage() {
             </Tooltip>
           </TooltipProvider>
           {isAuthenticated && (
+            <HoverScale>
             <Button size="sm" asChild>
               <Link to={`/${owner}/${repo}/pulls/new`}>
                 <Plus className="h-4 w-4" />
                 New pull request
               </Link>
             </Button>
+            </HoverScale>
           )}
         </div>
       </div>
+      </Fade>
 
       {/* Board view */}
       {view === 'board' && <PRBoardPage />}
@@ -174,6 +182,7 @@ export default function PullRequestListPage() {
       {view === 'list' && <>
 
       {/* Search + Sort bar */}
+      <Fade direction="up" delay={0.05} duration={0.3}>
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
@@ -214,6 +223,7 @@ export default function PullRequestListPage() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      </Fade>
 
       {/* Results info */}
       {(search || sort !== 'createdAt') && (
@@ -234,25 +244,24 @@ export default function PullRequestListPage() {
 
       {/* PR list */}
       {prs.length === 0 ? (
+        <Fade direction="up" delay={0.1}>
         <EmptyState
           icon={GitPullRequest}
           title={search ? 'No pull requests found' : `No ${statusFilter.toLowerCase()} pull requests`}
           description={search ? 'Try adjusting your search terms.' : 'Create a new pull request to propose changes.'}
         />
+        </Fade>
       ) : (
+        <Fade direction="up" delay={0.08}>
         <div className="rounded-[var(--radius-md)] border border-border overflow-hidden">
-          <AnimatePresence mode="popLayout">
+          <AnimatedList staggerDelay={0.03} duration={0.25}>
             {prs.map((pr, index) => {
               const cfg = statusConfig[pr.status];
               const Icon = cfg.icon;
 
               return (
-                <motion.div
+                <div
                   key={pr.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ delay: index * 0.03, duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
                   className={cn(index > 0 && 'border-t border-border')}
                 >
                   <Link
@@ -327,11 +336,12 @@ export default function PullRequestListPage() {
                       </TooltipProvider>
                     )}
                   </Link>
-                </motion.div>
+                </div>
               );
             })}
-          </AnimatePresence>
+          </AnimatedList>
         </div>
+        </Fade>
       )}
 
       {/* Pagination */}
@@ -364,6 +374,6 @@ export default function PullRequestListPage() {
         </div>
       )}
       </>}
-    </div>
+    </PageTransition>
   );
 }

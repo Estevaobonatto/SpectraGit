@@ -2,6 +2,8 @@ import { useState, memo } from 'react';
 import { ChevronDown, ChevronRight, Folder, FileCode2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Fade } from '@/components/animate-ui/fade';
+import { AnimatedList } from '@/components/animate-ui/animated-list';
 import type { DiffFile, DiffLine } from '@/types';
 
 interface PRGroupedFilesProps {
@@ -175,9 +177,11 @@ function FileRow({ file }: { file: DiffFile & { _displayName: string } }) {
       </button>
 
       {expanded && hasContent && (
-        <div className="border border-t-0 border-border rounded-b-[var(--radius-sm)] overflow-hidden mb-1">
-          <InlineDiff file={file} />
-        </div>
+        <Fade direction="down" duration={0.2}>
+          <div className="border border-t-0 border-border rounded-b-[var(--radius-sm)] overflow-hidden mb-1">
+            <InlineDiff file={file} />
+          </div>
+        </Fade>
       )}
     </div>
   );
@@ -213,7 +217,7 @@ function DirectoryGroup({ node, depth = 0 }: { node: DirectoryNode; depth?: numb
       )}
 
       {open && (
-        <div style={{ paddingLeft: node.name ? `${(depth + 1) * 12}px` : 0 }}>
+        <AnimatedList staggerDelay={0.03} duration={0.2} style={{ paddingLeft: node.name ? `${(depth + 1) * 12}px` : 0 }}>
           {node.files.map((file, i) => (
             <FileRow key={i} file={file} />
           ))}
@@ -222,7 +226,7 @@ function DirectoryGroup({ node, depth = 0 }: { node: DirectoryNode; depth?: numb
             .map((child) => (
               <DirectoryGroup key={child.path} node={child} depth={node.name ? depth + 1 : 0} />
             ))}
-        </div>
+        </AnimatedList>
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUpdateChecklist } from '@/hooks/usePullRequests';
+import { AnimatedList } from '@/components/animate-ui/animated-list';
 import type { ChecklistItem } from '@/types';
 
 interface PRChecklistProps {
@@ -22,7 +23,7 @@ export function PRChecklist({ prNumber, owner, repo, items, editable = false }: 
 
   const save = (next: ChecklistItem[]) => {
     setLocalItems(next);
-    mutation.mutate({ items: next });
+    mutation.mutate(next);
   };
 
   const toggle = (id: string) => {
@@ -67,9 +68,9 @@ export function PRChecklist({ prNumber, owner, repo, items, editable = false }: 
         </div>
       )}
 
-      <ul className="space-y-1.5">
+      <AnimatedList className="space-y-1.5" staggerDelay={0.04} duration={0.25}>
         {localItems.map(item => (
-          <li key={item.id} className="flex items-center gap-2 group">
+          <li key={item.id} className="flex items-center gap-2 group list-none">
             <button
               type="button"
               disabled={!editable && !item.checked}
@@ -100,7 +101,7 @@ export function PRChecklist({ prNumber, owner, repo, items, editable = false }: 
             )}
           </li>
         ))}
-      </ul>
+      </AnimatedList>
 
       {editable && (
         <div className="flex gap-2">

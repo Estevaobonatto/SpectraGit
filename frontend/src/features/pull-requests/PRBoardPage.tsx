@@ -17,6 +17,10 @@ import { PageLoader } from '@/components/ui/spinner';
 import { PRRiskBadge } from '@/components/pull-requests/PRRiskBadge';
 import { computePRStep } from '@/components/pull-requests/PRStepProgress';
 import { cn, formatRelativeTime } from '@/lib/utils';
+import { PageTransition } from '@/components/animate-ui/page-transition';
+import { Fade } from '@/components/animate-ui/fade';
+import { AnimatedGroup } from '@/components/animate-ui/animated-list';
+import { HoverScale } from '@/components/animate-ui/effects';
 import type { PullRequest, Review } from '@/types';
 
 // ─── Column config ────────────────────────────────────────────────────────────
@@ -33,6 +37,7 @@ const columnConfig: { key: string; label: string; icon: React.ElementType; color
 
 function PRCard({ pr, owner, repo }: { pr: PullRequest; owner: string; repo: string }) {
   return (
+    <HoverScale scale={1.02}>
     <Card className="group hover:border-primary-400/60 transition-all duration-150">
       <CardContent className="p-3 space-y-2">
         <div className="flex items-start gap-1.5">
@@ -72,8 +77,7 @@ function PRCard({ pr, owner, repo }: { pr: PullRequest; owner: string; repo: str
           </div>
         )}
       </CardContent>
-    </Card>
-  );
+    </Card>    </HoverScale>  );
 }
 
 // ─── Column ───────────────────────────────────────────────────────────────────
@@ -185,7 +189,8 @@ export default function PRBoardPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <PageTransition className="space-y-5">
+      <Fade direction="down" duration={0.3}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
@@ -197,8 +202,9 @@ export default function PRBoardPage() {
           <h1 className="text-lg font-bold">PR Board</h1>
         </div>
       </div>
+      </Fade>
 
-      <div className="flex gap-4 overflow-x-auto pb-4 scroll-smooth">
+      <AnimatedGroup preset="blur-slide" className="flex gap-4 overflow-x-auto pb-4 scroll-smooth">
         {columnConfig.map((col) => (
           <BoardColumn
             key={col.key}
@@ -208,7 +214,7 @@ export default function PRBoardPage() {
             repo={repo!}
           />
         ))}
-      </div>
-    </div>
+      </AnimatedGroup>
+    </PageTransition>
   );
 }
