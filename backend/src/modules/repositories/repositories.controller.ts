@@ -37,8 +37,8 @@ export class RepositoriesController {
     @Query() query: ListRepositoriesQueryDto,
     @CurrentUser() user?: JwtPayload,
   ) {
-    const { scope, ...pagination } = query;
-    return this.reposService.findAll(user?.sub || null, pagination as PaginationDto, scope);
+    const { scope, q, repoSort, ...pagination } = query;
+    return this.reposService.findAll(user?.sub || null, pagination as PaginationDto, scope, q, repoSort);
   }
 
   @Public()

@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { RepoVisibility } from '@prisma/client';
+import { Prisma, RepoVisibility } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GitService } from '../git/git.service';
 import { CreateRepositoryDto } from './dto/create-repository.dto';
@@ -103,41 +103,75 @@ export class RepositoriesService {
     userId: string | null,
     pagination: PaginationDto,
     scope?: 'mine' | 'all',
+    q?: string,
+    sort?: 'updated' | 'recent' | 'trending' | 'forks',
   ): Promise<PaginatedResult<unknown>> {
-    let where;
+    const andConditions: Prisma.RepositoryWhereInput[] = [];
+
     if (userId && scope === 'mine') {
-      where = {
-        OR: [{ ownerUserId: userId }, { members: { some: { userId } } }],
-      };
+      andConditions.push({ OR: [{ ownerUserId: userId }, { members: { some: { userId } } }] });
     } else if (userId) {
-      where = {
+      andConditions.push({
         OR: [
           { visibility: RepoVisibility.PUBLIC },
           { ownerUserId: userId },
           { members: { some: { userId } } },
         ],
-      };
+      });
     } else {
-      where = { visibility: RepoVisibility.PUBLIC };
+      andConditions.push({ visibility: RepoVisibility.PUBLIC });
     }
+
+    if (q) {
+      andConditions.push({
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { description: { contains: q, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    const where: Prisma.RepositoryWhereInput =
+      andConditions.length === 1 ? andConditions[0] : { AND: andConditions };
+
+    const orderBy: Prisma.RepositoryOrderByWithRelationInput | Prisma.RepositoryOrderByWithRelationInput[] =
+      sort === 'trending'
+        ? [
+            { pulses: { _count: 'desc' },
+            } as Prisma.RepositoryOrderByWithRelationInput,
+            { watches: { _count: 'desc' } } as Prisma.RepositoryOrderByWithRelationInput,
+            { forks: { _count: 'desc' } } as Prisma.RepositoryOrderByWithRelationInput,
+          ]
+        : sort === 'recent'
+          ? { createdAt: 'desc' }
+          : sort === 'forks'
+            ? ({ forks: { _count: 'desc' } } as Prisma.RepositoryOrderByWithRelationInput)
+            : { updatedAt: 'desc' };
 
     const [items, total] = await Promise.all([
       this.prisma.repository.findMany({
         where,
         skip: pagination.skip,
         take: pagination.limit,
-        orderBy: { updatedAt: 'desc' },
+        orderBy,
         include: {
           ownerUser: { select: { username: true, avatarUrl: true } },
           ownerOrg: { select: { name: true, avatarUrl: true } },
-          _count: { select: { issues: true, pullRequests: true } },
+          _count: { select: { issues: true, pullRequests: true, pulses: true, watches: true, forks: true } },
         },
       }),
       this.prisma.repository.count({ where }),
     ]);
 
+    const mapped = items.map((repo: any) => ({
+      ...repo,
+      pulseCount: repo._count?.pulses ?? 0,
+      watchCount: repo._count?.watches ?? 0,
+      forkCount: repo._count?.forks ?? 0,
+    }));
+
     return {
-      items,
+      items: mapped,
       total,
       page: pagination.page ?? 1,
       limit: pagination.limit ?? 20,

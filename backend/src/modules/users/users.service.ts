@@ -138,6 +138,65 @@ export class UsersService {
     return { message: 'SSH key deleted' };
   }
 
+  async getMostPopularUsers(timeframe: 'week' | 'month' | 'all', limit: number = 20) {
+    const since =
+      timeframe === 'week'
+        ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        : timeframe === 'month'
+          ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+          : null;
+
+    // Aggregate pulse counts per repo, grouped by owner
+    const repos = await this.prisma.repository.findMany({
+      where: {
+        ownerUserId: { not: null },
+        visibility: 'PUBLIC',
+      },
+      select: {
+        ownerUserId: true,
+        _count: {
+          select: {
+            pulses: since ? { where: { createdAt: { gte: since } } } : true,
+          },
+        },
+      },
+    });
+
+    const userPulseCounts = new Map<string, number>();
+    for (const repo of repos) {
+      if (!repo.ownerUserId) continue;
+      const current = userPulseCounts.get(repo.ownerUserId) ?? 0;
+      userPulseCounts.set(repo.ownerUserId, current + repo._count.pulses);
+    }
+
+    const ranked = [...userPulseCounts.entries()]
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, limit);
+
+    if (ranked.length === 0) return [];
+
+    const userIds = ranked.map(([id]) => id);
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        bio: true,
+        location: true,
+        createdAt: true,
+      },
+    });
+
+    return ranked
+      .map(([userId, totalPulses]) => ({
+        ...users.find((u) => u.id === userId),
+        totalPulses,
+      }))
+      .filter((u) => u.id);
+  }
+
   async searchUsers(query: string, limit: number = 20) {
     return this.prisma.user.findMany({
       where: {

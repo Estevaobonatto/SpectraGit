@@ -2,7 +2,7 @@ import { api } from './api';
 import type { Repository, FileTreeItem, FileContent, Branch, Commit, CommitDetail, DiffFile, RepoStats, Tag, Release, ReleaseAsset, BranchProtection, Webhook } from '@/types';
 
 export const repositoriesService = {
-  list: (params?: { page?: number; limit?: number; scope?: 'mine' | 'all' }) =>
+  list: (params?: { page?: number; limit?: number; scope?: 'mine' | 'all'; q?: string; repoSort?: 'updated' | 'recent' | 'trending' | 'forks' }) =>
     api.get<{ data: { items: Repository[]; total: number; page: number; limit: number; totalPages: number }; meta: unknown }>('/repos', { params })
       .then((r) => ({ data: r.data.data.items, meta: { total: r.data.data.total, page: r.data.data.page, totalPages: r.data.data.totalPages } })),
 

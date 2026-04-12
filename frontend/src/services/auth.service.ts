@@ -35,6 +35,9 @@ export const usersService = {
   search: (q: string, limit = 10) =>
     api.get<{ data: User[] }>('/users/search', { params: { q, limit } }).then((r) => r.data.data),
 
+  getPopular: (timeframe: 'week' | 'month' | 'all' = 'week', limit = 20) =>
+    api.get<{ data: (User & { totalPulses: number })[] }>('/users/popular', { params: { timeframe, limit } }).then((r) => r.data.data),
+
   listSSHKeys: () =>
     api.get<{ data: SSHKey[] }>('/me/ssh-keys').then((r) => r.data.data),
 
