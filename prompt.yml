@@ -1,12 +1,15 @@
-Vamos melhorar a pagina de perfil:
+Vamos fazer melhorias na visualização e design da parte de pull requests e issues. A ideia é deixar a interface mais limpa, moderna e fácil de usar, seguindo as tendências atuais de design. Aqui estão algumas sugestões de melhorias:
 
- - O usuario vai poder customizar a pagina de perfil com um arquivo .md para toda a descrição principal
-  - O usuario vai poder customizar a pagina de perfil com um arquivo .md para cada seção (habilidades, experiencia, etc)
-  - Vai ter um side bar customizado mostrando o use de cada linguagem e a porsentagem contanto todos os repositorios publicos do usuario
-  - O usuario vai poder selecionar alguns de seus repositorios para marcar como favoritos, isso vai ficar fixado na pagina de perfil
-  - O usuario vai poder custoimizar o fundo da pagina de perfil com imagens, cor sólida ou css customizado
-  - O usuario vai poder visualizar um visualizador de historico de commits, como no github de todos os seus repositorios, outras pessoas veram apenas de repositorios publicos, o usuario vai poder customizar a visualização dos commits com cores e estilos personalizados se quiser
-  - O usuario vai poder adicionar links personalizados para suas redes sociais, portifolio, etc
-  - O usuario vai poder adicionar uma seção de "Sobre mim" com um texto personalizado 
-  - O usuario vai poder adicionar uma seção de "Projetos" onde ele pode destacar alguns projetos específicos, com descrições e links para os repositorios
-  - O usuario vai poder adicionar uma seção de "Habilidades" onde ele pode listar suas habilidades técnicas, com níveis de proficiência e exemplos de projetos relacionados
+1. **Layout Limpo e Organizado**: Adote um layout mais espaçado, com seções claramente definidas para cada pull request e issue. Use cartões ou blocos para destacar cada item, com informações essenciais como título, autor, status e data de criação.
+
+2. **Código**: Mostre os arquivos e código alterado de forma resumida com botão para mostrar tudo, suporte a comentários.
+
+3. **Status Visual**: Use cores e ícones para indicar o status de cada pull request e issue (aberto, fechado, em revisão, etc.). Isso ajuda os usuários a identificar rapidamente o estado de cada item.
+
+4. **Filtros e Ordenação**: Adicione opções de filtro e ordenação para que os usuários possam facilmente encontrar pull requests e issues específicos com base em critérios como data, autor, status, etc.
+
+5. **Ações Rápidas**: Inclua botões de ação rápida para cada pull request e issue, como "Merge", "Close", "Comment", etc., para facilitar a interação dos usuários.
+
+6. **Onboarding**: Interface clara em etapas para cada fase de criação, edição, aceitação e fechamento de pull requests e issues, com mensagens de feedback claras para cada ação.
+
+Altere o backend e frontend para implementar essas melhorias, garantindo que a experiência do usuário seja aprimorada e que a interface seja mais intuitiva e agradável de usar. Mantenha o estilo de design e siga o SDD do app

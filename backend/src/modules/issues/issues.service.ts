@@ -65,14 +65,17 @@ export class IssuesService {
     const where = {
       repositoryId: repoEntity.id,
       ...(status ? { status } : {}),
+      ...(pagination.search ? { title: { contains: pagination.search, mode: 'insensitive' as const } } : {}),
     };
 
-    const [items, total] = await Promise.all([
+    const orderBy = { [pagination.sort ?? 'createdAt']: pagination.sortOrder ?? 'desc' };
+
+    const [rawItems, total] = await Promise.all([
       this.prisma.issue.findMany({
         where,
         skip: pagination.skip,
         take: pagination.limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         include: {
           author: { select: { username: true, avatarUrl: true } },
           assignee: { select: { username: true, avatarUrl: true } },
@@ -82,6 +85,11 @@ export class IssuesService {
       }),
       this.prisma.issue.count({ where }),
     ]);
+
+    const items = rawItems.map((issue) => ({
+      ...issue,
+      labels: issue.labels.map((il) => il.label),
+    }));
 
     return {
       items,
@@ -111,7 +119,7 @@ export class IssuesService {
     });
 
     if (!issue) throw new NotFoundException('Issue not found');
-    return issue;
+    return { ...issue, labels: issue.labels.map((il) => il.label) };
   }
 
   async update(
@@ -137,7 +145,7 @@ export class IssuesService {
       });
     }
 
-    return this.prisma.issue.update({
+    const updated = await this.prisma.issue.update({
       where: { id: issue.id },
       data: updateData,
       include: {
@@ -146,6 +154,7 @@ export class IssuesService {
         labels: { include: { label: true } },
       },
     });
+    return { ...updated, labels: updated.labels.map((il) => il.label) };
   }
 
   async addComment(

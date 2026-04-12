@@ -2,7 +2,7 @@ import { api } from './api';
 import type { Issue, Comment } from '@/types';
 
 export const issuesService = {
-  list: (owner: string, repo: string, params?: { status?: string; page?: number; limit?: number }) =>
+  list: (owner: string, repo: string, params?: { status?: string; page?: number; limit?: number; sort?: string; sortOrder?: string; search?: string }) =>
     api
       .get<{ data: { items: Issue[]; total: number; page: number; totalPages: number }; meta: unknown }>(`/repos/${owner}/${repo}/issues`, { params })
       .then((r) => ({ data: r.data.data.items, meta: { total: r.data.data.total } })),

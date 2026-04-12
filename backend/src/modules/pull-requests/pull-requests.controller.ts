@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiPropertyOptional } from '@nestjs/swagger';
 import { PRStatus } from '@prisma/client';
-import { IsEnum, IsOptional } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsIn } from 'class-validator';
 import { PullRequestsService } from './pull-requests.service';
 import { CreatePullRequestDto } from './dto/create-pull-request.dto';
 import {
@@ -30,6 +30,22 @@ class ListPRsDto extends PaginationDto {
   @IsOptional()
   @IsEnum(PRStatus)
   status?: PRStatus;
+
+  // Re-declare inherited string props so class-validator's whitelist
+  // picks up the metadata on this subclass prototype (inheritance gap in v0.14)
+  @IsOptional()
+  @IsString()
+  @IsIn(['createdAt', 'updatedAt', 'title'])
+  sort?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc';
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 }
 
 @ApiTags('Pull Requests')

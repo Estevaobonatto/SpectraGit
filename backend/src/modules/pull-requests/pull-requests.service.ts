@@ -89,21 +89,30 @@ export class PullRequestsService {
     const where = {
       repositoryId: repoEntity.id,
       ...(status ? { status } : {}),
+      ...(pagination.search ? { title: { contains: pagination.search, mode: 'insensitive' as const } } : {}),
     };
 
-    const [items, total] = await Promise.all([
+    const orderBy = { [pagination.sort ?? 'createdAt']: pagination.sortOrder ?? 'desc' };
+
+    const [rawItems, total] = await Promise.all([
       this.prisma.pullRequest.findMany({
         where,
         skip: pagination.skip,
         take: pagination.limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         include: {
           author: { select: { username: true, avatarUrl: true } },
+          labels: { include: { label: true } },
           _count: { select: { reviews: true, comments: true } },
         },
       }),
       this.prisma.pullRequest.count({ where }),
     ]);
+
+    const items = rawItems.map((pr) => ({
+      ...pr,
+      labels: pr.labels.map((pl) => pl.label),
+    }));
 
     return {
       items,
@@ -138,7 +147,7 @@ export class PullRequestsService {
     });
 
     if (!pr) throw new NotFoundException('Pull request not found');
-    return pr;
+    return { ...pr, labels: pr.labels.map((pl) => pl.label) };
   }
 
   async getDiff(owner: string, repo: string, prNumber: number, userId?: string) {

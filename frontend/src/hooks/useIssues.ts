@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { issuesService } from '@/services/issues.service';
 
-export function useIssues(owner: string, repo: string, params?: { status?: string; page?: number; limit?: number }) {
+export function useIssues(owner: string, repo: string, params?: { status?: string; page?: number; limit?: number; sort?: string; sortOrder?: string; search?: string }) {
   return useQuery({
     queryKey: ['issues', owner, repo, params],
     queryFn: () => issuesService.list(owner, repo, params),

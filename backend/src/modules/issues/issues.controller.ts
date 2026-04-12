@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Param, Body, Query, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiPropertyOptional } from '@nestjs/swagger';
 import { IssueStatus } from '@prisma/client';
-import { IsEnum, IsOptional } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsIn } from 'class-validator';
 import { IssuesService } from './issues.service';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueDto, CreateIssueCommentDto } from './dto/update-issue.dto';
@@ -15,6 +15,22 @@ class ListIssuesDto extends PaginationDto {
   @IsOptional()
   @IsEnum(IssueStatus)
   status?: IssueStatus;
+
+  // Re-declare inherited string props so class-validator's whitelist
+  // picks up the metadata on this subclass prototype (inheritance gap in v0.14)
+  @IsOptional()
+  @IsString()
+  @IsIn(['createdAt', 'updatedAt', 'title'])
+  sort?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['asc', 'desc'])
+  sortOrder?: 'asc' | 'desc';
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 }
 
 @ApiTags('Issues')

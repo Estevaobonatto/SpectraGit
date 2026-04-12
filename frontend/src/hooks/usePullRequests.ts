@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { pullRequestsService, reviewsService } from '@/services/pull-requests.service';
 
-export function usePullRequests(owner: string, repo: string, params?: { status?: string; page?: number; limit?: number }) {
+export function usePullRequests(owner: string, repo: string, params?: { status?: string; page?: number; limit?: number; sort?: string; sortOrder?: string; search?: string }) {
   return useQuery({
     queryKey: ['pull-requests', owner, repo, params],
     queryFn: () => pullRequestsService.list(owner, repo, params),

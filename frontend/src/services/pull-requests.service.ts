@@ -2,7 +2,7 @@ import { api } from './api';
 import type { PullRequest, Comment, Review, DiffFile } from '@/types';
 
 export const pullRequestsService = {
-  list: (owner: string, repo: string, params?: { status?: string; page?: number; limit?: number }) =>
+  list: (owner: string, repo: string, params?: { status?: string; page?: number; limit?: number; sort?: string; sortOrder?: string; search?: string }) =>
     api
       .get<{ data: { items: PullRequest[]; total: number; page: number; totalPages: number }; meta: unknown }>(`/repos/${owner}/${repo}/pulls`, { params })
       .then((r) => ({ data: r.data.data.items, meta: { total: r.data.data.total } })),
