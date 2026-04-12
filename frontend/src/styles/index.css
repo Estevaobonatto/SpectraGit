@@ -72,4 +72,33 @@
     background-color: var(--color-border-strong);
     border-radius: var(--radius-full);
   }
+
+  /* Scrollbar hidden by default, visible on hover (webkit + firefox) */
+  .scrollbar-hover {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.2s;
+  }
+
+  .scrollbar-hover:hover {
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+
+  .scrollbar-hover::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .scrollbar-hover::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-hover::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: var(--radius-full);
+    transition: background-color 0.2s;
+  }
+
+  .scrollbar-hover:hover::-webkit-scrollbar-thumb {
+    background-color: var(--color-border-strong);
+  }
 }

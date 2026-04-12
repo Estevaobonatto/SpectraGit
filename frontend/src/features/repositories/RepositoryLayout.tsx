@@ -23,7 +23,9 @@ export default function RepositoryLayout() {
 
   const isSettings = location.pathname.endsWith('/settings');
   const isCollaborators = location.pathname.endsWith('/collaborators');
-  const hideSidebar = isSettings || isCollaborators;
+  const isIssues = location.pathname.includes('/issues');
+  const isPulls = location.pathname.includes('/pulls');
+  const hideSidebar = isSettings || isCollaborators || isIssues || isPulls;
 
   return (
     <div className="space-y-4">

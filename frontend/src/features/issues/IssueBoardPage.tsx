@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   CircleDot,
-  ArrowLeft,
+  Plus,
   AlertTriangle,
   Clock,
   CheckCircle2,
@@ -13,8 +13,11 @@ import {
   Ban,
   CircleCheck,
   GripVertical,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useIssuesKanban, useMoveIssueStatus } from '@/hooks/useIssues';
+import { useAuthStore } from '@/stores/auth.store';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -262,6 +265,7 @@ function FloatingOverlay({
 
 export default function IssueBoardPage() {
   const { owner, repo } = useParams();
+  const { isAuthenticated } = useAuthStore();
   const { data: kanbanData, isLoading, isError } = useIssuesKanban(owner!, repo!);
   const moveStatus = useMoveIssueStatus(owner!, repo!);
 
@@ -370,20 +374,34 @@ export default function IssueBoardPage() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-            <Link to={`/${owner}/${repo}/issues`}>
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <h1 className="text-lg font-bold">Issue Board</h1>
+        <h1 className="text-lg font-bold">Issue Board</h1>
+        <div className="flex items-center gap-2">
+          {moveStatus.isPending && (
+            <span className="text-xs text-text-tertiary animate-pulse">Saving…</span>
+          )}
+          {isAuthenticated && (
+            <Button size="sm" asChild>
+              <Link to={`/${owner}/${repo}/issues/new`}>
+                <Plus className="h-4 w-4" />
+                New issue
+              </Link>
+            </Button>
+          )}
         </div>
-        {moveStatus.isPending && (
-          <span className="text-xs text-text-tertiary animate-pulse">Saving…</span>
-        )}
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex items-center gap-1.5 text-xs text-text-tertiary select-none">
+        <ChevronLeft className="h-3 w-3" />
+        <span>Scroll horizontally to see all {columnConfig.length} stages</span>
+        <ChevronRight className="h-3 w-3" />
+      </div>
+
+      <div className="relative">
+        {/* left fade */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-background to-transparent z-10" />
+        {/* right fade */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent z-10" />
+        <div className="flex gap-4 overflow-x-auto pb-4 scroll-smooth scrollbar-hover">
         {columnConfig.map((col) => (
           <KanbanColumn
             key={col.key}
@@ -402,6 +420,7 @@ export default function IssueBoardPage() {
             }}
           />
         ))}
+        </div>
       </div>
 
       <AnimatePresence>

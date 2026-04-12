@@ -29,10 +29,9 @@ const BranchListPage = lazy(() => import('@/features/branches/BranchListPage'));
 const TagListPage = lazy(() => import('@/features/tags/TagListPage'));
 const ReleaseListPage = lazy(() => import('@/features/releases/ReleaseListPage'));
 const ReleaseDetailPage = lazy(() => import('@/features/releases/ReleaseDetailPage'));
-const IssueListPage = lazy(() => import('@/features/issues/IssueListPage'));
+const IssueBoardPage = lazy(() => import('@/features/issues/IssueBoardPage'));
 const IssueDetailPage = lazy(() => import('@/features/issues/IssueDetailPage'));
 const IssueNewPage = lazy(() => import('@/features/issues/IssueNewPage'));
-const IssueBoardPage = lazy(() => import('@/features/issues/IssueBoardPage'));
 const IssueTriagePage = lazy(() => import('@/features/issues/IssueTriagePage'));
 const PullRequestListPage = lazy(() => import('@/features/pull-requests/PullRequestListPage'));
 const PullRequestDetailPage = lazy(() => import('@/features/pull-requests/PullRequestDetailPage'));
@@ -204,7 +203,7 @@ export const router = createBrowserRouter([
           },
           {
             path: 'issues',
-            element: <SuspenseWrapper><IssueListPage /></SuspenseWrapper>,
+            element: <Navigate to="board" replace />,
           },
           {
             path: 'issues/new',
