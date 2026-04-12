@@ -32,6 +32,8 @@ const ReleaseDetailPage = lazy(() => import('@/features/releases/ReleaseDetailPa
 const IssueListPage = lazy(() => import('@/features/issues/IssueListPage'));
 const IssueDetailPage = lazy(() => import('@/features/issues/IssueDetailPage'));
 const IssueNewPage = lazy(() => import('@/features/issues/IssueNewPage'));
+const IssueBoardPage = lazy(() => import('@/features/issues/IssueBoardPage'));
+const IssueTriagePage = lazy(() => import('@/features/issues/IssueTriagePage'));
 const PullRequestListPage = lazy(() => import('@/features/pull-requests/PullRequestListPage'));
 const PullRequestDetailPage = lazy(() => import('@/features/pull-requests/PullRequestDetailPage'));
 const PullRequestNewPage = lazy(() => import('@/features/pull-requests/PullRequestNewPage'));
@@ -207,6 +209,14 @@ export const router = createBrowserRouter([
           {
             path: 'issues/new',
             element: <AuthRequired><SuspenseWrapper><IssueNewPage /></SuspenseWrapper></AuthRequired>,
+          },
+          {
+            path: 'issues/board',
+            element: <SuspenseWrapper><IssueBoardPage /></SuspenseWrapper>,
+          },
+          {
+            path: 'issues/triage',
+            element: <AuthRequired><SuspenseWrapper><IssueTriagePage /></SuspenseWrapper></AuthRequired>,
           },
           {
             path: 'issues/:number',

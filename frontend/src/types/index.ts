@@ -270,12 +270,24 @@ export interface FileContent {
   encoding: string;
 }
 
+export type IssueType = 'BUG' | 'FEATURE' | 'QUESTION' | 'SUPPORT' | 'IMPROVEMENT';
+export type IssuePriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type IssueCloseReason = 'FIXED' | 'DUPLICATE' | 'NOT_REPRODUCIBLE' | 'NOT_PLANNED' | 'OBSOLETE';
+export type IssueStatusFull = 'OPEN' | 'CLOSED' | 'TRIAGE' | 'CONFIRMED' | 'IN_PROGRESS' | 'BLOCKED' | 'WAITING_USER' | 'RESOLVED' | 'WONT_FIX';
+
 export interface Issue {
   id: string;
   number: number;
   title: string;
   body: string | null;
-  status: 'OPEN' | 'CLOSED';
+  status: IssueStatusFull;
+  type: IssueType | null;
+  priority: IssuePriority | null;
+  closeReason: IssueCloseReason | null;
+  closeReasonNote: string | null;
+  assignedArea: string | null;
+  techContext: Record<string, unknown> | null;
+  formData: Record<string, unknown> | null;
   authorId: string;
   author?: User;
   assigneeId: string | null;
@@ -284,6 +296,18 @@ export interface Issue {
   comments?: Comment[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface IssueAnalysis {
+  suggestedType: IssueType;
+  typeConfidence: number;
+  suggestedPriority: IssuePriority;
+  priorityReason: string;
+  suggestedArea: string | null;
+  suggestedLabels: string[];
+  suggestedChecklist: { id: string; text: string; required: boolean }[];
+  duplicates: { id: string; number: number; title: string; status: string; score: number }[];
+  userTrustLevel: 'trusted' | 'new';
 }
 
 export interface Label {

@@ -11,6 +11,8 @@ import {
   Calendar,
   Clock,
   ArrowDownAZ,
+  Kanban,
+  ListFilter,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useIssues } from '@/hooks/useIssues';
@@ -30,7 +32,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
+import { IssueTypeBadge } from '@/components/issues/IssueTypeBadge';
+import { IssuePriorityBadge } from '@/components/issues/IssuePriorityBadge';
 import { cn, formatRelativeTime } from '@/lib/utils';
+import type { IssueType, IssuePriority } from '@/types';
 
 type SortField = 'createdAt' | 'updatedAt' | 'title';
 type SortOrder = 'asc' | 'desc';
@@ -45,6 +50,8 @@ export default function IssueListPage() {
   const { owner, repo } = useParams();
   const { isAuthenticated } = useAuthStore();
   const [statusFilter, setStatusFilter] = useState<'OPEN' | 'CLOSED'>('OPEN');
+  const [typeFilter, setTypeFilter] = useState<IssueType | ''>('');
+  const [priorityFilter, setPriorityFilter] = useState<IssuePriority | ''>('');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sort, setSort] = useState<SortField>('createdAt');
@@ -57,10 +64,12 @@ export default function IssueListPage() {
   }, [search]);
 
   // Reset to page 1 when filters change
-  useEffect(() => { setPage(1); }, [statusFilter, sort, sortOrder, debouncedSearch]);
+  useEffect(() => { setPage(1); }, [statusFilter, typeFilter, priorityFilter, sort, sortOrder, debouncedSearch]);
 
   const { data, isLoading, isError } = useIssues(owner!, repo!, {
     status: statusFilter,
+    type: typeFilter || undefined,
+    priority: priorityFilter || undefined,
     sort,
     sortOrder,
     search: debouncedSearch || undefined,
@@ -122,12 +131,20 @@ export default function IssueListPage() {
         </div>
 
         {isAuthenticated && (
-          <Button size="sm" asChild>
-            <Link to={`/${owner}/${repo}/issues/new`}>
-              <Plus className="h-4 w-4" />
-              New issue
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/${owner}/${repo}/issues/board`}>
+                <Kanban className="h-4 w-4" />
+                Board
+              </Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link to={`/${owner}/${repo}/issues/new`}>
+                <Plus className="h-4 w-4" />
+                New issue
+              </Link>
+            </Button>
+          </div>
         )}
       </div>
 
@@ -171,7 +188,63 @@ export default function IssueListPage() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Type filter */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
+              <ListFilter className="h-3.5 w-3.5" />
+              {typeFilter || 'Type'}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuLabel>Filter by type</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setTypeFilter('')}>All types</DropdownMenuItem>
+            {(['BUG', 'FEATURE', 'QUESTION', 'SUPPORT', 'IMPROVEMENT'] as IssueType[]).map((t) => (
+              <DropdownMenuItem key={t} onClick={() => setTypeFilter(t)}>
+                {t.charAt(0) + t.slice(1).toLowerCase()}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Priority filter */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
+              <ListFilter className="h-3.5 w-3.5" />
+              {priorityFilter || 'Priority'}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuLabel>Filter by priority</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setPriorityFilter('')}>All priorities</DropdownMenuItem>
+            {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as IssuePriority[]).map((p) => (
+              <DropdownMenuItem key={p} onClick={() => setPriorityFilter(p)}>
+                {p.charAt(0) + p.slice(1).toLowerCase()}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      {/* Active filter pills */}
+      {(typeFilter || priorityFilter) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {typeFilter && (
+            <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => setTypeFilter('')}>
+              Type: {typeFilter.charAt(0) + typeFilter.slice(1).toLowerCase()} ×
+            </Badge>
+          )}
+          {priorityFilter && (
+            <Badge variant="secondary" className="gap-1 cursor-pointer" onClick={() => setPriorityFilter('')}>
+              Priority: {priorityFilter.charAt(0) + priorityFilter.slice(1).toLowerCase()} ×
+            </Badge>
+          )}
+        </div>
+      )}
 
       {/* Results info */}
       {(search || sort !== 'createdAt') && (
@@ -239,6 +312,8 @@ export default function IssueListPage() {
                       <span className="font-semibold text-text-primary group-hover:text-primary-600 transition-colors">
                         {issue.title}
                       </span>
+                      <IssueTypeBadge type={issue.type} />
+                      <IssuePriorityBadge priority={issue.priority} />
                       {issue.labels?.map((label) => (
                         <Badge
                           key={label.id}

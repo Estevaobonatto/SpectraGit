@@ -11,19 +11,26 @@ import {
   CheckCircle2,
   XCircle,
   RotateCcw,
+  Layers,
+  AlertTriangle,
+  MapPin,
 } from 'lucide-react';
-import { useIssue, useUpdateIssue, useAddIssueComment } from '@/hooks/useIssues';
+import { useIssue, useUpdateIssue, useAddIssueComment, useCloseIssueWithReason } from '@/hooks/useIssues';
 import { useAuthStore } from '@/stores/auth.store';
 import type { Repository } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
-import { Textarea } from '@/components/ui/textarea';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { PageLoader } from '@/components/ui/spinner';
 import { Alert } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { IssueTypeBadge } from '@/components/issues/IssueTypeBadge';
+import { IssuePriorityBadge } from '@/components/issues/IssuePriorityBadge';
+import { CloseIssueDialog } from '@/components/issues/CloseIssueDialog';
 import { formatRelativeTime } from '@/lib/utils';
 import { motion } from 'motion/react';
 
@@ -36,9 +43,11 @@ export default function IssueDetailPage() {
   const { data: issue, isLoading, error } = useIssue(owner!, repo!, issueNumber);
   const updateIssue = useUpdateIssue(owner!, repo!, issueNumber);
   const addComment = useAddIssueComment(owner!, repo!, issueNumber);
+  const closeWithReason = useCloseIssueWithReason(owner!, repo!, issueNumber);
 
   const [commentBody, setCommentBody] = useState('');
   const [showSuccessFeedback, setShowSuccessFeedback] = useState<string | null>(null);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
 
   if (isLoading) return <PageLoader />;
   if (error || !issue) return <Alert variant="error" title="Issue not found">Could not load this issue.</Alert>;
@@ -64,23 +73,7 @@ export default function IssueDetailPage() {
     });
   };
 
-  const handleCommentAndClose = () => {
-    if (commentBody.trim()) {
-      addComment.mutate(commentBody, {
-        onSuccess: () => {
-          setCommentBody('');
-          updateIssue.mutate({ status: 'CLOSED' } as Parameters<typeof updateIssue.mutate>[0], {
-            onSuccess: () => {
-              setShowSuccessFeedback('Issue closed with comment.');
-              setTimeout(() => setShowSuccessFeedback(null), 3000);
-            },
-          });
-        },
-      });
-    } else {
-      toggleStatus();
-    }
-  };
+
 
   return (
     <motion.div
@@ -126,6 +119,8 @@ export default function IssueDetailPage() {
               )}
               {issue.status === 'OPEN' ? 'Open' : 'Closed'}
             </Badge>
+            <IssueTypeBadge type={issue.type} />
+            <IssuePriorityBadge priority={issue.priority} />
             <span className="text-sm text-text-secondary">
               <Link to={`/${issue.author?.username}`} className="font-medium hover:text-primary-600">
                 {issue.author?.username}
@@ -149,7 +144,7 @@ export default function IssueDetailPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={toggleStatus}
+                  onClick={() => setShowCloseDialog(true)}
                   disabled={updateIssue.isPending}
                   className="shrink-0 gap-1.5"
                 >
@@ -157,7 +152,7 @@ export default function IssueDetailPage() {
                   Close
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Close this issue</TooltipContent>
+              <TooltipContent>Close this issue with a reason</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )}
@@ -199,9 +194,7 @@ export default function IssueDetailPage() {
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0">Author</Badge>
                       <span className="text-xs text-text-tertiary">{formatRelativeTime(issue.createdAt)}</span>
                     </div>
-                    <div className="text-sm text-text-primary whitespace-pre-wrap leading-relaxed">
-                      {issue.body}
-                    </div>
+                    <MarkdownRenderer content={issue.body} />
                   </div>
                 </div>
               </CardContent>
@@ -227,9 +220,7 @@ export default function IssueDetailPage() {
                             <span className="font-medium text-sm">{comment.author?.username}</span>
                             <span className="text-xs text-text-tertiary">{formatRelativeTime(comment.createdAt)}</span>
                           </div>
-                          <div className="text-sm text-text-primary whitespace-pre-wrap leading-relaxed">
-                            {comment.body}
-                          </div>
+                          <MarkdownRenderer content={comment.body} />
                         </div>
                       </div>
                     </CardContent>
@@ -246,12 +237,11 @@ export default function IssueDetailPage() {
                 <div className="flex items-start gap-3">
                   <Avatar src={user?.avatarUrl} alt={user?.username ?? ''} size="sm" />
                   <div className="flex-1">
-                    <Textarea
+                    <MarkdownEditor
                       value={commentBody}
-                      onChange={(e) => setCommentBody(e.target.value)}
-                      placeholder="Leave a comment..."
+                      onChange={setCommentBody}
+                      placeholder="Leave a comment… **Markdown** _is_ `supported`"
                       rows={4}
-                      className="resize-y"
                     />
                   </div>
                 </div>
@@ -260,12 +250,12 @@ export default function IssueDetailPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={handleCommentAndClose}
+                      onClick={() => setShowCloseDialog(true)}
                       disabled={updateIssue.isPending || addComment.isPending}
                       className="gap-1.5"
                     >
                       <XCircle className="h-3.5 w-3.5" />
-                      {commentBody.trim() ? 'Close with comment' : 'Close issue'}
+                      Close with reason
                     </Button>
                   )}
                   {canEdit && issue.status === 'CLOSED' && (
@@ -363,8 +353,84 @@ export default function IssueDetailPage() {
               <p>Updated {formatRelativeTime(issue.updatedAt)}</p>
             </div>
           </div>
+
+          {/* Type & Priority */}
+          {(issue.type || issue.priority) && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Layers className="h-3 w-3" />
+                  Classification
+                </h3>
+                <div className="space-y-2">
+                  {issue.type && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-text-tertiary w-14">Type</span>
+                      <IssueTypeBadge type={issue.type} />
+                    </div>
+                  )}
+                  {issue.priority && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-text-tertiary w-14">Priority</span>
+                      <IssuePriorityBadge priority={issue.priority} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Assigned Area */}
+          {issue.assignedArea && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <MapPin className="h-3 w-3" />
+                  Area
+                </h3>
+                <Badge variant="outline" className="text-xs">{issue.assignedArea}</Badge>
+              </div>
+            </>
+          )}
+
+          {/* Close Reason */}
+          {issue.closeReason && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <AlertTriangle className="h-3 w-3" />
+                  Close Reason
+                </h3>
+                <Badge variant="secondary" className="text-xs">
+                  {issue.closeReason.replace(/_/g, ' ')}
+                </Badge>
+                {issue.closeReasonNote && (
+                  <p className="mt-1.5 text-xs text-text-tertiary">{issue.closeReasonNote}</p>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Close Issue Dialog */}
+      <CloseIssueDialog
+        open={showCloseDialog}
+        onOpenChange={setShowCloseDialog}
+        onClose={(data) => {
+          closeWithReason.mutate(data, {
+            onSuccess: () => {
+              setShowCloseDialog(false);
+              setShowSuccessFeedback('Issue closed.');
+              setTimeout(() => setShowSuccessFeedback(null), 3000);
+            },
+          });
+        }}
+        isPending={closeWithReason.isPending}
+      />
     </motion.div>
   );
 }

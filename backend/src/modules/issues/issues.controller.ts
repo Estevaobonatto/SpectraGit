@@ -1,10 +1,11 @@
 import { Controller, Get, Post, Put, Param, Body, Query, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiPropertyOptional } from '@nestjs/swagger';
-import { IssueStatus } from '@prisma/client';
+import { IssueStatus, IssueType, IssuePriority } from '@prisma/client';
 import { IsEnum, IsOptional, IsString, IsIn } from 'class-validator';
 import { IssuesService } from './issues.service';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueDto, CreateIssueCommentDto } from './dto/update-issue.dto';
+import { AnalyzeIssueDto } from './dto/analyze-issue.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -13,8 +14,23 @@ import { JwtPayload } from '../../common/types/request.types';
 class ListIssuesDto extends PaginationDto {
   @ApiPropertyOptional({ enum: IssueStatus })
   @IsOptional()
-  @IsEnum(IssueStatus)
-  status?: IssueStatus;
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({ enum: IssueType })
+  @IsOptional()
+  @IsEnum(IssueType)
+  type?: IssueType;
+
+  @ApiPropertyOptional({ enum: IssuePriority })
+  @IsOptional()
+  @IsEnum(IssuePriority)
+  priority?: IssuePriority;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  assignedArea?: string;
 
   // Re-declare inherited string props so class-validator's whitelist
   // picks up the metadata on this subclass prototype (inheritance gap in v0.14)
@@ -38,6 +54,53 @@ class ListIssuesDto extends PaginationDto {
 export class IssuesController {
   constructor(private readonly issuesService: IssuesService) {}
 
+  @Post('analyze')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Analyze an issue before creation (duplicates, classification, priority)' })
+  async analyze(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: AnalyzeIssueDto,
+  ) {
+    return this.issuesService.analyzeIssue(owner, repo, user.sub, dto.title, dto.body, dto.type);
+  }
+
+  @Public()
+  @Get('similar')
+  @ApiOperation({ summary: 'Find similar issues by text query' })
+  async findSimilar(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Query('q') query: string,
+    @CurrentUser() user?: JwtPayload,
+  ): Promise<import('./issue-analysis.service').DuplicateCandidate[]> {
+    return this.issuesService.findSimilar(owner, repo, query ?? '', user?.sub);
+  }
+
+  @Public()
+  @Get('triage')
+  @ApiOperation({ summary: 'Get issues in triage queue' })
+  async findTriageQueue(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Query() query: PaginationDto,
+    @CurrentUser() user?: JwtPayload,
+  ) {
+    return this.issuesService.findTriageQueue(owner, repo, query, user?.sub);
+  }
+
+  @Public()
+  @Get('kanban')
+  @ApiOperation({ summary: 'Get issues grouped by status for kanban board' })
+  async getKanban(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user?: JwtPayload,
+  ) {
+    return this.issuesService.getKanbanData(owner, repo, user?.sub);
+  }
+
   @Post()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create an issue' })
@@ -59,7 +122,19 @@ export class IssuesController {
     @Query() query: ListIssuesDto,
     @CurrentUser() user?: JwtPayload,
   ) {
-    return this.issuesService.findAll(owner, repo, query, query.status, user?.sub);
+    // Support comma-separated status for multiple statuses
+    const statusFilter = query.status
+      ? query.status.includes(',')
+        ? (query.status.split(',') as IssueStatus[])
+        : (query.status as IssueStatus)
+      : undefined;
+
+    return this.issuesService.findAll(owner, repo, query, {
+      status: statusFilter,
+      type: query.type,
+      priority: query.priority,
+      assignedArea: query.assignedArea,
+    }, user?.sub);
   }
 
   @Public()

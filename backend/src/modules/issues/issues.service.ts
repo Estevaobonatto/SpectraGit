@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { IssueStatus, CommentType } from '@prisma/client';
+import { IssueStatus, CommentType, IssueType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RepositoriesService } from '../repositories/repositories.service';
 import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueDto, CreateIssueCommentDto } from './dto/update-issue.dto';
 import { PaginationDto, PaginatedResult } from '../../common/dto/pagination.dto';
 import { EventsService } from '../../events/events.service';
+import { IssueAnalysisService } from './issue-analysis.service';
 
 @Injectable()
 export class IssuesService {
@@ -13,6 +14,7 @@ export class IssuesService {
     private readonly prisma: PrismaService,
     private readonly reposService: RepositoriesService,
     private readonly eventsService: EventsService,
+    private readonly analysisService: IssueAnalysisService,
   ) {}
 
   async create(owner: string, repo: string, userId: string, dto: CreateIssueDto) {
@@ -24,6 +26,26 @@ export class IssuesService {
     });
     const nextNumber = (lastIssue?.number ?? 0) + 1;
 
+    // Auto-analysis: classify, prioritize, route
+    const classification = this.analysisService.classifyIssue(dto.title, dto.body);
+    const resolvedType = dto.type ?? classification.type;
+    const prioritySuggestion = this.analysisService.suggestPriority(dto.title, dto.body, resolvedType);
+    const resolvedPriority = dto.priority ?? prioritySuggestion.priority;
+    const assignedArea = this.analysisService.routeToArea(dto.title, dto.body);
+
+    // Determine trust level for initial status
+    const trustLevel = await this.analysisService.getUserTrustLevel(userId, repoEntity.id);
+    const initialStatus = trustLevel === 'trusted' ? IssueStatus.OPEN : IssueStatus.TRIAGE;
+
+    // Auto-create labels based on type
+    const suggestedLabelNames = this.analysisService.suggestLabels(resolvedType, dto.title, dto.body);
+    const autoLabelIds = await this.analysisService.ensureTypeLabels(
+      repoEntity.id,
+      suggestedLabelNames,
+      resolvedType,
+    );
+    const allLabelIds = [...new Set([...autoLabelIds, ...(dto.labelIds ?? [])])];
+
     const issue = await this.prisma.issue.create({
       data: {
         repositoryId: repoEntity.id,
@@ -31,9 +53,17 @@ export class IssuesService {
         number: nextNumber,
         title: dto.title,
         body: dto.body,
+        status: initialStatus,
+        type: resolvedType,
+        priority: resolvedPriority,
+        assignedArea: assignedArea,
+        techContext: dto.techContext != null ? (dto.techContext as Prisma.InputJsonValue) : undefined,
+        formData: dto.formData != null ? (dto.formData as Prisma.InputJsonValue) : undefined,
         assigneeId: dto.assigneeId,
         milestoneId: dto.milestoneId,
-        labels: dto.labelIds ? { create: dto.labelIds.map((labelId) => ({ labelId })) } : undefined,
+        labels: allLabelIds.length > 0
+          ? { create: allLabelIds.map((labelId) => ({ labelId })) }
+          : undefined,
       },
       include: {
         author: { select: { username: true, avatarUrl: true } },
@@ -50,21 +80,36 @@ export class IssuesService {
       authorId: userId,
     });
 
-    return issue;
+    const issueWithLabels = issue as typeof issue & { labels: { label: unknown }[] };
+    return { ...issue, labels: issueWithLabels.labels.map((il) => il.label) };
   }
 
   async findAll(
     owner: string,
     repo: string,
     pagination: PaginationDto,
-    status?: IssueStatus,
+    filters?: {
+      status?: IssueStatus | IssueStatus[];
+      type?: IssueType;
+      priority?: string;
+      assignedArea?: string;
+    },
     userId?: string,
   ): Promise<PaginatedResult<unknown>> {
     const repoEntity = await this.reposService.findByOwnerAndSlug(owner, repo, userId);
 
+    const statusFilter = filters?.status
+      ? Array.isArray(filters.status)
+        ? { in: filters.status }
+        : filters.status
+      : undefined;
+
     const where = {
       repositoryId: repoEntity.id,
-      ...(status ? { status } : {}),
+      ...(statusFilter ? { status: statusFilter } : {}),
+      ...(filters?.type ? { type: filters.type } : {}),
+      ...(filters?.priority ? { priority: filters.priority as any } : {}),
+      ...(filters?.assignedArea ? { assignedArea: filters.assignedArea } : {}),
       ...(pagination.search ? { title: { contains: pagination.search, mode: 'insensitive' as const } } : {}),
     };
 
@@ -145,6 +190,18 @@ export class IssuesService {
       });
     }
 
+    // If closing with a reason, ensure close fields are set
+    const closeStatuses: IssueStatus[] = [IssueStatus.CLOSED, IssueStatus.RESOLVED, IssueStatus.WONT_FIX];
+    if (updateData.status && closeStatuses.includes(updateData.status)) {
+      this.eventsService.emit('issue.closed', {
+        repositoryId: repoEntity.id,
+        issueId: issue.id,
+        issueNumber: issue.number,
+        closeReason: updateData.closeReason,
+        closedBy: userId,
+      });
+    }
+
     const updated = await this.prisma.issue.update({
       where: { id: issue.id },
       data: updateData,
@@ -191,5 +248,68 @@ export class IssuesService {
     });
 
     return comment;
+  }
+
+  // ─── New: Analyze issue before creation ────────────────────
+
+  async analyzeIssue(owner: string, repo: string, userId: string, title: string, body?: string, type?: IssueType) {
+    const repoEntity = await this.reposService.findByOwnerAndSlug(owner, repo, userId);
+    return this.analysisService.analyze(repoEntity.id, userId, title, body, type);
+  }
+
+  // ─── New: Find similar issues ──────────────────────────────
+
+  async findSimilar(owner: string, repo: string, query: string, userId?: string): Promise<import('./issue-analysis.service').DuplicateCandidate[]> {
+    const repoEntity = await this.reposService.findByOwnerAndSlug(owner, repo, userId);
+    return this.analysisService.detectDuplicates(repoEntity.id, query);
+  }
+
+  // ─── New: Triage queue ─────────────────────────────────────
+
+  async findTriageQueue(owner: string, repo: string, pagination: PaginationDto, userId?: string) {
+    return this.findAll(owner, repo, pagination, {
+      status: [IssueStatus.TRIAGE, IssueStatus.OPEN],
+    }, userId);
+  }
+
+  // ─── New: Kanban board data ────────────────────────────────
+
+  async getKanbanData(owner: string, repo: string, userId?: string) {
+    const repoEntity = await this.reposService.findByOwnerAndSlug(owner, repo, userId);
+
+    const columns: Record<string, IssueStatus[]> = {
+      triage: [IssueStatus.TRIAGE],
+      open: [IssueStatus.OPEN],
+      confirmed: [IssueStatus.CONFIRMED],
+      in_progress: [IssueStatus.IN_PROGRESS],
+      blocked: [IssueStatus.BLOCKED],
+      waiting_user: [IssueStatus.WAITING_USER],
+      done: [IssueStatus.RESOLVED, IssueStatus.CLOSED, IssueStatus.WONT_FIX],
+    };
+
+    const result: Record<string, unknown[]> = {};
+
+    for (const [columnKey, statuses] of Object.entries(columns)) {
+      const issues = await this.prisma.issue.findMany({
+        where: {
+          repositoryId: repoEntity.id,
+          status: { in: statuses },
+        },
+        include: {
+          author: { select: { username: true, avatarUrl: true } },
+          assignee: { select: { username: true, avatarUrl: true } },
+          labels: { include: { label: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 50,
+      });
+
+      result[columnKey] = issues.map((issue) => ({
+        ...issue,
+        labels: issue.labels.map((il) => il.label),
+      }));
+    }
+
+    return result;
   }
 }
