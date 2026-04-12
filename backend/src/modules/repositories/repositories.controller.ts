@@ -213,6 +213,32 @@ export class RepositoriesController {
     res.end(buffer);
   }
 
+  // ─── Archive Download ──────────────────────────────────────
+
+  @Public()
+  @Get(':owner/:repo/archive/:branchWithExt')
+  @ApiOperation({ summary: 'Download repository archive as RAR' })
+  async downloadArchive(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @Param('branchWithExt') branchWithExt: string,
+    @Res() res: Response,
+    @CurrentUser() user?: JwtPayload,
+  ) {
+    const branch = branchWithExt.replace(/\.zip$/, '');
+    const { buffer, filename } = await this.reposService.downloadArchiveAsZip(
+      owner,
+      repo,
+      branch,
+      user?.sub,
+    );
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
+  }
+
   // ─── Branch Protection ─────────────────────────────────────
 
   @Get(':owner/:repo/branches/:branch/protection')

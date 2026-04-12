@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link, useParams, useOutletContext } from 'react-router-dom';
-import { File, Folder, ChevronDown, GitBranch, History, Copy, Download, BookOpen, KeyRound, Terminal, Check, Lock } from 'lucide-react';
+import { File, Folder, ChevronDown, GitBranch, History, Copy, Download, BookOpen, KeyRound, Terminal, Check, Lock, FileArchive } from 'lucide-react';
 import { useFileTree, useFileContent } from '@/hooks/useRepositories';
 import { useBranches } from '@/hooks/useBranches';
 import { useCommits } from '@/hooks/useBranches';
@@ -22,6 +22,7 @@ import { InlineLoader } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { MarkdownRenderer } from '@/components/repo/MarkdownRenderer';
 import { motion } from 'motion/react';
+import { useAuthStore } from '@/stores/auth.store';
 import type { Repository, FileTreeItem } from '@/types';
 
 // Stable constant — defined outside component to avoid recreating on every render
@@ -43,6 +44,7 @@ export default function CodeBrowserPage() {
   const [copiedClone, setCopiedClone] = useState(false);
   const [copiedCmd, setCopiedCmd] = useState(false);
   const [cloneTab, setCloneTab] = useState<'https' | 'ssh'>('https');
+  const [downloadingRar, setDownloadingRar] = useState(false);
 
   const lastCommit = commits?.[0];
   const httpsCloneUrl = `${window.location.origin}/${owner}/${repo}.git`;
@@ -53,6 +55,29 @@ export default function CodeBrowserPage() {
     : `ssh://git@${sshHost}:${sshPort}/${owner}/${repo}.git`;
   const cloneUrl = cloneTab === 'ssh' ? sshCloneUrl : httpsCloneUrl;
   const cloneCmd = `git clone ${cloneUrl}`;
+
+  const handleDownloadRar = async () => {
+    const apiBase = import.meta.env.VITE_API_URL ?? '/api/v1';
+    const url = `${apiBase}/repos/${owner}/${repo}/archive/${encodeURIComponent(currentBranch)}.zip`;
+    setDownloadingRar(true);
+    try {
+      const token = useAuthStore.getState().accessToken;
+      const response = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${repo}-${currentBranch.replace(/[^a-zA-Z0-9._-]/g, '-')}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } finally {
+      setDownloadingRar(false);
+    }
+  };
 
   const handleCopyClone = () => {
     navigator.clipboard.writeText(cloneUrl);
@@ -248,6 +273,19 @@ export default function CodeBrowserPage() {
                       </Button>
                     </>
                   )}
+                </div>
+
+                <div className="border-t border-border pt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs gap-1.5"
+                    onClick={handleDownloadRar}
+                    disabled={downloadingRar}
+                  >
+                    <FileArchive className="h-3.5 w-3.5" />
+                    {downloadingRar ? 'Preparing archive…' : `Download ${currentBranch} as .zip`}
+                  </Button>
                 </div>
               </div>
             </PopoverContent>

@@ -6,6 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Prisma, RepoVisibility } from '@prisma/client';
+import { spawnSync } from 'child_process';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GitService } from '../git/git.service';
 import { CreateRepositoryDto } from './dto/create-repository.dto';
@@ -778,5 +779,38 @@ export class RepositoriesService {
     });
 
     return updatedRepo;
+  }
+
+  // ─── Archive Download ─────────────────────────────────────
+
+  async downloadArchiveAsZip(
+    ownerName: string,
+    slug: string,
+    branch: string,
+    userId?: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+
+    // Use DB-validated names for the filesystem path
+    const validatedOwner = repo.ownerUser?.username ?? repo.ownerOrg?.name ?? ownerName;
+    const repoPath = this.gitService.getRepoPath(validatedOwner, repo.slug);
+
+    // git archive --format=zip is natively supported — no extra tools needed.
+    // Use -C (chdir) instead of --git-dir so this works for both bare repos
+    // and non-bare working trees (where --git-dir would point at the wrong dir).
+    const result = spawnSync(
+      'git',
+      ['-C', repoPath, 'archive', '--format=zip', branch],
+      { maxBuffer: 256 * 1024 * 1024 },
+    );
+
+    if (result.status !== 0) {
+      const msg = result.stderr?.toString() || 'unknown error';
+      throw new BadRequestException(`Failed to create archive for branch "${branch}": ${msg}`);
+    }
+
+    const safeBranch = branch.replace(/[^a-zA-Z0-9._-]/g, '-');
+    const filename = `${repo.slug}-${safeBranch}.zip`;
+    return { buffer: result.stdout as Buffer, filename };
   }
 }
