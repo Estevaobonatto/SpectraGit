@@ -9,8 +9,6 @@ import { PrismaClient, RepoVisibility } from '@prisma/client';
 
 // ssh2 types
 import type {
-  Server as SSH2Server,
-  ServerConfig,
   Connection,
   Session as SSH2Session,
   AuthContext,
@@ -340,7 +338,7 @@ export async function startGitSSHServer(storagePath: string, port: number): Prom
             }
 
             // Parse the stored public key and verify the signature
-            const parsedKey = (sshUtils as any).parseKey(record.publicKey);
+            const parsedKey = sshUtils.parseKey(record.publicKey);
             if (!parsedKey || parsedKey instanceof Error) {
               logger.error('Failed to parse stored SSH public key');
               ctx.reject(['publickey']);
@@ -377,6 +375,7 @@ export async function startGitSSHServer(storagePath: string, port: number): Prom
 
         session.on(
           'exec',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (accept: (rejectOrAccept?: boolean) => any, reject: () => void, info: ExecInfo) => {
             const command = info.command;
             logger.debug(`SSH exec: ${command}`);

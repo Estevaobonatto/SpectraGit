@@ -1,62 +1,100 @@
-import { useState, useCallback } from 'react';
-import { ChevronDown, ChevronRight, File, Minimize2, Maximize2, MessageSquare, Send, X } from 'lucide-react';
+import { useState, useCallback, memo, useMemo } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  File,
+  Minimize2,
+  Maximize2,
+  MessageSquare,
+  Send,
+  X,
+  Columns2,
+  AlignLeft,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { motion, AnimatePresence } from 'motion/react';
 import type { DiffFile, DiffHunk, DiffLine } from '@/types';
+
+/** Files with more total changed lines than this are auto-collapsed on load. */
+const AUTO_COLLAPSE_THRESHOLD = 150;
+/** Only render this many lines per file; user can opt-in to load more. */
+const LINE_RENDER_CAP = 250;
 
 interface DiffViewerProps {
   files: DiffFile[];
   onLineComment?: (filePath: string, lineNumber: number, body: string) => void;
 }
 
+type ViewMode = 'unified' | 'split';
+
 export function DiffViewer({ files, onLineComment }: DiffViewerProps) {
   const [allCollapsed, setAllCollapsed] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('unified');
 
-  const totalAdditions = files.reduce((sum, f) => sum + f.additions, 0);
-  const totalDeletions = files.reduce((sum, f) => sum + f.deletions, 0);
+  const { totalAdditions, totalDeletions } = useMemo(
+    () => ({
+      totalAdditions: files.reduce((s, f) => s + f.additions, 0),
+      totalDeletions: files.reduce((s, f) => s + f.deletions, 0),
+    }),
+    [files],
+  );
+
+  const bigDiff = files.length > 8 || totalAdditions + totalDeletions > 500;
 
   return (
     <TooltipProvider delayDuration={200}>
       <div className="space-y-4">
-        {/* File summary header */}
         <div className="rounded-[var(--radius-md)] border border-border bg-surface-hover p-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium">
-              Showing{' '}
-              <span className="font-bold">{files.length}</span>{' '}
-              changed {files.length === 1 ? 'file' : 'files'}{' '}
-              with{' '}
-              <span className="text-success font-semibold">+{totalAdditions}</span>{' '}
-              and{' '}
+              Showing <span className="font-bold">{files.length}</span>{' '}
+              changed {files.length === 1 ? 'file' : 'files'} with{' '}
+              <span className="text-success font-semibold">+{totalAdditions}</span> and{' '}
               <span className="text-error font-semibold">-{totalDeletions}</span>
             </p>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setAllCollapsed((v) => !v)}
-                  className="gap-1.5 text-xs"
-                >
-                  {allCollapsed ? (
-                    <>
-                      <Maximize2 className="h-3.5 w-3.5" />
-                      Expand all
-                    </>
-                  ) : (
-                    <>
-                      <Minimize2 className="h-3.5 w-3.5" />
-                      Collapse all
-                    </>
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{allCollapsed ? 'Expand all files' : 'Collapse all files'}</TooltipContent>
-            </Tooltip>
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setViewMode((m) => (m === 'unified' ? 'split' : 'unified'))}
+                    className="gap-1.5 text-xs"
+                  >
+                    {viewMode === 'unified' ? (
+                      <><Columns2 className="h-3.5 w-3.5" />Split</>
+                    ) : (
+                      <><AlignLeft className="h-3.5 w-3.5" />Unified</>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {viewMode === 'unified' ? 'Switch to split view' : 'Switch to unified view'}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAllCollapsed((v) => !v)}
+                    className="gap-1.5 text-xs"
+                  >
+                    {allCollapsed ? (
+                      <><Maximize2 className="h-3.5 w-3.5" />Expand all</>
+                    ) : (
+                      <><Minimize2 className="h-3.5 w-3.5" />Collapse all</>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {allCollapsed ? 'Expand all files' : 'Collapse all files'}
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
           <div className="mt-2 space-y-1">
             {files.map((file) => (
@@ -81,6 +119,8 @@ export function DiffViewer({ files, onLineComment }: DiffViewerProps) {
             file={file}
             onLineComment={onLineComment}
             forceCollapsed={allCollapsed}
+            viewMode={viewMode}
+            defaultCollapsed={bigDiff || file.additions + file.deletions > AUTO_COLLAPSE_THRESHOLD}
           />
         ))}
       </div>
@@ -88,17 +128,48 @@ export function DiffViewer({ files, onLineComment }: DiffViewerProps) {
   );
 }
 
-function DiffFileView({
+const DiffFileView = memo(function DiffFileView({
   file,
   onLineComment,
   forceCollapsed,
+  viewMode,
+  defaultCollapsed,
 }: {
   file: DiffFile;
   onLineComment?: (filePath: string, lineNumber: number, body: string) => void;
   forceCollapsed: boolean;
+  viewMode: ViewMode;
+  defaultCollapsed: boolean;
 }) {
-  const [localCollapsed, setLocalCollapsed] = useState(false);
+  const [localCollapsed, setLocalCollapsed] = useState(defaultCollapsed);
+  const [showAllLines, setShowAllLines] = useState(false);
+  const [activeCommentLine, setActiveCommentLine] = useState<number | null>(null);
+  const [commentBody, setCommentBody] = useState('');
+
   const collapsed = forceCollapsed || localCollapsed;
+
+  const totalUnifiedLines = useMemo(
+    () => file.hunks.reduce((s, h) => s + h.lines.length, 0),
+    [file.hunks],
+  );
+  const hiddenCount = showAllLines ? 0 : Math.max(0, totalUnifiedLines - LINE_RENDER_CAP);
+
+  const handleSubmitComment = useCallback(() => {
+    if (!commentBody.trim() || activeCommentLine == null) return;
+    onLineComment?.(file.filePath, activeCommentLine, commentBody.trim());
+    setCommentBody('');
+    setActiveCommentLine(null);
+  }, [commentBody, activeCommentLine, file.filePath, onLineComment]);
+
+  const handleToggleComment = useCallback((lineNum: number) => {
+    setActiveCommentLine((prev) => (prev === lineNum ? null : lineNum));
+    setCommentBody('');
+  }, []);
+
+  const handleCancelComment = useCallback(() => {
+    setActiveCommentLine(null);
+    setCommentBody('');
+  }, []);
 
   return (
     <div
@@ -117,7 +188,6 @@ function DiffFileView({
         <File className="h-3.5 w-3.5 text-text-tertiary shrink-0" />
         <span className="font-mono font-medium truncate">{file.filePath}</span>
         <StatusBadge status={file.status} />
-        {/* Change bar visualization */}
         <span className="ml-auto flex items-center gap-1.5 text-xs shrink-0">
           <DiffBar additions={file.additions} deletions={file.deletions} />
           <span className="text-success">+{file.additions}</span>
@@ -125,37 +195,71 @@ function DiffFileView({
         </span>
       </button>
 
-      <AnimatePresence initial={false}>
-        {!collapsed && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-            className="overflow-hidden"
-          >
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs font-mono">
-                <tbody>
-                  {file.hunks.map((hunk, hi) => (
-                    <HunkView
+      {!collapsed && (
+        <div className="overflow-x-auto">
+          {viewMode === 'split' ? (
+            <table className="w-full text-xs font-mono">
+              <tbody>
+                {file.hunks.map((hunk, hi) => (
+                  <HunkViewSplit
+                    key={hi}
+                    hunk={hunk}
+                    filePath={file.filePath}
+                    onLineComment={onLineComment}
+                  />
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <table className="w-full text-xs font-mono">
+              <tbody>
+                {file.hunks.map((hunk, hi) => {
+                  const hunkStart = file.hunks.slice(0, hi).reduce((s, h) => s + h.lines.length, 0);
+                  const capEnd = showAllLines ? Infinity : LINE_RENDER_CAP;
+                  if (hunkStart >= capEnd) return null;
+                  const slicedLines = showAllLines
+                    ? hunk.lines
+                    : hunk.lines.slice(0, Math.max(0, capEnd - hunkStart));
+                  return (
+                    <HunkViewUnified
                       key={hi}
                       hunk={hunk}
+                      lines={slicedLines}
                       filePath={file.filePath}
-                      onLineComment={onLineComment}
+                      activeCommentLine={activeCommentLine}
+                      commentBody={commentBody}
+                      onToggleComment={handleToggleComment}
+                      onCommentBodyChange={setCommentBody}
+                      onSubmitComment={handleSubmitComment}
+                      onCancelComment={handleCancelComment}
                     />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  );
+                })}
+                {hiddenCount > 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-2 text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs gap-1.5"
+                        onClick={() => setShowAllLines(true)}
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                        Show {hiddenCount} more lines
+                      </Button>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
     </div>
   );
-}
+});
 
-function HunkView({
+const HunkViewSplit = memo(function HunkViewSplit({
   hunk,
   filePath,
   onLineComment,
@@ -164,6 +268,42 @@ function HunkView({
   filePath: string;
   onLineComment?: (filePath: string, lineNumber: number, body: string) => void;
 }) {
+  const pairs = useMemo(() => splitPairLines(hunk.lines), [hunk.lines]);
+  return (
+    <>
+      <tr className="bg-primary-50/50">
+        <td colSpan={4} className="px-4 py-1 text-primary-600 text-[11px]">
+          {hunk.header}
+        </td>
+      </tr>
+      {pairs.map((pair, pi) => (
+        <SplitLineRow key={pi} pair={pair} filePath={filePath} onLineComment={onLineComment} />
+      ))}
+    </>
+  );
+});
+
+const HunkViewUnified = memo(function HunkViewUnified({
+  hunk,
+  lines,
+  filePath,
+  activeCommentLine,
+  commentBody,
+  onToggleComment,
+  onCommentBodyChange,
+  onSubmitComment,
+  onCancelComment,
+}: {
+  hunk: DiffHunk;
+  lines: DiffLine[];
+  filePath: string;
+  activeCommentLine: number | null;
+  commentBody: string;
+  onToggleComment: (lineNum: number) => void;
+  onCommentBodyChange: (body: string) => void;
+  onSubmitComment: () => void;
+  onCancelComment: () => void;
+}) {
   return (
     <>
       <tr className="bg-primary-50/50">
@@ -171,50 +311,101 @@ function HunkView({
           {hunk.header}
         </td>
       </tr>
-      {hunk.lines.map((line, li) => (
-        <DiffLineRow
+      {lines.map((line, li) => (
+        <UnifiedLineRow
           key={li}
           line={line}
           filePath={filePath}
-          onLineComment={onLineComment}
+          isCommentActive={activeCommentLine === line.newLineNumber}
+          commentBody={commentBody}
+          onToggleComment={onToggleComment}
+          onCommentBodyChange={onCommentBodyChange}
+          onSubmitComment={onSubmitComment}
+          onCancelComment={onCancelComment}
         />
       ))}
     </>
   );
-}
+});
 
-function DiffLineRow({
-  line,
+const SplitLineRow = memo(function SplitLineRow({
+  pair,
   filePath,
   onLineComment,
 }: {
-  line: DiffLine;
+  pair: { old: DiffLine | null; new: DiffLine | null };
   filePath: string;
   onLineComment?: (filePath: string, lineNumber: number, body: string) => void;
 }) {
-  const [showCommentForm, setShowCommentForm] = useState(false);
-  const [commentBody, setCommentBody] = useState('');
+  const oldBg =
+    pair.old?.type === 'del'
+      ? 'bg-red-200 dark:bg-red-900/50'
+      : pair.old?.type === 'context' ? '' : 'bg-surface-hover';
+  const newBg =
+    pair.new?.type === 'add'
+      ? 'bg-emerald-200 dark:bg-emerald-900/50'
+      : pair.new?.type === 'context' ? '' : 'bg-surface-hover';
+  const oldText = pair.old?.type === 'del' ? 'text-black dark:text-white' : '';
+  const newText = pair.new?.type === 'add' ? 'text-black dark:text-white' : '';
 
+  return (
+    <tr className="group">
+      <td className={cn('select-none border-r border-border px-2 py-0 text-right text-text-tertiary w-10 text-[11px]', oldBg)}>
+        {pair.old?.oldLineNumber ?? ''}
+      </td>
+      <td className={cn('border-r border-border px-3 py-0 whitespace-pre font-mono text-[12px] w-[50%]', oldBg, oldText)}>
+        {pair.old ? `${pair.old.type === 'del' ? '-' : ' '}${pair.old.content}` : ''}
+      </td>
+      <td className={cn('select-none border-r border-border px-2 py-0 text-right text-text-tertiary w-10 text-[11px]', newBg)}>
+        {pair.new?.newLineNumber ?? ''}
+      </td>
+      <td className={cn('px-3 py-0 whitespace-pre font-mono text-[12px] w-[50%]', newBg, newText)}>
+        {pair.new ? `${pair.new.type === 'add' ? '+' : ' '}${pair.new.content}` : ''}
+        {onLineComment && pair.new?.newLineNumber && (
+          <button
+            type="button"
+            onClick={() => onLineComment(filePath, pair.new!.newLineNumber!, '')}
+            className="invisible group-hover:visible ml-2 rounded bg-primary-500 px-1 py-0.5 text-white text-[10px]"
+          >
+            <MessageSquare className="h-3 w-3" />
+          </button>
+        )}
+      </td>
+    </tr>
+  );
+});
+
+const UnifiedLineRow = memo(function UnifiedLineRow({
+  line,
+  isCommentActive,
+  commentBody,
+  onToggleComment,
+  onCommentBodyChange,
+  onSubmitComment,
+  onCancelComment,
+}: {
+  line: DiffLine;
+  filePath: string;
+  isCommentActive: boolean;
+  commentBody: string;
+  onToggleComment: (lineNum: number) => void;
+  onCommentBodyChange: (body: string) => void;
+  onSubmitComment: () => void;
+  onCancelComment: () => void;
+}) {
   const bgColor =
     line.type === 'add'
-      ? 'bg-emerald-50/70'
+      ? 'bg-emerald-200 dark:bg-emerald-900/50'
       : line.type === 'del'
-        ? 'bg-red-50/70'
+        ? 'bg-red-200 dark:bg-red-900/50'
         : '';
   const textColor =
     line.type === 'add'
-      ? 'text-emerald-800'
+      ? 'text-black dark:text-white'
       : line.type === 'del'
-        ? 'text-red-800'
+        ? 'text-black dark:text-white'
         : '';
   const prefix = line.type === 'add' ? '+' : line.type === 'del' ? '-' : ' ';
-
-  const handleSubmitComment = useCallback(() => {
-    if (!commentBody.trim() || !line.newLineNumber) return;
-    onLineComment?.(filePath, line.newLineNumber, commentBody.trim());
-    setCommentBody('');
-    setShowCommentForm(false);
-  }, [commentBody, filePath, line.newLineNumber, onLineComment]);
 
   return (
     <>
@@ -227,11 +418,11 @@ function DiffLineRow({
         </td>
         <td className={cn('px-4 py-0 whitespace-pre', textColor)}>
           <span className="inline-flex items-center">
-            {onLineComment && line.newLineNumber && (
+            {line.newLineNumber && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => setShowCommentForm((v) => !v)}
+                    onClick={() => onToggleComment(line.newLineNumber!)}
                     className="invisible group-hover:visible mr-2 rounded bg-primary-500 hover:bg-primary-600 px-1.5 py-0.5 text-white text-[10px] cursor-pointer transition-colors"
                   >
                     <MessageSquare className="h-3 w-3" />
@@ -245,73 +436,72 @@ function DiffLineRow({
           </span>
         </td>
       </tr>
-      {/* Inline comment form */}
-      <AnimatePresence>
-        {showCommentForm && (
-          <tr>
-            <td colSpan={3}>
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div className="border-y border-border bg-surface-hover p-3 space-y-2">
-                  <Textarea
-                    autoFocus
-                    value={commentBody}
-                    onChange={(e) => setCommentBody(e.target.value)}
-                    placeholder="Write a comment..."
-                    rows={3}
-                    className="text-xs resize-y"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                        handleSubmitComment();
-                      }
-                    }}
-                  />
-                  <div className="flex items-center gap-2 justify-end">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setShowCommentForm(false);
-                        setCommentBody('');
-                      }}
-                      className="gap-1 text-xs"
-                    >
-                      <X className="h-3 w-3" />
-                      Cancel
-                    </Button>
-                    <Button
-                      size="sm"
-                      disabled={!commentBody.trim()}
-                      onClick={handleSubmitComment}
-                      className="gap-1 text-xs"
-                    >
-                      <Send className="h-3 w-3" />
-                      Comment
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            </td>
-          </tr>
-        )}
-      </AnimatePresence>
+      {isCommentActive && (
+        <tr>
+          <td colSpan={3}>
+            <div className="border-y border-border bg-surface-hover p-3 space-y-2">
+              <Textarea
+                autoFocus
+                value={commentBody}
+                onChange={(e) => onCommentBodyChange(e.target.value)}
+                placeholder="Write a comment..."
+                rows={3}
+                className="text-xs resize-y"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onSubmitComment();
+                  if (e.key === 'Escape') onCancelComment();
+                }}
+              />
+              <div className="flex items-center gap-2 justify-end">
+                <Button variant="ghost" size="sm" onClick={onCancelComment} className="gap-1 text-xs">
+                  <X className="h-3 w-3" />
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={!commentBody.trim()}
+                  onClick={onSubmitComment}
+                  className="gap-1 text-xs"
+                >
+                  <Send className="h-3 w-3" />
+                  Comment
+                </Button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
     </>
   );
+});
+
+function splitPairLines(lines: DiffLine[]): Array<{ old: DiffLine | null; new: DiffLine | null }> {
+  const result: Array<{ old: DiffLine | null; new: DiffLine | null }> = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (lines[i].type === 'context') {
+      result.push({ old: lines[i], new: lines[i] });
+      i++;
+    } else {
+      const dels: DiffLine[] = [];
+      const adds: DiffLine[] = [];
+      while (i < lines.length && lines[i].type === 'del') dels.push(lines[i++]);
+      while (i < lines.length && lines[i].type === 'add') adds.push(lines[i++]);
+      const maxLen = Math.max(dels.length, adds.length);
+      for (let j = 0; j < maxLen; j++) {
+        result.push({ old: dels[j] ?? null, new: adds[j] ?? null });
+      }
+    }
+  }
+  return result;
 }
 
-/** Mini bar chart showing additions vs deletions ratio */
 function DiffBar({ additions, deletions }: { additions: number; deletions: number }) {
   const total = additions + deletions;
   if (total === 0) return null;
   const blocks = 5;
   const addBlocks = Math.round((additions / total) * blocks);
   const delBlocks = blocks - addBlocks;
-
   return (
     <span className="inline-flex gap-px">
       {Array.from({ length: addBlocks }).map((_, i) => (

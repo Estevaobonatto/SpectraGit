@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsArray, MaxLength, IsUrl } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsArray, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateWebhookDto {

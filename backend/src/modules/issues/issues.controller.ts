@@ -56,7 +56,9 @@ export class IssuesController {
 
   @Post('analyze')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Analyze an issue before creation (duplicates, classification, priority)' })
+  @ApiOperation({
+    summary: 'Analyze an issue before creation (duplicates, classification, priority)',
+  })
   async analyze(
     @Param('owner') owner: string,
     @Param('repo') repo: string,
@@ -129,12 +131,18 @@ export class IssuesController {
         : (query.status as IssueStatus)
       : undefined;
 
-    return this.issuesService.findAll(owner, repo, query, {
-      status: statusFilter,
-      type: query.type,
-      priority: query.priority,
-      assignedArea: query.assignedArea,
-    }, user?.sub);
+    return this.issuesService.findAll(
+      owner,
+      repo,
+      query,
+      {
+        status: statusFilter,
+        type: query.type,
+        priority: query.priority,
+        assignedArea: query.assignedArea,
+      },
+      user?.sub,
+    );
   }
 
   @Public()

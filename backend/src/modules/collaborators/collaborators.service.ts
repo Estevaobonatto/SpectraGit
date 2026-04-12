@@ -55,12 +55,7 @@ export class CollaboratorsService {
   /**
    * Add a collaborator to a repository.
    */
-  async addCollaborator(
-    ownerName: string,
-    slug: string,
-    actorId: string,
-    dto: AddCollaboratorDto,
-  ) {
+  async addCollaborator(ownerName: string, slug: string, actorId: string, dto: AddCollaboratorDto) {
     const repo = await this.resolveRepo(ownerName, slug);
     await this.ensureManagePermission(repo, actorId);
 
@@ -335,12 +330,7 @@ export class CollaboratorsService {
   /**
    * Search users available to add as collaborators (exclude existing ones).
    */
-  async searchAvailableUsers(
-    ownerName: string,
-    slug: string,
-    query: string,
-    actorId: string,
-  ) {
+  async searchAvailableUsers(ownerName: string, slug: string, query: string, actorId: string) {
     const repo = await this.resolveRepo(ownerName, slug);
     await this.ensureManagePermission(repo, actorId);
 
@@ -381,12 +371,7 @@ export class CollaboratorsService {
   /**
    * List organization members that can be added as collaborators.
    */
-  async listOrgMembersForRepo(
-    ownerName: string,
-    slug: string,
-    actorId: string,
-    orgName: string,
-  ) {
+  async listOrgMembersForRepo(ownerName: string, slug: string, actorId: string, orgName: string) {
     const repo = await this.resolveRepo(ownerName, slug);
     await this.ensureManagePermission(repo, actorId);
 
@@ -433,10 +418,7 @@ export class CollaboratorsService {
     const repo = await this.prisma.repository.findFirst({
       where: {
         slug,
-        OR: [
-          { ownerUser: { username: ownerName } },
-          { ownerOrg: { name: ownerName } },
-        ],
+        OR: [{ ownerUser: { username: ownerName } }, { ownerOrg: { name: ownerName } }],
       },
       select: {
         id: true,
@@ -451,7 +433,12 @@ export class CollaboratorsService {
   }
 
   private async ensureReadAccess(
-    repo: { id: string; ownerUserId: string | null; ownerOrgId: string | null; visibility: RepoVisibility },
+    repo: {
+      id: string;
+      ownerUserId: string | null;
+      ownerOrgId: string | null;
+      visibility: RepoVisibility;
+    },
     userId?: string,
   ) {
     if (repo.visibility === RepoVisibility.PUBLIC) return;

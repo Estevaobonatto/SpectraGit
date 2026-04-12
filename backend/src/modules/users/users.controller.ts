@@ -80,12 +80,11 @@ export class UsersController {
   @Public()
   @Get('users/popular')
   @ApiOperation({ summary: 'Get most popular users by repo pulse count' })
-  async getPopularUsers(
-    @Query('timeframe') timeframe?: string,
-    @Query('limit') limit?: string,
-  ) {
+  async getPopularUsers(@Query('timeframe') timeframe?: string, @Query('limit') limit?: string) {
     const validTimeframes = ['week', 'month', 'all'];
-    const tf = validTimeframes.includes(timeframe!) ? (timeframe as 'week' | 'month' | 'all') : 'week';
+    const tf = validTimeframes.includes(timeframe!)
+      ? (timeframe as 'week' | 'month' | 'all')
+      : 'week';
     const lim = Math.min(Number(limit) || 20, 50);
     return this.usersService.getMostPopularUsers(tf, lim);
   }

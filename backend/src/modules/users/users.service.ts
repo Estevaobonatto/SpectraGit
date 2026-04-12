@@ -169,9 +169,7 @@ export class UsersService {
       userPulseCounts.set(repo.ownerUserId, current + repo._count.pulses);
     }
 
-    const ranked = [...userPulseCounts.entries()]
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, limit);
+    const ranked = [...userPulseCounts.entries()].sort(([, a], [, b]) => b - a).slice(0, limit);
 
     if (ranked.length === 0) return [];
 
@@ -272,15 +270,16 @@ export class UsersService {
     });
   }
 
-  async getAvatarStream(userId: string, filename: string): Promise<{ stream: Readable; contentType: string }> {
+  async getAvatarStream(
+    userId: string,
+    filename: string,
+  ): Promise<{ stream: Readable; contentType: string }> {
     // Validate the filename to prevent path traversal
     if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) {
       throw new BadRequestException('Invalid filename');
     }
     const s3Key = `${AVATAR_PREFIX}/${userId}/${filename}`;
-    const response = await this.s3.send(
-      new GetObjectCommand({ Bucket: this.bucket, Key: s3Key }),
-    );
+    const response = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: s3Key }));
     return {
       stream: response.Body as Readable,
       contentType: response.ContentType ?? 'application/octet-stream',

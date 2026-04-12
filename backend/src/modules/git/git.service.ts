@@ -501,6 +501,16 @@ export class GitService {
     return git.diff([base, head]);
   }
 
+  async getDiffBetweenFiles(
+    ownerName: string,
+    repoSlug: string,
+    base: string,
+    head: string,
+  ): Promise<DiffFile[]> {
+    const raw = await this.getDiffBetween(ownerName, repoSlug, base, head).catch(() => '');
+    return this.parseDiff(raw);
+  }
+
   async getBranches(ownerName: string, repoSlug: string): Promise<string[]> {
     const repoPath = this.getRepoPath(ownerName, repoSlug);
     const git = this.getGit(repoPath);

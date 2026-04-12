@@ -57,10 +57,12 @@ model User {
   repoMembers    RepositoryMember[]
   authoredIssues Issue[]            @relation("IssueAuthor")
   assignedIssues Issue[]            @relation("IssueAssignee")
-  authoredPRs    PullRequest[]      @relation("PRAuthor")
-  mergedPRs      PullRequest[]      @relation("PRMerger")
-  reviews        Review[]
-  comments       Comment[]
+  authoredPRs         PullRequest[]         @relation("PRAuthor")
+  mergedPRs           PullRequest[]         @relation("PRMerger")
+  reviews             Review[]
+  comments            Comment[]             @relation("CommentAuthor")
+  resolvedComments    Comment[]             @relation("CommentResolver")
+  reviewerRequests    PullRequestReviewer[] @relation("RequestedReviewer")
   notifications           Notification[]
   notificationPreferences NotificationPreference[]
   orgMembers     OrganizationMember[]
@@ -327,6 +329,7 @@ model Repository {
   allowSquashMerge  Boolean        @default(true) @map("allow_squash_merge")
   allowRebaseMerge  Boolean        @default(false) @map("allow_rebase_merge")
   autoDeleteBranch  Boolean        @default(false) @map("auto_delete_branch")
+  prRiskConfig      Json?          @map("pr_risk_config")
   isArchived        Boolean        @default(false) @map("is_archived")
   isFork            Boolean        @default(false) @map("is_fork")
   forkSourceRepoId  String?        @map("fork_source_repo_id") @db.Uuid
@@ -646,16 +649,22 @@ model PullRequest {
   mergeStrategy    MergeStrategy? @map("merge_strategy")
   mergedBy         String?        @map("merged_by") @db.Uuid
   mergedAt         DateTime?      @map("merged_at")
+  isDraft          Boolean        @default(false) @map("is_draft")
+  checklist        Json           @default("[]") @map("checklist")
+  contextBlocks    Json?          @map("context_blocks")
   githubExternalId String?        @map("github_external_id") @db.VarChar(255)
   createdAt        DateTime       @default(now()) @map("created_at")
   updatedAt        DateTime       @updatedAt @map("updated_at")
 
-  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
-  author     User       @relation("PRAuthor", fields: [authorId], references: [id])
-  merger     User?      @relation("PRMerger", fields: [mergedBy], references: [id], onDelete: SetNull)
-  reviews    Review[]
-  comments   Comment[]
-  labels     PRLabel[]
+  repository         Repository             @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  author             User                   @relation("PRAuthor", fields: [authorId], references: [id])
+  merger             User?                  @relation("PRMerger", fields: [mergedBy], references: [id], onDelete: SetNull)
+  reviews            Review[]
+  comments           Comment[]
+  labels             PRLabel[]
+  requestedReviewers PullRequestReviewer[]
+  dependenciesOut    PullRequestDependency[] @relation("DependentPR")
+  dependenciesIn     PullRequestDependency[] @relation("DependsOnPR")
 
   @@unique([repositoryId, number])
   @@index([repositoryId])
@@ -673,6 +682,32 @@ model PRLabel {
 
   @@id([pullRequestId, labelId])
   @@map("pr_labels")
+}
+
+model PullRequestReviewer {
+  id            String   @id @default(uuid()) @db.Uuid
+  pullRequestId String   @map("pull_request_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  requestedAt   DateTime @default(now()) @map("requested_at")
+
+  pullRequest PullRequest @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+  user        User        @relation("RequestedReviewer", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pullRequestId, userId])
+  @@map("pull_request_reviewers")
+}
+
+model PullRequestDependency {
+  id             String @id @default(uuid()) @db.Uuid
+  dependentPrId  String @map("dependent_pr_id") @db.Uuid
+  dependsOnPrId  String @map("depends_on_pr_id") @db.Uuid
+  repositoryId   String @map("repository_id") @db.Uuid
+
+  dependentPR PullRequest @relation("DependentPR", fields: [dependentPrId], references: [id], onDelete: Cascade)
+  dependsOnPR PullRequest @relation("DependsOnPR", fields: [dependsOnPrId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentPrId, dependsOnPrId])
+  @@map("pull_request_dependencies")
 }
 
 // ─── Reviews & Comments ──────────────────────────────────────
@@ -716,10 +751,13 @@ model Comment {
   body          String      @db.Text
   filePath      String?     @map("file_path") @db.VarChar(1000)
   lineNumber    Int?        @map("line_number")
+  resolved      Boolean     @default(false)
+  resolvedById  String?     @map("resolved_by_id") @db.Uuid
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
-  author      User         @relation(fields: [authorId], references: [id])
+  author      User         @relation("CommentAuthor", fields: [authorId], references: [id])
+  resolvedBy  User?        @relation("CommentResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
   issue       Issue?       @relation(fields: [issueId], references: [id], onDelete: Cascade)
   pullRequest PullRequest? @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
   review      Review?      @relation(fields: [reviewId], references: [id], onDelete: Cascade)

@@ -1,4 +1,12 @@
-import { IsString, IsOptional, IsEnum, IsBoolean, IsArray, IsUrl, MaxLength, ArrayMaxSize, Min, Max, IsInt } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsBoolean,
+  IsArray,
+  MaxLength,
+  ArrayMaxSize,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { RepoVisibility } from '@prisma/client';
 

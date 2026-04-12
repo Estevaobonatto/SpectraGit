@@ -15,7 +15,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  handleRequest(err: any, user: any, _info: any, context: ExecutionContext) {
+  handleRequest<TUser extends object>(
+    err: Error | null,
+    user: TUser | false,
+    _info: unknown,
+    context: ExecutionContext,
+  ): TUser | null {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -23,7 +28,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     // On public routes authentication is optional: populate user when token is
     // valid but do NOT throw when it is absent or invalid
     if (isPublic) {
-      return user ?? null;
+      return user || null;
     }
     if (err || !user) {
       throw err || new UnauthorizedException();

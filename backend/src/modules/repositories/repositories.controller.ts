@@ -10,6 +10,7 @@ import { ListRepositoriesQueryDto } from './dto/list-repositories-query.dto';
 import { UpdateBranchProtectionDto } from './dto/update-branch-protection.dto';
 import { CreateWebhookDto, UpdateWebhookDto } from './dto/webhook.dto';
 import { TransferRepositoryDto } from './dto/transfer-repository.dto';
+import { PrRiskConfigDto } from '../pull-requests/dto/pr-risk-config.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -33,12 +34,15 @@ export class RepositoriesController {
   @Public()
   @Get()
   @ApiOperation({ summary: 'List repositories' })
-  async findAll(
-    @Query() query: ListRepositoriesQueryDto,
-    @CurrentUser() user?: JwtPayload,
-  ) {
+  async findAll(@Query() query: ListRepositoriesQueryDto, @CurrentUser() user?: JwtPayload) {
     const { scope, q, repoSort, ...pagination } = query;
-    return this.reposService.findAll(user?.sub || null, pagination as PaginationDto, scope, q, repoSort);
+    return this.reposService.findAll(
+      user?.sub || null,
+      pagination as PaginationDto,
+      scope,
+      q,
+      repoSort,
+    );
   }
 
   @Public()
@@ -340,5 +344,30 @@ export class RepositoriesController {
     @Body() dto: TransferRepositoryDto,
   ) {
     return this.reposService.transferRepository(owner, repo, user.sub, dto);
+  }
+
+  // ─── PR Risk Config ────────────────────────────────────────
+
+  @Public()
+  @Get(':owner/:repo/settings/pr-risk-config')
+  @ApiOperation({ summary: 'Get PR risk configuration for repo' })
+  async getPrRiskConfig(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user?: JwtPayload,
+  ) {
+    return this.reposService.getPrRiskConfig(owner, repo, user?.sub);
+  }
+
+  @Put(':owner/:repo/settings/pr-risk-config')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update PR risk configuration for repo' })
+  async updatePrRiskConfig(
+    @Param('owner') owner: string,
+    @Param('repo') repo: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: PrRiskConfigDto,
+  ) {
+    return this.reposService.updatePrRiskConfig(owner, repo, user.sub, dto);
   }
 }

@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GitService } from '../git/git.service';
 import { UpdateProfileCustomizationDto } from './dto/update-profile-customization.dto';
@@ -113,7 +108,14 @@ export class ProfileService {
 
     // Sanitize custom CSS - block dangerous properties
     if (dto.customCss) {
-      const forbidden = ['position:\\s*fixed', 'position:\\s*absolute', 'z-index', 'javascript:', 'expression\\(', 'url\\((?!data:image)'];
+      const forbidden = [
+        'position:\\s*fixed',
+        'position:\\s*absolute',
+        'z-index',
+        'javascript:',
+        'expression\\(',
+        'url\\((?!data:image)',
+      ];
       for (const pattern of forbidden) {
         if (new RegExp(pattern, 'i').test(dto.customCss)) {
           throw new BadRequestException(`Custom CSS contains forbidden pattern: ${pattern}`);
@@ -195,7 +197,9 @@ export class ProfileService {
 
   async pinRepository(userId: string, dto: PinRepositoryDto) {
     const profile = await this.ensureProfile(userId);
-    const count = await this.prisma.userPinnedRepository.count({ where: { profileId: profile.id } });
+    const count = await this.prisma.userPinnedRepository.count({
+      where: { profileId: profile.id },
+    });
     if (count >= 6) throw new BadRequestException('Maximum of 6 pinned repositories allowed');
 
     // Verify the repo belongs to the user
@@ -205,7 +209,11 @@ export class ProfileService {
     if (!repo) throw new NotFoundException('Repository not found or not owned by you');
 
     return this.prisma.userPinnedRepository.create({
-      data: { profileId: profile.id, repositoryId: dto.repositoryId, sortOrder: dto.sortOrder ?? count },
+      data: {
+        profileId: profile.id,
+        repositoryId: dto.repositoryId,
+        sortOrder: dto.sortOrder ?? count,
+      },
       include: {
         repository: {
           select: { id: true, name: true, slug: true, description: true, visibility: true },
@@ -339,8 +347,7 @@ export class ProfileService {
       .map(([language, bytes]) => ({
         language,
         bytes,
-        percentage:
-          grandTotal > 0 ? Math.round((bytes / grandTotal) * 1000) / 10 : 0,
+        percentage: grandTotal > 0 ? Math.round((bytes / grandTotal) * 1000) / 10 : 0,
       }))
       .sort((a, b) => b.bytes - a.bytes);
 
@@ -361,10 +368,7 @@ export class ProfileService {
     // Fetch all repos the viewer is allowed to see
     const repos = await this.prisma.repository.findMany({
       where: {
-        OR: [
-          { ownerUserId: user.id },
-          { ownerOrg: { members: { some: { userId: user.id } } } },
-        ],
+        OR: [{ ownerUserId: user.id }, { ownerOrg: { members: { some: { userId: user.id } } } }],
         ...(isOwner ? {} : { visibility: 'PUBLIC' }),
       },
       select: {

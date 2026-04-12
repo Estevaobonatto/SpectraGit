@@ -42,54 +42,206 @@ export interface AnalysisResult {
 
 const TYPE_KEYWORDS: Record<IssueType, string[]> = {
   BUG: [
-    'error', 'crash', 'fail', 'broken', 'bug', 'exception', 'incorrect', 'wrong',
-    'not working', 'breaks', 'regression', 'undefined', 'null', 'stacktrace',
-    'stack trace', 'unexpected', 'does not work', 'doesnt work', 'doesn\'t work',
-    'throwing', 'fatal', 'segfault', 'corrupted', '500', '404', 'timeout',
+    'error',
+    'crash',
+    'fail',
+    'broken',
+    'bug',
+    'exception',
+    'incorrect',
+    'wrong',
+    'not working',
+    'breaks',
+    'regression',
+    'undefined',
+    'null',
+    'stacktrace',
+    'stack trace',
+    'unexpected',
+    'does not work',
+    'doesnt work',
+    "doesn't work",
+    'throwing',
+    'fatal',
+    'segfault',
+    'corrupted',
+    '500',
+    '404',
+    'timeout',
   ],
   FEATURE: [
-    'add', 'implement', 'support', 'allow', 'feature', 'request', 'would like',
-    'should have', 'proposal', 'rfc', 'suggest', 'new feature', 'enhancement',
-    'could we', 'can we add', 'it would be great', 'wish list', 'roadmap',
+    'add',
+    'implement',
+    'support',
+    'allow',
+    'feature',
+    'request',
+    'would like',
+    'should have',
+    'proposal',
+    'rfc',
+    'suggest',
+    'new feature',
+    'enhancement',
+    'could we',
+    'can we add',
+    'it would be great',
+    'wish list',
+    'roadmap',
   ],
   QUESTION: [
-    'how to', 'how do', 'why does', 'what is', 'when should', 'can i', 'is it possible',
-    'help me', 'explain', 'documentation', 'guide', 'tutorial', 'confused',
+    'how to',
+    'how do',
+    'why does',
+    'what is',
+    'when should',
+    'can i',
+    'is it possible',
+    'help me',
+    'explain',
+    'documentation',
+    'guide',
+    'tutorial',
+    'confused',
   ],
   SUPPORT: [
-    'install', 'setup', 'configure', 'deploy', 'version', 'can\'t connect',
-    'connection', 'migration', 'upgrade', 'downgrade', 'compatibility',
-    'environment', 'docker', 'build fails', 'dependency',
+    'install',
+    'setup',
+    'configure',
+    'deploy',
+    'version',
+    "can't connect",
+    'connection',
+    'migration',
+    'upgrade',
+    'downgrade',
+    'compatibility',
+    'environment',
+    'docker',
+    'build fails',
+    'dependency',
   ],
   IMPROVEMENT: [
-    'improve', 'enhance', 'optimize', 'better', 'performance', 'refactor',
-    'slow', 'faster', 'reduce', 'cleanup', 'technical debt', 'modernize',
-    'usability', 'ux', 'ui improvement', 'polish',
+    'improve',
+    'enhance',
+    'optimize',
+    'better',
+    'performance',
+    'refactor',
+    'slow',
+    'faster',
+    'reduce',
+    'cleanup',
+    'technical debt',
+    'modernize',
+    'usability',
+    'ux',
+    'ui improvement',
+    'polish',
   ],
 };
 
 const PRIORITY_CRITICAL_KEYWORDS = [
-  'production down', 'critical', 'security vulnerability', 'data loss',
-  'breaking change', 'urgent', 'outage', 'exploit', 'injection', 'xss',
-  'authentication bypass', 'p0', 'sev0', 'sev1',
+  'production down',
+  'critical',
+  'security vulnerability',
+  'data loss',
+  'breaking change',
+  'urgent',
+  'outage',
+  'exploit',
+  'injection',
+  'xss',
+  'authentication bypass',
+  'p0',
+  'sev0',
+  'sev1',
 ];
 
 const PRIORITY_HIGH_KEYWORDS = [
-  'all users', 'regression', 'blocked', 'severe', 'many users',
-  'data corruption', 'performance degradation', 'memory leak', 'p1',
+  'all users',
+  'regression',
+  'blocked',
+  'severe',
+  'many users',
+  'data corruption',
+  'performance degradation',
+  'memory leak',
+  'p1',
 ];
 
-const PRIORITY_MEDIUM_KEYWORDS = [
-  'intermittent', 'workaround', 'some users', 'minor bug', 'p2',
-];
+const PRIORITY_MEDIUM_KEYWORDS = ['intermittent', 'workaround', 'some users', 'minor bug', 'p2'];
 
 const AREA_KEYWORDS: Record<string, string[]> = {
-  frontend: ['frontend', 'ui', 'css', 'button', 'page', 'component', 'layout', 'responsive', 'style', 'react', 'browser', 'display', 'render', 'animation'],
-  backend: ['api', 'backend', 'database', 'query', 'server', 'endpoint', 'rest', 'controller', 'service', 'prisma', 'orm', 'migration'],
-  auth: ['auth', 'login', 'oauth', 'token', 'session', 'password', 'permission', 'role', 'access', 'jwt', 'credential'],
-  'git-engine': ['git', 'commit', 'push', 'pull', 'branch', 'merge', 'clone', 'diff', 'rebase', 'tag', 'ref', 'repository'],
+  frontend: [
+    'frontend',
+    'ui',
+    'css',
+    'button',
+    'page',
+    'component',
+    'layout',
+    'responsive',
+    'style',
+    'react',
+    'browser',
+    'display',
+    'render',
+    'animation',
+  ],
+  backend: [
+    'api',
+    'backend',
+    'database',
+    'query',
+    'server',
+    'endpoint',
+    'rest',
+    'controller',
+    'service',
+    'prisma',
+    'orm',
+    'migration',
+  ],
+  auth: [
+    'auth',
+    'login',
+    'oauth',
+    'token',
+    'session',
+    'password',
+    'permission',
+    'role',
+    'access',
+    'jwt',
+    'credential',
+  ],
+  'git-engine': [
+    'git',
+    'commit',
+    'push',
+    'pull',
+    'branch',
+    'merge',
+    'clone',
+    'diff',
+    'rebase',
+    'tag',
+    'ref',
+    'repository',
+  ],
   notifications: ['notification', 'email', 'alert', 'webhook', 'subscribe', 'watch', 'event'],
-  infrastructure: ['docker', 'deploy', 'ci', 'cd', 'pipeline', 'kubernetes', 'nginx', 'redis', 'postgres'],
+  infrastructure: [
+    'docker',
+    'deploy',
+    'ci',
+    'cd',
+    'pipeline',
+    'kubernetes',
+    'nginx',
+    'redis',
+    'postgres',
+  ],
 };
 
 const DEFAULT_LABEL_COLORS: Record<IssueType, string> = {
@@ -220,19 +372,28 @@ export class IssueAnalysisService {
 
     for (const keyword of PRIORITY_CRITICAL_KEYWORDS) {
       if (text.includes(keyword)) {
-        return { priority: IssuePriority.CRITICAL, reason: `Contains critical keyword: "${keyword}"` };
+        return {
+          priority: IssuePriority.CRITICAL,
+          reason: `Contains critical keyword: "${keyword}"`,
+        };
       }
     }
 
     for (const keyword of PRIORITY_HIGH_KEYWORDS) {
       if (text.includes(keyword)) {
-        return { priority: IssuePriority.HIGH, reason: `Contains high-priority keyword: "${keyword}"` };
+        return {
+          priority: IssuePriority.HIGH,
+          reason: `Contains high-priority keyword: "${keyword}"`,
+        };
       }
     }
 
     for (const keyword of PRIORITY_MEDIUM_KEYWORDS) {
       if (text.includes(keyword)) {
-        return { priority: IssuePriority.MEDIUM, reason: `Contains medium-priority keyword: "${keyword}"` };
+        return {
+          priority: IssuePriority.MEDIUM,
+          reason: `Contains medium-priority keyword: "${keyword}"`,
+        };
       }
     }
 
@@ -282,7 +443,10 @@ export class IssueAnalysisService {
 
     // Priority-based labels
     for (const keyword of PRIORITY_CRITICAL_KEYWORDS) {
-      if (text.includes(keyword)) { labels.push('critical'); break; }
+      if (text.includes(keyword)) {
+        labels.push('critical');
+        break;
+      }
     }
 
     // Area-based labels
@@ -294,10 +458,7 @@ export class IssueAnalysisService {
 
   // ─── 7. Get User Trust Level ────────────────────────────────
 
-  async getUserTrustLevel(
-    userId: string,
-    repositoryId: string,
-  ): Promise<'trusted' | 'new'> {
+  async getUserTrustLevel(userId: string, repositoryId: string): Promise<'trusted' | 'new'> {
     // Check if user is a repository member
     const member = await this.prisma.repositoryMember.findUnique({
       where: { repositoryId_userId: { repositoryId, userId } },

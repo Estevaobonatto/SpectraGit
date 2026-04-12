@@ -55,13 +55,7 @@ export class CollaboratorsController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateCollaboratorRoleDto,
   ) {
-    return this.collaboratorsService.updateCollaboratorRole(
-      owner,
-      repo,
-      user.sub,
-      username,
-      dto,
-    );
+    return this.collaboratorsService.updateCollaboratorRole(owner, repo, user.sub, username, dto);
   }
 
   @Delete(':username')

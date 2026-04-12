@@ -317,12 +317,76 @@ export interface Label {
   description: string | null;
 }
 
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  checked: boolean;
+}
+
+export interface ContextBlocks {
+  problem?: string;
+  solution?: string;
+  impact?: string;
+  testInstructions?: string;
+}
+
+export interface PRDiffStats {
+  filesChanged: number;
+  linesAdded: number;
+  linesRemoved: number;
+  commitCount: number;
+  categories: {
+    backend: number;
+    frontend: number;
+    database: number;
+    docs: number;
+    infra: number;
+  };
+}
+
+export interface PullRequestReviewer {
+  id: string;
+  pullRequestId: string;
+  userId: string;
+  requestedAt: string;
+  user: Pick<User, 'id' | 'username' | 'avatarUrl'>;
+}
+
+export interface PullRequestDependency {
+  id: string;
+  dependentPrId: string;
+  dependsOnPrId: string;
+  repositoryId: string;
+}
+
+export interface PRBlocker {
+  type: 'CONFLICT' | 'CHANGES_REQUESTED' | 'REVIEW_PENDING' | 'DRAFT';
+  message: string;
+}
+
+export interface PRTimelineEvent {
+  type: string;
+  actor: Pick<User, 'username' | 'avatarUrl'> | null;
+  message: string;
+  timestamp: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface PrRiskConfig {
+  maxFiles?: number;
+  maxLines?: number;
+  criticalPaths?: string[];
+}
+
 export interface PullRequest {
   id: string;
   number: number;
   title: string;
   body: string | null;
   status: 'OPEN' | 'CLOSED' | 'MERGED';
+  isDraft: boolean;
   sourceBranch: string;
   targetBranch: string;
   authorId: string;
@@ -330,9 +394,16 @@ export interface PullRequest {
   mergedBy?: User;
   mergedAt: string | null;
   mergeStrategy: string | null;
+  checklist: ChecklistItem[];
+  contextBlocks: ContextBlocks | null;
   labels?: Label[];
   reviews?: Review[];
   comments?: Comment[];
+  requestedReviewers?: PullRequestReviewer[];
+  dependenciesOut?: PullRequestDependency[];
+  dependenciesIn?: PullRequestDependency[];
+  diffStats?: PRDiffStats | null;
+  riskLevel?: RiskLevel | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -340,6 +411,8 @@ export interface PullRequest {
 export interface Review {
   id: string;
   pullRequestId: string;
+  reviewerId: string;
+  reviewer?: User;
   authorId: string;
   author?: User;
   status: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED';
@@ -358,6 +431,9 @@ export interface Comment {
   reviewId?: string;
   filePath?: string;
   lineNumber?: number;
+  resolved: boolean;
+  resolvedById?: string;
+  resolvedBy?: Pick<User, 'username' | 'avatarUrl'>;
   createdAt: string;
   updatedAt: string;
 }

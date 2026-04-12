@@ -60,18 +60,121 @@ import {
 } from '@/components/ui/select';
 import { motion } from 'motion/react';
 import type { Branch, Webhook } from '@/types';
+import { usePrRiskConfig, useUpdatePrRiskConfig } from '@/hooks/usePullRequests';
 
 // ─── Settings Navigation ─────────────────────────────────────
 
-type SettingsTab = 'general' | 'features' | 'branches' | 'webhooks' | 'danger';
+type SettingsTab = 'general' | 'features' | 'branches' | 'webhooks' | 'pull-requests' | 'danger';
 
 const TABS: { id: SettingsTab; label: string; icon: typeof Settings }[] = [
   { id: 'general', label: 'General', icon: Settings },
   { id: 'features', label: 'Features', icon: ToggleLeft },
   { id: 'branches', label: 'Branches', icon: GitBranch },
   { id: 'webhooks', label: 'Webhooks', icon: WebhookIcon },
+  { id: 'pull-requests', label: 'Pull Requests', icon: GitMerge },
   { id: 'danger', label: 'Danger Zone', icon: AlertTriangle },
 ];
+
+// ─── Pull Requests Tab ───────────────────────────────────────
+
+function PullRequestsTab({ owner, repo }: { owner: string; repo: string }) {
+  const { data: configData } = usePrRiskConfig(owner, repo);
+  const updateConfig = useUpdatePrRiskConfig(owner, repo);
+
+  const config = (configData as { maxFiles?: number; maxLines?: number; criticalPaths?: string[] } | undefined);
+  const [maxFiles, setMaxFiles] = useState(String(config?.maxFiles ?? 50));
+  const [maxLines, setMaxLines] = useState(String(config?.maxLines ?? 500));
+  const [criticalPaths, setCriticalPaths] = useState((config?.criticalPaths ?? []).join(', '));
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    updateConfig.mutate({
+      maxFiles: Number(maxFiles) || 50,
+      maxLines: Number(maxLines) || 500,
+      criticalPaths: criticalPaths.split(',').map(s => s.trim()).filter(Boolean),
+    }, {
+      onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 2500); },
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-text-primary">PR Risk Configuration</h2>
+        <p className="mt-1 text-sm text-text-tertiary">
+          Configure thresholds used to compute the risk level badge on pull requests.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Risk Thresholds</CardTitle>
+          <CardDescription>
+            PRs exceeding these limits receive a higher risk score.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="maxFiles">Max files (MEDIUM threshold)</Label>
+              <Input
+                id="maxFiles"
+                type="number"
+                min={1}
+                value={maxFiles}
+                onChange={e => setMaxFiles(e.target.value)}
+                className="w-full"
+              />
+              <p className="text-xs text-text-tertiary">PRs touching more files get elevated risk.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="maxLines">Max lines changed (HIGH threshold)</Label>
+              <Input
+                id="maxLines"
+                type="number"
+                min={1}
+                value={maxLines}
+                onChange={e => setMaxLines(e.target.value)}
+                className="w-full"
+              />
+              <p className="text-xs text-text-tertiary">PRs changing more lines get HIGH or CRITICAL risk.</p>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="criticalPaths">Critical paths (comma-separated)</Label>
+            <Input
+              id="criticalPaths"
+              value={criticalPaths}
+              onChange={e => setCriticalPaths(e.target.value)}
+              placeholder="e.g. src/auth, prisma/schema.prisma, .env"
+              className="w-full font-mono text-sm"
+            />
+            <p className="text-xs text-text-tertiary">
+              PRs touching any of these paths automatically receive CRITICAL risk.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 pt-1">
+            <Button size="sm" onClick={handleSave} disabled={updateConfig.isPending} className="gap-1.5">
+              <Check className="h-3.5 w-3.5" />
+              {updateConfig.isPending ? 'Saving...' : 'Save configuration'}
+            </Button>
+            {saved && (
+              <span className="text-xs text-success flex items-center gap-1">
+                <Check className="h-3 w-3" />Saved
+              </span>
+            )}
+          </div>
+
+          {updateConfig.isError && (
+            <Alert variant="error">Failed to save configuration.</Alert>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 // ─── General Tab ─────────────────────────────────────────────
 
@@ -1096,6 +1199,7 @@ export default function RepositorySettingsPage() {
           {activeTab === 'features' && <FeaturesTab owner={owner!} repo={repo!} />}
           {activeTab === 'branches' && <BranchesTab owner={owner!} repo={repo!} />}
           {activeTab === 'webhooks' && <WebhooksTab owner={owner!} repo={repo!} />}
+          {activeTab === 'pull-requests' && <PullRequestsTab owner={owner!} repo={repo!} />}
           {activeTab === 'danger' && <DangerZoneTab owner={owner!} repo={repo!} />}
         </div>
       </div>

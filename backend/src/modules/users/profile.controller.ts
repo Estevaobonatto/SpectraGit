@@ -35,10 +35,7 @@ export class ProfileController {
   @Public()
   @Get('users/:username/heatmap')
   @ApiOperation({ summary: 'Get user commit heatmap' })
-  async getCommitHeatmap(
-    @Param('username') username: string,
-    @CurrentUser() user?: JwtPayload,
-  ) {
+  async getCommitHeatmap(@Param('username') username: string, @CurrentUser() user?: JwtPayload) {
     return this.profileService.getCommitHeatmap(username, user?.sub);
   }
 
@@ -127,7 +124,10 @@ export class ProfileController {
   @Delete('me/profile/pinned-repos/:repositoryId')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Unpin a repository' })
-  async unpinRepository(@CurrentUser() user: JwtPayload, @Param('repositoryId') repositoryId: string) {
+  async unpinRepository(
+    @CurrentUser() user: JwtPayload,
+    @Param('repositoryId') repositoryId: string,
+  ) {
     return this.profileService.unpinRepository(user.sub, repositoryId);
   }
 

@@ -135,11 +135,12 @@ export class RepositoriesService {
     const where: Prisma.RepositoryWhereInput =
       andConditions.length === 1 ? andConditions[0] : { AND: andConditions };
 
-    const orderBy: Prisma.RepositoryOrderByWithRelationInput | Prisma.RepositoryOrderByWithRelationInput[] =
+    const orderBy:
+      | Prisma.RepositoryOrderByWithRelationInput
+      | Prisma.RepositoryOrderByWithRelationInput[] =
       sort === 'trending'
         ? [
-            { pulses: { _count: 'desc' },
-            } as Prisma.RepositoryOrderByWithRelationInput,
+            { pulses: { _count: 'desc' } } as Prisma.RepositoryOrderByWithRelationInput,
             { watches: { _count: 'desc' } } as Prisma.RepositoryOrderByWithRelationInput,
             { forks: { _count: 'desc' } } as Prisma.RepositoryOrderByWithRelationInput,
           ]
@@ -158,13 +159,15 @@ export class RepositoriesService {
         include: {
           ownerUser: { select: { username: true, avatarUrl: true } },
           ownerOrg: { select: { name: true, avatarUrl: true } },
-          _count: { select: { issues: true, pullRequests: true, pulses: true, watches: true, forks: true } },
+          _count: {
+            select: { issues: true, pullRequests: true, pulses: true, watches: true, forks: true },
+          },
         },
       }),
       this.prisma.repository.count({ where }),
     ]);
 
-    const mapped = items.map((repo: any) => ({
+    const mapped = items.map((repo) => ({
       ...repo,
       pulseCount: repo._count?.pulses ?? 0,
       watchCount: repo._count?.watches ?? 0,
@@ -583,7 +586,12 @@ export class RepositoriesService {
     };
   }
 
-  async removeBranchProtection(ownerName: string, slug: string, branchName: string, userId: string) {
+  async removeBranchProtection(
+    ownerName: string,
+    slug: string,
+    branchName: string,
+    userId: string,
+  ) {
     const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
     await this.ensureAdmin(repo.id, userId, repo.ownerUser?.id);
 
@@ -715,7 +723,10 @@ export class RepositoriesService {
     }
 
     const newSlug = dto.newName
-      ? dto.newName.toLowerCase().replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '')
+      ? dto.newName
+          .toLowerCase()
+          .replace(/[^a-zA-Z0-9._-]+/g, '-')
+          .replace(/^-+|-+$/g, '')
       : slug;
 
     // Check if transferring to a user or org
@@ -738,9 +749,7 @@ export class RepositoriesService {
         where: { orgId_userId: { orgId: targetOrg.id, userId } },
       });
       if (!membership || membership.role === 'MEMBER') {
-        throw new ForbiddenException(
-          'You must be an admin or owner of the target organization',
-        );
+        throw new ForbiddenException('You must be an admin or owner of the target organization');
       }
     }
 
@@ -798,11 +807,9 @@ export class RepositoriesService {
     // git archive --format=zip is natively supported — no extra tools needed.
     // Use -C (chdir) instead of --git-dir so this works for both bare repos
     // and non-bare working trees (where --git-dir would point at the wrong dir).
-    const result = spawnSync(
-      'git',
-      ['-C', repoPath, 'archive', '--format=zip', branch],
-      { maxBuffer: 256 * 1024 * 1024 },
-    );
+    const result = spawnSync('git', ['-C', repoPath, 'archive', '--format=zip', branch], {
+      maxBuffer: 256 * 1024 * 1024,
+    });
 
     if (result.status !== 0) {
       const msg = result.stderr?.toString() || 'unknown error';
@@ -812,5 +819,28 @@ export class RepositoriesService {
     const safeBranch = branch.replace(/[^a-zA-Z0-9._-]/g, '-');
     const filename = `${repo.slug}-${safeBranch}.zip`;
     return { buffer: result.stdout as Buffer, filename };
+  }
+
+  // ─── PR Risk Config ─────────────────────────────────────────
+
+  async getPrRiskConfig(ownerName: string, slug: string, userId?: string) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+    return { prRiskConfig: repo.prRiskConfig ?? null };
+  }
+
+  async updatePrRiskConfig(
+    ownerName: string,
+    slug: string,
+    userId: string,
+    dto: { maxFiles?: number; maxLines?: number; criticalPaths?: string[] },
+  ) {
+    const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
+
+    const updated = await this.prisma.repository.update({
+      where: { id: repo.id },
+      data: { prRiskConfig: dto as unknown as Prisma.InputJsonValue },
+      select: { id: true, prRiskConfig: true },
+    });
+    return { prRiskConfig: updated.prRiskConfig };
   }
 }

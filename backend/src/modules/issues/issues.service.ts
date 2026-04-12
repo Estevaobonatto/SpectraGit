@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { IssueStatus, CommentType, IssueType, Prisma } from '@prisma/client';
+import { IssueStatus, CommentType, IssueType, Prisma, IssuePriority } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RepositoriesService } from '../repositories/repositories.service';
 import { CreateIssueDto } from './dto/create-issue.dto';
@@ -29,7 +29,11 @@ export class IssuesService {
     // Auto-analysis: classify, prioritize, route
     const classification = this.analysisService.classifyIssue(dto.title, dto.body);
     const resolvedType = dto.type ?? classification.type;
-    const prioritySuggestion = this.analysisService.suggestPriority(dto.title, dto.body, resolvedType);
+    const prioritySuggestion = this.analysisService.suggestPriority(
+      dto.title,
+      dto.body,
+      resolvedType,
+    );
     const resolvedPriority = dto.priority ?? prioritySuggestion.priority;
     const assignedArea = this.analysisService.routeToArea(dto.title, dto.body);
 
@@ -38,7 +42,11 @@ export class IssuesService {
     const initialStatus = trustLevel === 'trusted' ? IssueStatus.OPEN : IssueStatus.TRIAGE;
 
     // Auto-create labels based on type
-    const suggestedLabelNames = this.analysisService.suggestLabels(resolvedType, dto.title, dto.body);
+    const suggestedLabelNames = this.analysisService.suggestLabels(
+      resolvedType,
+      dto.title,
+      dto.body,
+    );
     const autoLabelIds = await this.analysisService.ensureTypeLabels(
       repoEntity.id,
       suggestedLabelNames,
@@ -57,13 +65,15 @@ export class IssuesService {
         type: resolvedType,
         priority: resolvedPriority,
         assignedArea: assignedArea,
-        techContext: dto.techContext != null ? (dto.techContext as Prisma.InputJsonValue) : undefined,
+        techContext:
+          dto.techContext != null ? (dto.techContext as Prisma.InputJsonValue) : undefined,
         formData: dto.formData != null ? (dto.formData as Prisma.InputJsonValue) : undefined,
         assigneeId: dto.assigneeId,
         milestoneId: dto.milestoneId,
-        labels: allLabelIds.length > 0
-          ? { create: allLabelIds.map((labelId) => ({ labelId })) }
-          : undefined,
+        labels:
+          allLabelIds.length > 0
+            ? { create: allLabelIds.map((labelId) => ({ labelId })) }
+            : undefined,
       },
       include: {
         author: { select: { username: true, avatarUrl: true } },
@@ -91,7 +101,7 @@ export class IssuesService {
     filters?: {
       status?: IssueStatus | IssueStatus[];
       type?: IssueType;
-      priority?: string;
+      priority?: IssuePriority;
       assignedArea?: string;
     },
     userId?: string,
@@ -108,9 +118,11 @@ export class IssuesService {
       repositoryId: repoEntity.id,
       ...(statusFilter ? { status: statusFilter } : {}),
       ...(filters?.type ? { type: filters.type } : {}),
-      ...(filters?.priority ? { priority: filters.priority as any } : {}),
+      ...(filters?.priority ? { priority: filters.priority } : {}),
       ...(filters?.assignedArea ? { assignedArea: filters.assignedArea } : {}),
-      ...(pagination.search ? { title: { contains: pagination.search, mode: 'insensitive' as const } } : {}),
+      ...(pagination.search
+        ? { title: { contains: pagination.search, mode: 'insensitive' as const } }
+        : {}),
     };
 
     const orderBy = { [pagination.sort ?? 'createdAt']: pagination.sortOrder ?? 'desc' };
@@ -191,7 +203,11 @@ export class IssuesService {
     }
 
     // If closing with a reason, ensure close fields are set
-    const closeStatuses: IssueStatus[] = [IssueStatus.CLOSED, IssueStatus.RESOLVED, IssueStatus.WONT_FIX];
+    const closeStatuses: IssueStatus[] = [
+      IssueStatus.CLOSED,
+      IssueStatus.RESOLVED,
+      IssueStatus.WONT_FIX,
+    ];
     if (updateData.status && closeStatuses.includes(updateData.status)) {
       this.eventsService.emit('issue.closed', {
         repositoryId: repoEntity.id,
@@ -252,14 +268,26 @@ export class IssuesService {
 
   // ─── New: Analyze issue before creation ────────────────────
 
-  async analyzeIssue(owner: string, repo: string, userId: string, title: string, body?: string, type?: IssueType) {
+  async analyzeIssue(
+    owner: string,
+    repo: string,
+    userId: string,
+    title: string,
+    body?: string,
+    type?: IssueType,
+  ) {
     const repoEntity = await this.reposService.findByOwnerAndSlug(owner, repo, userId);
     return this.analysisService.analyze(repoEntity.id, userId, title, body, type);
   }
 
   // ─── New: Find similar issues ──────────────────────────────
 
-  async findSimilar(owner: string, repo: string, query: string, userId?: string): Promise<import('./issue-analysis.service').DuplicateCandidate[]> {
+  async findSimilar(
+    owner: string,
+    repo: string,
+    query: string,
+    userId?: string,
+  ): Promise<import('./issue-analysis.service').DuplicateCandidate[]> {
     const repoEntity = await this.reposService.findByOwnerAndSlug(owner, repo, userId);
     return this.analysisService.detectDuplicates(repoEntity.id, query);
   }
@@ -267,9 +295,15 @@ export class IssuesService {
   // ─── New: Triage queue ─────────────────────────────────────
 
   async findTriageQueue(owner: string, repo: string, pagination: PaginationDto, userId?: string) {
-    return this.findAll(owner, repo, pagination, {
-      status: [IssueStatus.TRIAGE, IssueStatus.OPEN],
-    }, userId);
+    return this.findAll(
+      owner,
+      repo,
+      pagination,
+      {
+        status: [IssueStatus.TRIAGE, IssueStatus.OPEN],
+      },
+      userId,
+    );
   }
 
   // ─── New: Kanban board data ────────────────────────────────

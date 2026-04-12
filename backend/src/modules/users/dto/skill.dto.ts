@@ -1,4 +1,13 @@
-import { IsString, IsOptional, IsNotEmpty, MaxLength, IsUrl, IsInt, IsArray, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNotEmpty,
+  MaxLength,
+  IsInt,
+  IsArray,
+  Min,
+  Max,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateSkillDto {

@@ -1,4 +1,13 @@
-import { IsString, IsOptional, IsNotEmpty, MaxLength, IsUrl, IsInt, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNotEmpty,
+  MaxLength,
+  IsUrl,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateSocialLinkDto {

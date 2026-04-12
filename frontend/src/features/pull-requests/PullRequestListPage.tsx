@@ -12,7 +12,10 @@ import {
   Clock,
   ArrowUpDown,
   ArrowDownAZ,
+  LayoutList,
+  LayoutGrid,
 } from 'lucide-react';
+import PRBoardPage from './PRBoardPage';
 import { usePullRequests } from '@/hooks/usePullRequests';
 import { useAuthStore } from '@/stores/auth.store';
 import { Button } from '@/components/ui/button';
@@ -57,6 +60,7 @@ export default function PullRequestListPage() {
   const [sort, setSort] = useState<SortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [page, setPage] = useState(1);
+  const [view, setView] = useState<'list' | 'board'>('list');
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -121,15 +125,53 @@ export default function PullRequestListPage() {
             );
           })}
         </div>
-        {isAuthenticated && (
-          <Button size="sm" asChild>
-            <Link to={`/${owner}/${repo}/pulls/new`}>
-              <Plus className="h-4 w-4" />
-              New pull request
-            </Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={view === 'list' ? 'default' : 'outline'}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setView('list')}
+                >
+                  <LayoutList className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>List view</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={view === 'board' ? 'default' : 'outline'}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setView('board')}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Board view</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {isAuthenticated && (
+            <Button size="sm" asChild>
+              <Link to={`/${owner}/${repo}/pulls/new`}>
+                <Plus className="h-4 w-4" />
+                New pull request
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Board view */}
+      {view === 'board' && <PRBoardPage />}
+
+      {/* List view — search, filters, results */}
+      {view === 'list' && <>
 
       {/* Search + Sort bar */}
       <div className="flex items-center gap-3">
@@ -321,6 +363,7 @@ export default function PullRequestListPage() {
           </div>
         </div>
       )}
+      </>}
     </div>
   );
 }
