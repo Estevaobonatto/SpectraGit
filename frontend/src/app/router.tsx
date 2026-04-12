@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { PublicShell } from '@/components/layout/PublicShell';
 import { ProtectedRoute, PublicOnlyRoute, OptionalAuthRoute, AdminRoute } from './guards';
 import { PageLoader } from '@/components/ui/spinner';
@@ -44,6 +44,7 @@ const RepositorySettingsPage = lazy(() => import('@/features/repositories/Reposi
 const CollaboratorsPage = lazy(() => import('@/features/repositories/CollaboratorsPage'));
 const ActivityFeedPage = lazy(() => import('@/features/activity/ActivityFeedPage'));
 const ProfilePage = lazy(() => import('@/features/settings/ProfilePage'));
+const ApiDocsPage = lazy(() => import('@/features/docs/ApiDocsPage'));
 
 // Settings layout & sub-pages
 const SettingsLayoutModule = import('@/features/settings/SettingsPage');
@@ -124,6 +125,14 @@ export const router = createBrowserRouter([
       {
         path: 'explore',
         element: <SuspenseWrapper><ExplorePage /></SuspenseWrapper>,
+      },
+      {
+        path: 'docs',
+        element: <Navigate to="/docs/api" replace />,
+      },
+      {
+        path: 'docs/api',
+        element: <SuspenseWrapper><ApiDocsPage /></SuspenseWrapper>,
       },
 
       /* --- Auth-required pages --- */

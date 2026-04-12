@@ -1,15 +1,48 @@
-Vamos fazer melhorias na visualização e design da parte de pull requests e issues. A ideia é deixar a interface mais limpa, moderna e fácil de usar, seguindo as tendências atuais de design. Aqui estão algumas sugestões de melhorias:
+Vamos fazer melhorias nas Issues e inovar o sistema em relação ao github:
 
-1. **Layout Limpo e Organizado**: Adote um layout mais espaçado, com seções claramente definidas para cada pull request e issue. Use cartões ou blocos para destacar cada item, com informações essenciais como título, autor, status e data de criação.
+1. Detecção de duplicados com busca semântica
+Antes de criar uma issue, o sistema deve buscar issues semelhantes e mostrar possíveis duplicatas com base no significado do texto, não só em palavras exatas.
 
-2. **Código**: Mostre os arquivos e código alterado de forma resumida com botão para mostrar tudo, suporte a comentários.
+2. Classificação automática da issue
+Ao enviar uma issue, a plataforma deve identificar automaticamente se ela é bug, feature, dúvida, suporte ou melhoria, aplicando a categoria correta sem ação manual.
 
-3. **Status Visual**: Use cores e ícones para indicar o status de cada pull request e issue (aberto, fechado, em revisão, etc.). Isso ajuda os usuários a identificar rapidamente o estado de cada item.
+3. Sugestão automática de prioridade
+A plataforma deve sugerir prioridade com base no conteúdo da issue, considerando impacto, severidade, quantidade de usuários afetados e urgência relatada.
 
-4. **Filtros e Ordenação**: Adicione opções de filtro e ordenação para que os usuários possam facilmente encontrar pull requests e issues específicos com base em critérios como data, autor, status, etc.
+4. Roteamento para equipe responsável
+A issue deve ser encaminhada automaticamente para a equipe, módulo ou área técnica correta, com base no assunto, componente afetado ou palavras-chave relevantes.
 
-5. **Ações Rápidas**: Inclua botões de ação rápida para cada pull request e issue, como "Merge", "Close", "Comment", etc., para facilitar a interação dos usuários.
+5. Formulários dinâmicos por tipo de issue
+O formulário de abertura da issue deve mudar conforme o tipo selecionado, exibindo campos específicos para bug, feature, suporte ou feedback.
 
-6. **Onboarding**: Interface clara em etapas para cada fase de criação, edição, aceitação e fechamento de pull requests e issues, com mensagens de feedback claras para cada ação.
+6. Validação de contexto obrigatório
+A plataforma deve exigir informações mínimas antes de permitir o envio, como versão, ambiente, passos para reproduzir, logs, capturas ou navegador, dependendo do tipo da issue.
 
-Altere o backend e frontend para implementar essas melhorias, garantindo que a experiência do usuário seja aprimorada e que a interface seja mais intuitiva e agradável de usar. Mantenha o estilo de design e siga o SDD do app
+7. Estados nativos de triagem
+Além de aberta e fechada, o sistema deve ter estados próprios como triage, confirmed, in-progress, blocked, waiting-user, resolved e wont-fix.
+
+8. Separação entre bug, suporte e feature
+O sistema deve separar claramente tickets técnicos de dúvidas de uso, solicitações de funcionalidade e relatos de erro, evitando misturar tudo na mesma fila.
+
+9. Painel de triagem centralizado
+A plataforma deve oferecer uma visão única para revisar, classificar, priorizar e distribuir issues recém-criadas antes de entrarem no fluxo de trabalho.
+
+10. Resolução com motivos estruturados
+Ao encerrar uma issue, o sistema deve permitir registrar o motivo da resolução, como resolvido, duplicado, não reproduzível, não planejado ou obsoleto.
+
+11. Captura automática de contexto técnico
+A issue deve incluir automaticamente dados úteis como ambiente, sistema operacional, navegador, versão do app, logs e stack trace quando disponíveis.
+
+12. Busca guiada antes do envio
+Antes de abrir uma nova issue, o sistema deve sugerir resultados existentes, artigos relacionados e possíveis soluções, reduzindo duplicação e ruído.
+
+13. Regras diferentes por tipo de usuário
+Usuários novos e confiáveis devem ter fluxos diferentes, com mais validação para novos usuários e menos atrito para colaboradores frequentes.
+
+14. Automação de labels e checklist
+A plataforma deve aplicar labels automaticamente, sugerir checklists adequados e padronizar metadados da issue com pouca intervenção manual.
+
+15. Kanban nativo para triagem
+As issues devem poder ser organizadas visualmente em colunas como triage, backlog, ready, in-progress e done, sem depender de configuração externa.
+
+faça o planejamento completo para adicionar todas essas funcionalidades, incluindo manter o deisgn system e de arquitetura atual para manter o padrão de desenvolvimento e experiência do usuário. Deve seguir o padrão de arquitetura do backend e frontend, utilizando as tecnologias e práticas já estabelecidas no projeto.

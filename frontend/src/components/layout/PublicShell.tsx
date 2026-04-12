@@ -5,7 +5,7 @@ import { PublicTopbar } from './PublicTopbar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/stores/auth.store';
 
-const STATIC_PATHS = ['repositories', 'organizations', 'orgs', 'notifications', 'settings', 'integrations', 'explore'];
+const STATIC_PATHS = ['repositories', 'organizations', 'orgs', 'notifications', 'settings', 'integrations', 'explore', 'docs'];
 
 function getRouteKey(pathname: string): string {
   const parts = pathname.split('/').filter(Boolean);
