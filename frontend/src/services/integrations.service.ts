@@ -1,9 +1,12 @@
 import { api } from './api';
-import type { GitHubRepo, ImportJobResponse, ImportJobStatusResponse } from '@/types';
+import type { GitHubRepo, GitHubPermissions, ImportJobResponse, ImportJobStatusResponse } from '@/types';
 
 export const integrationsService = {
   getGitHubProfile: () =>
     api.get<{ data: Record<string, unknown> }>('/integrations/github/profile').then((r) => r.data.data),
+
+  checkPermissions: (): Promise<GitHubPermissions> =>
+    api.get<{ data: GitHubPermissions }>('/integrations/github/permissions').then((r) => r.data.data),
 
   listGitHubRepos: () =>
     api.get<{ data: GitHubRepo[] }>('/integrations/github/repos').then((r) => r.data.data),

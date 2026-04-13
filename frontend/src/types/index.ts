@@ -530,6 +530,14 @@ export interface GitHubRepo {
   stargazersCount: number;
   forksCount: number;
   updatedAt: string;
+  ownerLogin: string;
+  ownerType: 'User' | 'Organization';
+}
+
+export interface GitHubPermissions {
+  hasRepo: boolean;
+  hasReadOrg: boolean;
+  scopes: string[];
 }
 
 export interface RepoContributor {

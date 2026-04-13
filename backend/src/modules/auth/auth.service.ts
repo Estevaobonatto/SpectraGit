@@ -56,6 +56,18 @@ export class AuthService {
       },
     });
 
+    // Update tokens on re-auth (e.g. user re-connected with expanded scopes)
+    if (user) {
+      await this.prisma.oAuthAccount.updateMany({
+        where: { userId: user.id, provider: profile.provider, providerUserId: profile.providerUserId },
+        data: {
+          encryptedAccessToken: profile.accessToken,
+          encryptedRefreshToken: profile.refreshToken,
+          scope: profile.scope ?? null,
+        },
+      });
+    }
+
     if (!user) {
       const existingUser = await this.prisma.user.findUnique({
         where: { email: profile.email },
@@ -69,6 +81,7 @@ export class AuthService {
             providerUserId: profile.providerUserId,
             encryptedAccessToken: profile.accessToken,
             encryptedRefreshToken: profile.refreshToken,
+            scope: profile.scope ?? null,
           },
         });
         user = existingUser;
@@ -86,6 +99,7 @@ export class AuthService {
                 providerUserId: profile.providerUserId,
                 encryptedAccessToken: profile.accessToken,
                 encryptedRefreshToken: profile.refreshToken,
+                scope: profile.scope ?? null,
               },
             },
           },

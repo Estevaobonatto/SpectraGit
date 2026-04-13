@@ -31,14 +31,33 @@ export class GitHubService {
     return oauthAccount.encryptedAccessToken;
   }
 
+  /**
+   * Check which GitHub OAuth scopes the user's token has.
+   * Calls the GitHub API and reads the x-oauth-scopes response header.
+   */
+  async checkPermissions(userId: string) {
+    const token = await this.getUserGitHubToken(userId);
+    const octokit = this.getOctokit(token);
+
+    const response = await octokit.users.getAuthenticated();
+    const scopeHeader = (response.headers as Record<string, string>)['x-oauth-scopes'] ?? '';
+    const scopes = scopeHeader.split(',').map((s: string) => s.trim()).filter(Boolean);
+
+    return {
+      hasRepo: scopes.includes('repo'),
+      hasReadOrg: scopes.includes('read:org'),
+      scopes,
+    };
+  }
+
   async listGitHubRepos(userId: string) {
     const token = await this.getUserGitHubToken(userId);
     const octokit = this.getOctokit(token);
 
-    const { data } = await octokit.repos.listForAuthenticatedUser({
+    const data = await octokit.paginate(octokit.repos.listForAuthenticatedUser, {
       sort: 'updated',
       per_page: 100,
-      type: 'owner',
+      type: 'all',
     });
 
     return data.map((repo) => ({
@@ -53,6 +72,8 @@ export class GitHubService {
       stargazersCount: repo.stargazers_count,
       forksCount: repo.forks_count,
       updatedAt: repo.updated_at,
+      ownerLogin: repo.owner?.login ?? '',
+      ownerType: (repo.owner?.type as 'User' | 'Organization') ?? 'User',
     }));
   }
 

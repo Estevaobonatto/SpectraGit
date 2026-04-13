@@ -22,4 +22,5 @@ export interface OAuthProfile {
   avatarUrl?: string;
   accessToken?: string;
   refreshToken?: string;
+  scope?: string;
 }

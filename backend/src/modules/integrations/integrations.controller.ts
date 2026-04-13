@@ -21,6 +21,12 @@ export class IntegrationsController {
     return this.githubService.getGitHubProfile(user.sub);
   }
 
+  @Get('permissions')
+  @ApiOperation({ summary: 'Check GitHub OAuth permission scopes' })
+  async checkPermissions(@CurrentUser() user: JwtPayload) {
+    return this.githubService.checkPermissions(user.sub);
+  }
+
   @Get('repos')
   @ApiOperation({ summary: 'List GitHub repositories' })
   async listRepos(@CurrentUser() user: JwtPayload) {

@@ -11,7 +11,7 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
       clientID: configService.get<string>('oauth.github.clientId'),
       clientSecret: configService.get<string>('oauth.github.clientSecret'),
       callbackURL: configService.get<string>('oauth.github.callbackUrl'),
-      scope: ['user:email', 'read:user'],
+      scope: ['user:email', 'read:user', 'repo', 'read:org'],
     });
   }
 
@@ -35,6 +35,7 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
       avatarUrl: profile.photos?.[0]?.value,
       accessToken,
       refreshToken,
+      scope: 'user:email,read:user,repo,read:org',
     };
     done(null, oauthProfile);
   }
