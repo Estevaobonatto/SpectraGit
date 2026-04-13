@@ -20,6 +20,7 @@ import {
   Pencil,
   Check,
   AlertTriangle,
+  BookOpen,
 } from 'lucide-react';
 import {
   useRepository,
@@ -61,10 +62,11 @@ import {
 import { motion } from 'motion/react';
 import type { Branch, Webhook } from '@/types';
 import { usePrRiskConfig, useUpdatePrRiskConfig } from '@/hooks/usePullRequests';
+import { useWikiSettings, useUpdateWikiSettings } from '@/hooks/useWiki';
 
 // ─── Settings Navigation ─────────────────────────────────────
 
-type SettingsTab = 'general' | 'features' | 'branches' | 'webhooks' | 'pull-requests' | 'danger';
+type SettingsTab = 'general' | 'features' | 'branches' | 'webhooks' | 'pull-requests' | 'wiki' | 'danger';
 
 const TABS: { id: SettingsTab; label: string; icon: typeof Settings }[] = [
   { id: 'general', label: 'General', icon: Settings },
@@ -72,6 +74,7 @@ const TABS: { id: SettingsTab; label: string; icon: typeof Settings }[] = [
   { id: 'branches', label: 'Branches', icon: GitBranch },
   { id: 'webhooks', label: 'Webhooks', icon: WebhookIcon },
   { id: 'pull-requests', label: 'Pull Requests', icon: GitMerge },
+  { id: 'wiki', label: 'Wiki', icon: BookOpen },
   { id: 'danger', label: 'Danger Zone', icon: AlertTriangle },
 ];
 
@@ -1137,6 +1140,157 @@ function DangerZoneTab({ owner, repo }: { owner: string; repo: string }) {
   );
 }
 
+// ─── Wiki Settings Tab ───────────────────────────────────────
+
+function WikiSettingsTab({ owner, repo }: { owner: string; repo: string }) {
+  const { data: settings, isLoading } = useWikiSettings(owner, repo);
+  const updateMutation = useUpdateWikiSettings(owner, repo);
+  const [saved, setSaved] = useState(false);
+
+  const [sourceMode, setSourceMode] = useState<'PLATFORM' | 'REPOSITORY'>('PLATFORM');
+  const [sourceBranch, setSourceBranch] = useState('main');
+  const [sourceRoot, setSourceRoot] = useState('/docs');
+  const [homePage, setHomePage] = useState('home');
+  const [allowComments, setAllowComments] = useState(true);
+  const [allowAttachments, setAllowAttachments] = useState(true);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (settings && !initialized) {
+      setSourceMode(settings.sourceMode as 'PLATFORM' | 'REPOSITORY');
+      setSourceBranch(settings.sourceBranch ?? 'main');
+      setSourceRoot(settings.sourceRoot ?? '/docs');
+      setHomePage(settings.homePage ?? 'home');
+      setAllowComments(settings.allowComments);
+      setAllowAttachments(settings.allowAttachments);
+      setInitialized(true);
+    }
+  }, [settings, initialized]);
+
+  const handleSave = () => {
+    setSaved(false);
+    updateMutation.mutate(
+      { sourceMode, sourceBranch, sourceRoot, homePage, allowComments, allowAttachments },
+      { onSuccess: () => { setSaved(true); setTimeout(() => setSaved(false), 2500); } },
+    );
+  };
+
+  if (isLoading) return <PageLoader />;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold text-text-primary">Wiki Settings</h2>
+        <p className="mt-1 text-sm text-text-tertiary">
+          Configure how your wiki content is stored and managed.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Content Source</CardTitle>
+          <CardDescription>
+            Choose where wiki pages are stored.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <Label>Source Mode</Label>
+            <Select value={sourceMode} onValueChange={(v) => setSourceMode(v as 'PLATFORM' | 'REPOSITORY')}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="PLATFORM">Platform (database)</SelectItem>
+                <SelectItem value="REPOSITORY">Repository (markdown files)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-text-tertiary">
+              {sourceMode === 'PLATFORM'
+                ? 'Wiki pages are stored in the database and edited via the web UI.'
+                : 'Wiki pages are read from markdown files in the repository.'}
+            </p>
+          </div>
+
+          {sourceMode === 'REPOSITORY' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="sourceBranch">Source Branch</Label>
+                <Input
+                  id="sourceBranch"
+                  value={sourceBranch}
+                  onChange={(e) => setSourceBranch(e.target.value)}
+                  placeholder="main"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sourceRoot">Source Root</Label>
+                <Input
+                  id="sourceRoot"
+                  value={sourceRoot}
+                  onChange={(e) => setSourceRoot(e.target.value)}
+                  placeholder="/docs"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="homePage">Home Page Slug</Label>
+            <Input
+              id="homePage"
+              value={homePage}
+              onChange={(e) => setHomePage(e.target.value)}
+              placeholder="home"
+            />
+            <p className="text-xs text-text-tertiary">The default page shown when visiting the wiki.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Interaction</CardTitle>
+          <CardDescription>Control how users interact with wiki pages.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex items-center justify-between rounded-md border border-border p-4">
+            <div>
+              <p className="font-medium text-sm">Allow Comments</p>
+              <p className="text-xs text-text-tertiary">Let users leave comments on wiki pages</p>
+            </div>
+            <Switch checked={allowComments} onCheckedChange={setAllowComments} />
+          </div>
+
+          <div className="flex items-center justify-between rounded-md border border-border p-4">
+            <div>
+              <p className="font-medium text-sm">Allow Attachments</p>
+              <p className="text-xs text-text-tertiary">Let users upload files to wiki pages</p>
+            </div>
+            <Switch checked={allowAttachments} onCheckedChange={setAllowAttachments} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex items-center gap-3">
+        <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-1.5">
+          <Check className="h-3.5 w-3.5" />
+          {updateMutation.isPending ? 'Saving...' : 'Save Wiki Settings'}
+        </Button>
+        {saved && (
+          <span className="text-xs text-success flex items-center gap-1">
+            <Check className="h-3 w-3" />Saved
+          </span>
+        )}
+      </div>
+
+      {updateMutation.isError && (
+        <Alert variant="error">Failed to save wiki settings.</Alert>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Settings Page ──────────────────────────────────────
 
 export default function RepositorySettingsPage() {
@@ -1200,6 +1354,7 @@ export default function RepositorySettingsPage() {
           {activeTab === 'branches' && <BranchesTab owner={owner!} repo={repo!} />}
           {activeTab === 'webhooks' && <WebhooksTab owner={owner!} repo={repo!} />}
           {activeTab === 'pull-requests' && <PullRequestsTab owner={owner!} repo={repo!} />}
+          {activeTab === 'wiki' && <WikiSettingsTab owner={owner!} repo={repo!} />}
           {activeTab === 'danger' && <DangerZoneTab owner={owner!} repo={repo!} />}
         </div>
       </div>

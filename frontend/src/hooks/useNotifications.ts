@@ -3,9 +3,11 @@ import { notificationsService } from '@/services/notifications.service';
 import { useAuthStore } from '@/stores/auth.store';
 
 export function useNotifications(params?: { page?: number; limit?: number }) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return useQuery({
     queryKey: ['notifications', params],
     queryFn: () => notificationsService.list(params),
+    enabled: isAuthenticated,
   });
 }
 
@@ -16,6 +18,7 @@ export function useNotificationCount() {
     queryFn: () => notificationsService.unreadCount(),
     refetchInterval: 30000,
     enabled: isAuthenticated,
+    retry: false,
   });
 }
 

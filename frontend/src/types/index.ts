@@ -659,3 +659,59 @@ export interface Webhook {
   createdAt: string;
   updatedAt: string;
 }
+
+// ─── Wiki ────────────────────────────────────────────────────
+
+export type WikiSourceMode = 'PLATFORM' | 'REPOSITORY' | 'HYBRID';
+
+export interface WikiSettings {
+  id: string;
+  repositoryId: string;
+  sourceMode: WikiSourceMode;
+  sourceBranch: string;
+  sourceRoot: string;
+  homePage: string;
+  allowComments: boolean;
+  allowAttachments: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WikiPage {
+  id: string;
+  repositoryId: string;
+  slug: string;
+  title: string;
+  body: string;
+  parentId: string | null;
+  sortOrder: number;
+  createdById: string;
+  updatedById: string | null;
+  createdBy?: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'>;
+  updatedBy?: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'> | null;
+  children?: Pick<WikiPage, 'id' | 'slug' | 'title' | 'sortOrder'>[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WikiPageVersion {
+  id: string;
+  pageId: string;
+  title: string;
+  body: string;
+  version: number;
+  editorId: string;
+  editor?: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'>;
+  message: string | null;
+  createdAt: string;
+}
+
+export interface WikiComment {
+  id: string;
+  pageId: string;
+  authorId: string;
+  author?: Pick<User, 'id' | 'username' | 'displayName' | 'avatarUrl'>;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -49,6 +49,12 @@ const ActivityFeedPage = lazy(() => import('@/features/activity/ActivityFeedPage
 const ProfilePage = lazy(() => import('@/features/settings/ProfilePage'));
 const ApiDocsPage = lazy(() => import('@/features/docs/ApiDocsPage'));
 
+// Wiki pages
+const WikiIndexPage = lazy(() => import('@/features/wiki/WikiIndexPage'));
+const WikiViewPage = lazy(() => import('@/features/wiki/WikiViewPage'));
+const WikiEditPage = lazy(() => import('@/features/wiki/WikiEditPage'));
+const WikiHistoryPage = lazy(() => import('@/features/wiki/WikiHistoryPage'));
+
 // Settings layout & sub-pages
 const SettingsLayoutModule = import('@/features/settings/SettingsPage');
 const SettingsLayout = lazy(() => SettingsLayoutModule.then((m) => ({ default: m.SettingsLayout })));
@@ -272,6 +278,26 @@ export const router = createBrowserRouter([
           {
             path: 'activity',
             element: <SuspenseWrapper><ActivityFeedPage /></SuspenseWrapper>,
+          },
+          {
+            path: 'wiki',
+            element: <SuspenseWrapper><WikiIndexPage /></SuspenseWrapper>,
+          },
+          {
+            path: 'wiki/new',
+            element: <AuthRequired><SuspenseWrapper><WikiEditPage /></SuspenseWrapper></AuthRequired>,
+          },
+          {
+            path: 'wiki/:slug',
+            element: <SuspenseWrapper><WikiViewPage /></SuspenseWrapper>,
+          },
+          {
+            path: 'wiki/:slug/edit',
+            element: <AuthRequired><SuspenseWrapper><WikiEditPage /></SuspenseWrapper></AuthRequired>,
+          },
+          {
+            path: 'wiki/:slug/history',
+            element: <SuspenseWrapper><WikiHistoryPage /></SuspenseWrapper>,
           },
           {
             path: 'settings',

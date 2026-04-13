@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
+import axios from 'axios';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { useAuthStore } from '@/stores/auth.store';
 import { usersService } from '@/services/auth.service';
 import { adminService } from '@/services/admin.service';
+
+const API_BASE = import.meta.env.VITE_API_URL ?? '/api/v1';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,25 +20,29 @@ const queryClient = new QueryClient({
 });
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
-  const { accessToken, setUser, setInitialized, logout } = useAuthStore();
+  const { accessToken, isAuthenticated, setTokens, setUser, setInitialized, logout } = useAuthStore();
 
   useEffect(() => {
-    if (!accessToken) {
+    if (accessToken) {
+      // Token in memory — validate it and refresh user data.
+      usersService
+        .me()
+        .then((user) => { setUser(user); setInitialized(); })
+        .catch(() => { logout(); });
+    } else if (isAuthenticated) {
+      // isAuthenticated persisted in localStorage but accessToken lost (page refresh).
+      // Attempt a cookie-based silent refresh before giving up.
+      axios
+        .post(`${API_BASE}/auth/refresh`, {}, { withCredentials: true })
+        .then(({ data }) => {
+          setTokens(data.data.accessToken, data.data.refreshToken ?? '');
+          return usersService.me();
+        })
+        .then((user) => { setUser(user); setInitialized(); })
+        .catch(() => { logout(); setInitialized(); });
+    } else {
       setInitialized();
-      return;
     }
-    // Silently validate token and restore fresh user data.
-    // The axios interceptor handles 401 → auto-refresh transparently.
-    usersService
-      .me()
-      .then((user) => {
-        setUser(user);
-        setInitialized();
-      })
-      .catch(() => {
-        // Both access and refresh tokens failed — force logout.
-        logout();
-      });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

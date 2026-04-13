@@ -75,6 +75,10 @@ model User {
   activityEvents       ActivityEvent[]
   authoredReleases     Release[]      @relation("ReleaseAuthor")
   profile              UserProfile?
+  createdWikiPages     WikiPage[]          @relation("WikiPageCreator")
+  updatedWikiPages     WikiPage[]          @relation("WikiPageUpdater")
+  wikiVersionEdits     WikiPageVersion[]   @relation("WikiVersionEditor")
+  wikiComments         WikiComment[]       @relation("WikiCommentAuthor")
 
   @@map("users")
 }
@@ -355,6 +359,8 @@ model Repository {
   releases       Release[]
   webhooks       Webhook[]
   pinnedBy       UserPinnedRepository[]
+  wikiSettings   WikiSettings?
+  wikiPages      WikiPage[]
 
   @@unique([ownerUserId, slug])
   @@unique([ownerOrgId, slug])
@@ -783,6 +789,8 @@ enum NotificationType {
   COLLABORATOR_ADDED
   COLLABORATOR_REMOVED
   COLLABORATOR_ROLE_CHANGED
+  WIKI_PAGE_CREATED
+  WIKI_PAGE_UPDATED
 }
 
 model Notification {
@@ -938,6 +946,9 @@ enum ActivityType {
   COMMENT_ADDED
   REVIEW_SUBMITTED
   MEMBER_ADDED
+  WIKI_PAGE_CREATED
+  WIKI_PAGE_UPDATED
+  WIKI_PAGE_DELETED
 }
 
 model ActivityEvent {
@@ -957,4 +968,89 @@ model ActivityEvent {
   @@index([repositoryId, createdAt])
   @@index([actorId, createdAt])
   @@map("activity_events")
+}
+
+// ─── Wiki ────────────────────────────────────────────────────
+
+enum WikiSourceMode {
+  PLATFORM
+  REPOSITORY
+  HYBRID
+}
+
+model WikiSettings {
+  id               String         @id @default(uuid()) @db.Uuid
+  repositoryId     String         @unique @map("repository_id") @db.Uuid
+  sourceMode       WikiSourceMode @default(PLATFORM) @map("source_mode")
+  sourceBranch     String         @default("main") @map("source_branch") @db.VarChar(255)
+  sourceRoot       String         @default("/docs") @map("source_root") @db.VarChar(500)
+  homePage         String         @default("Home") @map("home_page") @db.VarChar(255)
+  allowComments    Boolean        @default(true) @map("allow_comments")
+  allowAttachments Boolean        @default(true) @map("allow_attachments")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@map("wiki_settings")
+}
+
+model WikiPage {
+  id           String   @id @default(uuid()) @db.Uuid
+  repositoryId String   @map("repository_id") @db.Uuid
+  slug         String   @db.VarChar(500)
+  title        String   @db.VarChar(255)
+  body         String   @db.Text
+  parentId     String?  @map("parent_id") @db.Uuid
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdById  String   @map("created_by_id") @db.Uuid
+  updatedById  String?  @map("updated_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  repository Repository       @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  parent     WikiPage?         @relation("WikiPageTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children   WikiPage[]        @relation("WikiPageTree")
+  createdBy  User              @relation("WikiPageCreator", fields: [createdById], references: [id])
+  updatedBy  User?             @relation("WikiPageUpdater", fields: [updatedById], references: [id])
+  versions   WikiPageVersion[]
+  comments   WikiComment[]
+
+  @@unique([repositoryId, slug])
+  @@index([repositoryId, parentId])
+  @@index([repositoryId, sortOrder])
+  @@map("wiki_pages")
+}
+
+model WikiPageVersion {
+  id         String   @id @default(uuid()) @db.Uuid
+  pageId     String   @map("page_id") @db.Uuid
+  title      String   @db.VarChar(255)
+  body       String   @db.Text
+  version    Int
+  editorId   String   @map("editor_id") @db.Uuid
+  message    String?  @db.VarChar(500)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  page   WikiPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  editor User     @relation("WikiVersionEditor", fields: [editorId], references: [id])
+
+  @@unique([pageId, version])
+  @@index([pageId, createdAt])
+  @@map("wiki_page_versions")
+}
+
+model WikiComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  pageId    String   @map("page_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  body      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  page   WikiPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  author User     @relation("WikiCommentAuthor", fields: [authorId], references: [id])
+
+  @@index([pageId, createdAt])
+  @@map("wiki_comments")
 }

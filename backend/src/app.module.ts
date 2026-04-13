@@ -27,6 +27,7 @@ import { ActivityModule } from './modules/activity/activity.module';
 import { SetupModule } from './modules/setup/setup.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { CollaboratorsModule } from './modules/collaborators/collaborators.module';
+import { WikiModule } from './modules/wiki/wiki.module';
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { CollaboratorsModule } from './modules/collaborators/collaborators.modul
     SetupModule,
     AdminModule,
     CollaboratorsModule,
+    WikiModule,
   ],
   providers: [
     {
