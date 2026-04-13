@@ -15,6 +15,8 @@ const AdminHealthPage = lazy(() => import('@/features/admin/AdminHealthPage'));
 
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
 const OAuthCallbackPage = lazy(() => import('@/features/auth/OAuthCallbackPage'));
+const PrivacyPolicyPage = lazy(() => import('@/features/docs/PrivacyPolicyPage'));
+const TermsOfServicePage = lazy(() => import('@/features/docs/TermsOfServicePage'));
 const HomePage = lazy(() => import('@/features/home/HomePage'));
 const ExplorePage = lazy(() => import('@/features/explore/ExplorePage'));
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage'));
@@ -93,6 +95,16 @@ export const router = createBrowserRouter([
       { path: 'settings', element: <SuspenseWrapper><AdminSettingsPage /></SuspenseWrapper> },
       { path: 'health', element: <SuspenseWrapper><AdminHealthPage /></SuspenseWrapper> },
     ],
+  },
+
+  /* ---------- Legal pages (public, standalone) ---------- */
+  {
+    path: '/privacy',
+    element: <SuspenseWrapper><PrivacyPolicyPage /></SuspenseWrapper>,
+  },
+  {
+    path: '/terms',
+    element: <SuspenseWrapper><TermsOfServicePage /></SuspenseWrapper>,
   },
 
   /* ---------- Auth pages ---------- */

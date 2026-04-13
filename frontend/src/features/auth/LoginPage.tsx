@@ -161,11 +161,11 @@ export default function LoginPage() {
             <Fade direction="up" delay={0.45}>
               <p className="mt-5 text-center text-xs text-text-tertiary">
                 By signing in, you agree to our{' '}
-                <Link to="#" className="underline underline-offset-2 hover:text-text-secondary transition-colors">
+                <Link to="/terms" className="underline underline-offset-2 hover:text-text-secondary transition-colors">
                   Terms of Service
                 </Link>{' '}
                 and{' '}
-                <Link to="#" className="underline underline-offset-2 hover:text-text-secondary transition-colors">
+                <Link to="/privacy" className="underline underline-offset-2 hover:text-text-secondary transition-colors">
                   Privacy Policy
                 </Link>
                 .

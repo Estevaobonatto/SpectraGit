@@ -24,6 +24,7 @@ services:
     restart: unless-stopped
     # Redis not exposed to host — only reachable from the Docker network
     volumes:
+        - redis_data:/data
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
