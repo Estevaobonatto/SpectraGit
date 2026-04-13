@@ -27,31 +27,33 @@ api.interceptors.response.use(
     const original = error.config;
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
-      // Try in-memory refresh token first, then let cookie-based refresh handle it
+      // Always attempt a silent refresh — the HttpOnly cookie or stored refresh token
+      // will be used. The document.cookie check is unreliable because the cookie path
+      // is restricted to /api/v1/auth and not visible from the page's JavaScript.
       const refreshToken = useAuthStore.getState().refreshToken;
-      if (refreshToken || document.cookie.includes('spectragit_rt')) {
-        if (!refreshing) {
-          refreshing = axios
-            .post(`${API_BASE}/auth/refresh`, { refreshToken: refreshToken || undefined }, { withCredentials: true })
-            .then(({ data }) => {
-              useAuthStore
-                .getState()
-                .setTokens(data.data.accessToken, data.data.refreshToken ?? '');
-            })
-            .catch(() => {
-              useAuthStore.getState().logout();
-            })
-            .finally(() => {
-              refreshing = null;
-            });
-        }
-        try {
-          await refreshing;
-          original.headers.Authorization = `Bearer ${useAuthStore.getState().accessToken}`;
-          return api(original);
-        } catch {
-          return Promise.reject(error);
-        }
+      if (!refreshing) {
+        refreshing = axios
+          .post(`${API_BASE}/auth/refresh`, { refreshToken: refreshToken || undefined }, { withCredentials: true })
+          .then(({ data }) => {
+            useAuthStore
+              .getState()
+              .setTokens(data.data.accessToken, data.data.refreshToken ?? data.data.accessToken);
+          })
+          .catch(() => {
+            useAuthStore.getState().logout();
+          })
+          .finally(() => {
+            refreshing = null;
+          });
+      }
+      try {
+        await refreshing;
+        const newToken = useAuthStore.getState().accessToken;
+        if (!newToken) return Promise.reject(error);
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return api(original);
+      } catch {
+        return Promise.reject(error);
       }
     }
     return Promise.reject(error);

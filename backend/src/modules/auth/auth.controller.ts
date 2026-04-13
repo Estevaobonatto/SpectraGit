@@ -115,7 +115,7 @@ export class AuthController {
   async exchange(@Body('code') code: string, @Res({ passthrough: true }) res: Response) {
     const tokens = await this.authService.exchangeOAuthCode(code);
     this.setRefreshCookie(res, tokens.refreshToken);
-    return { accessToken: tokens.accessToken, expiresIn: tokens.expiresIn };
+    return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expiresIn: tokens.expiresIn };
   }
 
   @Public()
@@ -135,7 +135,7 @@ export class AuthController {
     }
     const tokens = await this.authService.refreshTokens(refreshToken);
     this.setRefreshCookie(res, tokens.refreshToken);
-    return { accessToken: tokens.accessToken, expiresIn: tokens.expiresIn };
+    return { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, expiresIn: tokens.expiresIn };
   }
 
   @Post('logout')

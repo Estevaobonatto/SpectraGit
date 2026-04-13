@@ -224,6 +224,7 @@ export interface Commit {
   message: string;
   authorName: string;
   authorEmail: string;
+  authorAvatarUrl?: string | null;
   date: string;
   filesChanged?: number;
   insertions?: number;

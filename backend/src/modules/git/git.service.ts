@@ -347,6 +347,18 @@ export class GitService {
     return stdout;
   }
 
+  async getCommitCount(ownerName: string, repoSlug: string, branch: string): Promise<number> {
+    const repoPath = this.getRepoPath(ownerName, repoSlug);
+    const git = this.getGit(repoPath);
+    try {
+      const result = await git.raw(['rev-list', '--count', branch]);
+      const count = parseInt(result.trim(), 10);
+      return Number.isFinite(count) ? count : 0;
+    } catch {
+      return 0;
+    }
+  }
+
   async getCommitLog(
     ownerName: string,
     repoSlug: string,

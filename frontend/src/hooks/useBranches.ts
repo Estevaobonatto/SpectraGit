@@ -40,6 +40,14 @@ export function useCommits(owner: string, repo: string, params?: { branch?: stri
   });
 }
 
+export function useCommitsPaginated(owner: string, repo: string, params?: { branch?: string; limit?: number; offset?: number }) {
+  return useQuery({
+    queryKey: ['commits-paginated', owner, repo, params],
+    queryFn: () => commitsService.listPaginated(owner, repo, params),
+    enabled: !!owner && !!repo,
+  });
+}
+
 export function useCommitDetail(owner: string, repo: string, sha: string) {
   return useQuery({
     queryKey: ['commit', owner, repo, sha],

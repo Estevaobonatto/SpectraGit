@@ -92,7 +92,10 @@ export const branchesService = {
 
 export const commitsService = {
   list: (owner: string, repo: string, params?: { branch?: string; limit?: number; offset?: number }) =>
-    api.get<{ data: Commit[] }>(`/repos/${owner}/${repo}/commits`, { params }).then((r) => r.data.data),
+    api.get<{ data: { data: Commit[]; total: number } }>(`/repos/${owner}/${repo}/commits`, { params }).then((r) => r.data.data.data),
+
+  listPaginated: (owner: string, repo: string, params?: { branch?: string; limit?: number; offset?: number }) =>
+    api.get<{ data: { data: Commit[]; total: number } }>(`/repos/${owner}/${repo}/commits`, { params }).then((r) => r.data.data),
 
   get: (owner: string, repo: string, sha: string) =>
     api.get<{ data: CommitDetail }>(`/repos/${owner}/${repo}/commits/${sha}`).then((r) => r.data.data),
