@@ -111,15 +111,8 @@ export class RepositoriesService {
 
     if (userId && scope === 'mine') {
       andConditions.push({ OR: [{ ownerUserId: userId }, { members: { some: { userId } } }] });
-    } else if (userId) {
-      andConditions.push({
-        OR: [
-          { visibility: RepoVisibility.PUBLIC },
-          { ownerUserId: userId },
-          { members: { some: { userId } } },
-        ],
-      });
     } else {
+      // Explore / public listing: always show only PUBLIC repos regardless of auth state
       andConditions.push({ visibility: RepoVisibility.PUBLIC });
     }
 
@@ -640,13 +633,32 @@ export class RepositoriesService {
     const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
     await this.ensureAdmin(repo.id, userId, repo.ownerUser?.id);
 
-    // Validate URL
+    // Validate URL and block internal/private network targets (SSRF)
     try {
       const parsed = new URL(dto.url);
       if (!['http:', 'https:'].includes(parsed.protocol)) {
         throw new BadRequestException('Webhook URL must use HTTP or HTTPS');
       }
-    } catch {
+      const hostname = parsed.hostname.toLowerCase();
+      const blocked =
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '::1' ||
+        hostname === '0.0.0.0' ||
+        hostname.endsWith('.local') ||
+        hostname.endsWith('.internal') ||
+        /^10\./.test(hostname) ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+        /^192\.168\./.test(hostname) ||
+        /^169\.254\./.test(hostname) ||
+        /^fc00:/i.test(hostname) ||
+        /^fd/i.test(hostname) ||
+        /^fe80:/i.test(hostname);
+      if (blocked) {
+        throw new BadRequestException('Webhook URL must not point to internal or private networks');
+      }
+    } catch (err) {
+      if (err instanceof BadRequestException) throw err;
       throw new BadRequestException('Invalid webhook URL');
     }
 
@@ -798,6 +810,11 @@ export class RepositoriesService {
     branch: string,
     userId?: string,
   ): Promise<{ buffer: Buffer; filename: string }> {
+    // Validate branch name to prevent command injection / path traversal
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9._\/-]*$/.test(branch) || branch.includes('..')) {
+      throw new BadRequestException('Invalid branch name');
+    }
+
     const repo = await this.findByOwnerAndSlug(ownerName, slug, userId);
 
     // Use DB-validated names for the filesystem path

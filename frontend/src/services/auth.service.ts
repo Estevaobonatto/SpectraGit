@@ -5,6 +5,9 @@ export const authService = {
   refresh: (refreshToken: string) =>
     api.post<{ data: { accessToken: string; refreshToken: string } }>('/auth/refresh', { refreshToken }),
 
+  exchangeCode: (code: string) =>
+    api.post<{ data: { accessToken: string; refreshToken?: string } }>('/auth/exchange', { code }).then((r) => r.data.data),
+
   logout: (refreshToken: string) => api.post('/auth/logout', { refreshToken }),
 
   getSessions: () =>

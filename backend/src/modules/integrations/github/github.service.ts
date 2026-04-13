@@ -105,9 +105,12 @@ export class GitHubService {
 
     try {
       // Clone full history + all branches from GitHub
-      // Token embedded in URL for authentication (never logged)
-      const cloneUrl = `https://x-access-token:${token}@github.com/${owner}/${repoName}.git`;
-      await this.gitService.cloneFromUrl(user.username, slug, cloneUrl);
+      // Credentials passed via GIT_ASKPASS – never visible in process list
+      const cloneUrl = `https://github.com/${owner}/${repoName}.git`;
+      await this.gitService.cloneFromUrl(user.username, slug, cloneUrl, undefined, {
+        username: 'x-access-token',
+        password: token,
+      });
 
       // Seed Branch records from the cloned repo
       const branches = await this.gitService.getLocalBranchesWithSha(user.username, slug);

@@ -6,6 +6,7 @@ const API_BASE = import.meta.env.VITE_API_URL ?? '/api/v1';
 export const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
@@ -26,15 +27,16 @@ api.interceptors.response.use(
     const original = error.config;
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
+      // Try in-memory refresh token first, then let cookie-based refresh handle it
       const refreshToken = useAuthStore.getState().refreshToken;
-      if (refreshToken) {
+      if (refreshToken || document.cookie.includes('spectragit_rt')) {
         if (!refreshing) {
           refreshing = axios
-            .post(`${API_BASE}/auth/refresh`, { refreshToken })
+            .post(`${API_BASE}/auth/refresh`, { refreshToken: refreshToken || undefined }, { withCredentials: true })
             .then(({ data }) => {
               useAuthStore
                 .getState()
-                .setTokens(data.data.accessToken, data.data.refreshToken);
+                .setTokens(data.data.accessToken, data.data.refreshToken ?? '');
             })
             .catch(() => {
               useAuthStore.getState().logout();

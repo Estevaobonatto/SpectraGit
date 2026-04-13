@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { BullModule } from '@nestjs/bullmq';
 import configuration from './config/configuration';
 import { PrismaModule } from './prisma/prisma.module';
@@ -36,7 +37,7 @@ import { CollaboratorsModule } from './modules/collaborators/collaborators.modul
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 100,
+        limit: 60,
       },
     ]),
     BullModule.forRootAsync({
@@ -72,6 +73,12 @@ import { CollaboratorsModule } from './modules/collaborators/collaborators.modul
     SetupModule,
     AdminModule,
     CollaboratorsModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

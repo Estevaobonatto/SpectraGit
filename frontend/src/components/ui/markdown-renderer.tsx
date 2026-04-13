@@ -1,6 +1,6 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
 import { cn } from '@/lib/utils';
 
 interface MarkdownRendererProps {
@@ -13,7 +13,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
     <div className={cn('', className)}>
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeRaw]}
+      rehypePlugins={[rehypeSanitize]}
       components={{
         // Headings
         h1: ({ children }) => <h1 className="text-lg font-bold mt-4 mb-2 text-text-primary">{children}</h1>,

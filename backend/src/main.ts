@@ -30,7 +30,25 @@ async function bootstrap() {
 
   app.setGlobalPrefix(apiPrefix);
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          fontSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+          formAction: ["'self'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+      hsts: { maxAge: 63072000, includeSubDomains: true, preload: true },
+    }),
+  );
   app.use(cookieParser());
 
   app.enableCors({

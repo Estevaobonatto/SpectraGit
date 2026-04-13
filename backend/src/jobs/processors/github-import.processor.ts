@@ -119,9 +119,12 @@ export class GitHubImportProcessor extends WorkerHost {
       // ── Step 3: Clone repository (5–60%) ──
       await this.updateProgress(jobId, ImportJobStatus.CLONING, 6, 'Cloning repository...');
 
-      const cloneUrl = `https://x-access-token:${token}@github.com/${owner}/${repoName}.git`;
+      const cloneUrl = `https://github.com/${owner}/${repoName}.git`;
       await this.gitService.cloneFromUrl(user.username, slug, cloneUrl, async (percent) => {
         await this.updateProgress(jobId, ImportJobStatus.CLONING, percent, 'Cloning repository...');
+      }, {
+        username: 'x-access-token',
+        password: token,
       });
 
       await this.updateProgress(jobId, ImportJobStatus.CLONING, 60, 'Clone complete');

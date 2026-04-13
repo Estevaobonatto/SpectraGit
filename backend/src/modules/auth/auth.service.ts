@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtPayload } from '../../common/types/request.types';
 import { OAuthProfile, TokenResponseDto } from './dto/auth.dto';
@@ -9,11 +10,35 @@ import { OAuthProfile, TokenResponseDto } from './dto/auth.dto';
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
+  /**
+   * Ephemeral store for one-time OAuth codes.
+   * Each code maps to tokens and is valid for 60 seconds.
+   * In a multi-instance deployment swap this for Redis.
+   */
+  private readonly oauthCodes = new Map<string, { tokens: TokenResponseDto; expiresAt: number }>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
+
+  /** Store tokens behind a one-time UUID code (60 s TTL). */
+  async storeOAuthCode(tokens: TokenResponseDto): Promise<string> {
+    const code = randomUUID();
+    this.oauthCodes.set(code, { tokens, expiresAt: Date.now() + 60_000 });
+    return code;
+  }
+
+  /** Exchange a one-time code for the stored tokens. */
+  async exchangeOAuthCode(code: string): Promise<TokenResponseDto> {
+    const entry = this.oauthCodes.get(code);
+    this.oauthCodes.delete(code); // consume immediately
+    if (!entry || entry.expiresAt < Date.now()) {
+      throw new UnauthorizedException('Invalid or expired code');
+    }
+    return entry.tokens;
+  }
 
   async handleOAuthLogin(
     profile: OAuthProfile,

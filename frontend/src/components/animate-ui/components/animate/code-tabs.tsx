@@ -1,4 +1,5 @@
 import * as React from 'react';
+import DOMPurify from 'dompurify';
 
 import { cn } from '@/lib/utils';
 import {
@@ -127,7 +128,7 @@ function CodeTabs({
             >
               <div
                 className="w-full text-sm overflow-auto flex items-center p-4 [&>pre,_&_code]:!bg-transparent [&_code_.line]:!px-0 [&>pre,_&_code]:[background:transparent_!important] [&>pre,_&_code]:border-none [&_code]:!text-[13px]"
-                dangerouslySetInnerHTML={{ __html: val }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(val, { ALLOWED_TAGS: ['pre', 'code', 'span', 'br', 'div'], ALLOWED_ATTR: ['class', 'style'] }) }}
               />
             </TabsContent>
           ))}

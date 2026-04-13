@@ -174,6 +174,24 @@ export class ReleasesService {
 
   // ─── Asset management ──────────────────────────────────────
 
+  // Allowed MIME types for release assets
+  private static readonly ALLOWED_ASSET_MIMES = new Set([
+    'application/zip',
+    'application/gzip',
+    'application/x-tar',
+    'application/x-xz',
+    'application/x-bzip2',
+    'application/x-7z-compressed',
+    'application/octet-stream',
+    'application/pdf',
+    'application/json',
+    'text/plain',
+    'text/markdown',
+    'image/png',
+    'image/jpeg',
+    'image/svg+xml',
+  ]);
+
   async uploadAssets(
     owner: string,
     repo: string,
@@ -189,6 +207,11 @@ export class ReleasesService {
 
     const assets = [];
     for (const file of files) {
+      // Validate MIME type
+      if (!ReleasesService.ALLOWED_ASSET_MIMES.has(file.mimetype)) {
+        throw new BadRequestException(`File type "${file.mimetype}" is not allowed for release assets`);
+      }
+
       // Sanitize filename — strip path separators
       const safeName = path.basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
       const s3Key = `releases/${release.id}/${safeName}`;

@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
-import { usersService } from '@/services/auth.service';
+import { authService, usersService } from '@/services/auth.service';
 import { PageLoader } from '@/components/ui/spinner';
+
+const VALID_PROVIDERS = ['github', 'google', 'gitlab'];
 
 export default function OAuthCallbackPage() {
   const { provider } = useParams<{ provider: string }>();
@@ -11,13 +13,22 @@ export default function OAuthCallbackPage() {
   const { setTokens, setUser } = useAuthStore();
 
   useEffect(() => {
-    const accessToken = searchParams.get('accessToken');
-    const refreshToken = searchParams.get('refreshToken');
+    // Validate the provider
+    if (!provider || !VALID_PROVIDERS.includes(provider)) {
+      navigate('/login', { replace: true });
+      return;
+    }
 
-    if (accessToken && refreshToken) {
-      setTokens(accessToken, refreshToken);
-      usersService
-        .me()
+    const code = searchParams.get('code');
+
+    if (code) {
+      // Exchange one-time code for tokens (tokens never appear in URL)
+      authService
+        .exchangeCode(code)
+        .then(({ accessToken, refreshToken }) => {
+          setTokens(accessToken, refreshToken ?? '');
+          return usersService.me();
+        })
         .then((user) => {
           setUser(user);
           navigate('/', { replace: true });
@@ -26,7 +37,23 @@ export default function OAuthCallbackPage() {
           navigate('/login', { replace: true });
         });
     } else {
-      navigate('/login', { replace: true });
+      // Backwards compatibility: support direct tokens from older flow
+      const accessToken = searchParams.get('accessToken');
+      const refreshToken = searchParams.get('refreshToken');
+      if (accessToken && refreshToken) {
+        setTokens(accessToken, refreshToken);
+        usersService
+          .me()
+          .then((user) => {
+            setUser(user);
+            navigate('/', { replace: true });
+          })
+          .catch(() => {
+            navigate('/login', { replace: true });
+          });
+      } else {
+        navigate('/login', { replace: true });
+      }
     }
   }, [provider, searchParams, navigate, setTokens, setUser]);
 

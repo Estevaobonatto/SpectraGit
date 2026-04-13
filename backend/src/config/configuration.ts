@@ -40,7 +40,7 @@ export default () => ({
     port: parseInt(process.env.SSH_PORT || '2222', 10),
   },
   cors: {
-    origins: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(','),
+    origins: (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',').map(s => s.trim()).filter(Boolean),
   },
   s3: {
     endpoint: process.env.S3_ENDPOINT,

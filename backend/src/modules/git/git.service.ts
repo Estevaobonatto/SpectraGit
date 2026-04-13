@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { simpleGit, SimpleGit } from 'simple-git';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 
 export interface GitFileTreeEntry {
   name: string;
@@ -168,14 +169,15 @@ export class GitService {
 
   /**
    * Clone a remote repository (full history + all branches) into the local
-   * storage path.  The cloneUrl should contain credentials inline (e.g.
-   * https://x-access-token:<token>@github.com/owner/repo.git).
+   * storage path.  When credentials are provided, they are passed via a
+   * temporary GIT_ASKPASS helper so they never appear in process args or logs.
    */
   async cloneFromUrl(
     ownerName: string,
     repoSlug: string,
     cloneUrl: string,
     onProgress?: (percent: number) => Promise<void>,
+    credentials?: { username: string; password: string },
   ): Promise<void> {
     const repoPath = this.getRepoPath(ownerName, repoSlug);
 
@@ -199,7 +201,23 @@ export class GitService {
           }
         : undefined,
     });
-    await git.clone(cloneUrl, repoPath, ['--progress']);
+
+    // Use GIT_ASKPASS so credentials never appear in argv / ps aux
+    let askPassFile: string | undefined;
+    if (credentials) {
+      askPassFile = path.join(os.tmpdir(), `spectragit-askpass-${Date.now()}-${Math.random().toString(36).slice(2)}.sh`);
+      fs.writeFileSync(askPassFile, `#!/bin/sh\necho '${credentials.password.replace(/'/g, "'\\''")}'`, { mode: 0o700 });
+      git.env('GIT_ASKPASS', askPassFile);
+      git.env('GIT_TERMINAL_PROMPT', '0');
+    }
+
+    try {
+      await git.clone(cloneUrl, repoPath, ['--progress']);
+    } finally {
+      if (askPassFile && fs.existsSync(askPassFile)) {
+        fs.unlinkSync(askPassFile);
+      }
+    }
 
     // Create local tracking branches for every remote branch
     const repoGit = this.getGit(repoPath);

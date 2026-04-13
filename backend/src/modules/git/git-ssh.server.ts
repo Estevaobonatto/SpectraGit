@@ -273,8 +273,9 @@ interface ParsedGitCommand {
  *   git-receive-pack '/owner/repo.git'
  */
 function parseGitCommand(command: string): ParsedGitCommand | null {
+  // Strict: only allow git-(upload|receive)-pack with alphanumeric owner/repo names
   const match = command.match(
-    /^git[-\s](upload-pack|receive-pack)\s+'?\/?([^/]+)\/([^/]+?)(?:\.git)?'?$/,
+    /^git[-\s](upload-pack|receive-pack)\s+'?\/?([a-zA-Z0-9][a-zA-Z0-9._-]*)\/([a-zA-Z0-9][a-zA-Z0-9._-]*)(?:\.git)?'?$/,
   );
   if (!match) return null;
 

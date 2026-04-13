@@ -6,11 +6,10 @@ services:
     container_name: spectragit-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: spectragit
-      POSTGRES_PASSWORD: spectragit_secret
-      POSTGRES_DB: spectragit
-    ports:
-      - '5432:5432'
+      POSTGRES_USER: ${POSTGRES_USER:-spectragit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-spectragit}
+    # DB not exposed to host — only reachable from the Docker network
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,10 +22,8 @@ services:
     image: redis:7-alpine
     container_name: spectragit-redis
     restart: unless-stopped
-    ports:
-      - '6379:6379'
+    # Redis not exposed to host — only reachable from the Docker network
     volumes:
-      - redis_data:/data
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
@@ -47,12 +44,12 @@ services:
       NODE_ENV: production
       PORT: 3000
       SSH_PORT: 2222
-      DATABASE_URL: postgresql://spectragit:spectragit_secret@postgres:5432/spectragit?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER:-spectragit}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-spectragit}?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (min 32 chars)}
       JWT_EXPIRES_IN: 15m
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET in .env (min 32 chars)}
       JWT_REFRESH_EXPIRES_IN: 7d
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-placeholder}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-placeholder}

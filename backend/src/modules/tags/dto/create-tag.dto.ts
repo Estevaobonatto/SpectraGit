@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, MaxLength, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, MaxLength, IsOptional, Matches } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateTagDto {
@@ -6,6 +6,7 @@ export class CreateTagDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
+  @Matches(/^[a-zA-Z0-9][a-zA-Z0-9._\/-]*$/, { message: 'Tag name contains invalid characters' })
   name: string;
 
   @ApiProperty({ description: 'Commit SHA to tag' })
