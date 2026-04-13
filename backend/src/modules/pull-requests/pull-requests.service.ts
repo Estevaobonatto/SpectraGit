@@ -111,6 +111,8 @@ export class PullRequestsService {
         include: {
           author: { select: { username: true, avatarUrl: true } },
           labels: { include: { label: true } },
+          reviews: { select: { id: true, status: true, reviewerId: true } },
+          requestedReviewers: { include: { user: { select: { id: true, username: true, avatarUrl: true } } } },
           _count: { select: { reviews: true, comments: true } },
         },
       }),

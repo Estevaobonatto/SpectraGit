@@ -8,7 +8,7 @@ import {
   GitMerge,
   ArrowLeft,
 } from 'lucide-react';
-import { usePullRequests, useReviews } from '@/hooks/usePullRequests';
+import { usePullRequests } from '@/hooks/usePullRequests';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ import { PageTransition } from '@/components/animate-ui/page-transition';
 import { Fade } from '@/components/animate-ui/fade';
 import { AnimatedGroup } from '@/components/animate-ui/animated-list';
 import { HoverScale } from '@/components/animate-ui/effects';
-import type { PullRequest, Review } from '@/types';
+import type { PullRequest } from '@/types';
 
 // ─── Column config ────────────────────────────────────────────────────────────
 
@@ -42,7 +42,7 @@ function PRCard({ pr, owner, repo }: { pr: PullRequest; owner: string; repo: str
       <CardContent className="p-3 space-y-2">
         <div className="flex items-start gap-1.5">
           <Link
-            to={`/${owner}/${repo}/pull/${pr.number}`}
+            to={`/${owner}/${repo}/pulls/${pr.number}`}
             className="flex-1 min-w-0 text-sm font-medium text-text-primary leading-snug hover:text-primary-600 line-clamp-2"
           >
             {pr.title}
@@ -50,7 +50,7 @@ function PRCard({ pr, owner, repo }: { pr: PullRequest; owner: string; repo: str
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">
-          {pr.riskLevel && <PRRiskBadge riskLevel={pr.riskLevel} />}
+          {pr.riskLevel && <PRRiskBadge level={pr.riskLevel} />}
           {pr.isDraft && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Draft</Badge>
           )}
@@ -151,7 +151,6 @@ export default function PRBoardPage() {
   const { owner, repo } = useParams();
 
   const { data: listData, isLoading, isError } = usePullRequests(owner!, repo!, { status: 'OPEN', limit: 100 });
-  const { data: reviewsData } = useReviews(owner!, repo!);
 
   if (isLoading) return <PageLoader />;
 
@@ -164,25 +163,15 @@ export default function PRBoardPage() {
   }
 
   const prs: PullRequest[] = listData?.data ?? [];
-  const allReviews: Review[] = reviewsData?.data ?? [];
 
-  // Group reviews by PR id
-  const reviewsByPR = allReviews.reduce<Record<string, Review[]>>((acc, r) => {
-    if (r.pullRequestId) {
-      acc[r.pullRequestId] = [...(acc[r.pullRequestId] ?? []), r];
-    }
-    return acc;
-  }, {});
-
-  // Bucket PRs by step
+  // Bucket PRs by step using reviews included in the list response
   const columns = columnConfig.reduce<Record<string, PullRequest[]>>((acc, col) => {
     acc[col.key] = [];
     return acc;
   }, {});
 
   for (const pr of prs) {
-    const prReviews = reviewsByPR[pr.id] ?? [];
-    const step = computePRStep(pr, prReviews);
+    const step = computePRStep(pr, pr.reviews ?? []);
     if (step !== 'closed' && columns[step]) {
       columns[step].push(pr);
     }
