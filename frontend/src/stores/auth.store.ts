@@ -32,11 +32,13 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'spectragit-auth',
       partialize: (state) => ({
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
         user: state.user,
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {
-        // Mark as initialized after rehydration from localStorage
+        // Keep isInitialized false after rehydration so AuthInitializer re-validates the token
         if (state) state.isInitialized = false;
       },
     },

@@ -28,7 +28,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
       usersService
         .me()
         .then((user) => { setUser(user); setInitialized(); })
-        .catch(() => { logout(); });
+        .catch(() => { logout(); setInitialized(); });
     } else if (isAuthenticated) {
       // isAuthenticated persisted in localStorage but accessToken lost (page refresh).
       // Attempt a cookie-based silent refresh before giving up.
