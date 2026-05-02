@@ -24,7 +24,7 @@ export function PublicShell() {
       <div className="min-h-screen bg-background">
         {isAuthenticated ? <Topbar /> : <PublicTopbar />}
         <main className="pt-14 min-h-screen">
-          <div className="mx-auto max-w-7xl px-6 py-6">
+          <div className="mx-auto max-w-[1480px] px-6 py-6">
             <AnimatePresence mode="wait">
               <motion.div
                 key={getRouteKey(location.pathname)}

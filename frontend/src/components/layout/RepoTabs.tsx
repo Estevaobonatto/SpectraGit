@@ -31,29 +31,44 @@ export function RepoTabs() {
   };
 
   return (
-    <div className="flex items-center gap-1 border-b border-border overflow-x-auto">
-      {tabs.map((tab) => (
-        <Link
-          key={tab.path}
-          to={basePath + tab.path}
-          className={cn(
-            'relative flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors -mb-px',
-            isActive(tab.path)
-              ? 'text-primary-600'
-              : 'text-text-secondary hover:text-text-primary',
-          )}
-        >
-          <tab.icon className="h-4 w-4" />
-          {tab.label}
-          {isActive(tab.path) && (
-            <motion.div
-              layoutId="repo-tab-indicator"
-              className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-full"
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+    <nav className="flex flex-col gap-0.5">
+      {tabs.map((tab) => {
+        const active = isActive(tab.path);
+        return (
+          <Link
+            key={tab.path}
+            to={basePath + tab.path}
+            className={cn(
+              'group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
+              active
+                ? 'text-primary-700'
+                : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary',
+            )}
+          >
+            {active && (
+              <motion.div
+                layoutId="repo-nav-indicator"
+                className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary-500"
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+            <tab.icon
+              className={cn(
+                'h-4 w-4 shrink-0 transition-colors',
+                active ? 'text-primary-600' : 'text-text-tertiary group-hover:text-text-secondary',
+              )}
             />
-          )}
-        </Link>
-      ))}
-    </div>
+            <span className="truncate">{tab.label}</span>
+            {active && (
+              <motion.div
+                layoutId="repo-nav-bg"
+                className="absolute inset-0 rounded-lg bg-primary-50 -z-10"
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
