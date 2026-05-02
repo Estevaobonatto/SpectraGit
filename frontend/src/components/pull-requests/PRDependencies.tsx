@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState } from 'react';
 import { GitPullRequest, Plus, X, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';

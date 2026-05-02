@@ -72,6 +72,7 @@ model User {
   pulses         RepositoryPulse[]
   watches        RepositoryWatch[]
   personalAccessTokens PersonalAccessToken[]
+  externalIdentities   ExternalIdentity[]
   activityEvents       ActivityEvent[]
   authoredReleases     Release[]      @relation("ReleaseAuthor")
   profile              UserProfile?
@@ -84,15 +85,19 @@ model User {
 }
 
 model OAuthAccount {
-  id                    String   @id @default(uuid()) @db.Uuid
-  userId                String   @map("user_id") @db.Uuid
-  provider              String   @db.VarChar(20)
-  providerUserId        String   @map("provider_user_id") @db.VarChar(255)
-  encryptedAccessToken  String?  @map("encrypted_access_token") @db.Text
-  encryptedRefreshToken String?  @map("encrypted_refresh_token") @db.Text
-  scope                 String?  @db.VarChar(1000)
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
+  provider              String    @db.VarChar(20)
+  providerUserId        String    @map("provider_user_id") @db.VarChar(255)
+  encryptedAccessToken  String?   @map("encrypted_access_token") @db.Text
+  encryptedRefreshToken String?   @map("encrypted_refresh_token") @db.Text
+  scope                 String?   @db.VarChar(1000)
+  isTokenValid          Boolean   @default(true) @map("is_token_valid")
+  tokenExpiresAt        DateTime? @map("token_expires_at")
+  lastRateLimitRemaining Int?     @map("last_rate_limit_remaining")
+  lastRateLimitResetAt  DateTime? @map("last_rate_limit_reset_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -101,6 +106,33 @@ model OAuthAccount {
 }
 
 // ─── User Profile Customization ──────────────────────────────
+
+// ─── External Identities (Ghost Users for GitHub Imports) ────
+
+model ExternalIdentity {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String?  @map("user_id") @db.Uuid
+  provider      String   @db.VarChar(20)
+  externalId    String   @map("external_id") @db.VarChar(255)
+  login         String   @db.VarChar(39)
+  displayName   String?  @map("display_name") @db.VarChar(100)
+  avatarUrl     String?  @map("avatar_url") @db.VarChar(512)
+  email         String?  @db.VarChar(255)
+  htmlUrl       String?  @map("html_url") @db.VarChar(512)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  authoredIssues Issue[]     @relation("ExternalIssueAuthor")
+  authoredPRs    PullRequest[] @relation("ExternalPRAuthor")
+  comments       Comment[]   @relation("ExternalCommentAuthor")
+  reviews        Review[]    @relation("ExternalReviewer")
+  releases       Release[]   @relation("ExternalReleaseAuthor")
+
+  @@unique([provider, externalId])
+  @@index([userId])
+  @@map("external_identities")
+}
 
 model UserProfile {
   id                String   @id @default(uuid()) @db.Uuid
@@ -337,9 +369,14 @@ model Repository {
   isArchived        Boolean        @default(false) @map("is_archived")
   isFork            Boolean        @default(false) @map("is_fork")
   forkSourceRepoId  String?        @map("fork_source_repo_id") @db.Uuid
-  githubExternalId  String?        @map("github_external_id") @db.VarChar(255)
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
+  githubExternalId    String?        @map("github_external_id") @db.VarChar(255)
+  githubRepoFullName  String?        @map("github_repo_full_name") @db.VarChar(255)
+  githubWebhookSecret String?        @map("github_webhook_secret") @db.VarChar(255)
+  mirrorEnabled       Boolean        @default(false) @map("mirror_enabled")
+  lastSyncedAt        DateTime?      @map("last_synced_at")
+  syncETag            String?        @map("sync_etag") @db.VarChar(255)
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
 
   ownerUser      User?              @relation("RepoOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
   ownerOrg       Organization?      @relation("OrgRepos", fields: [ownerOrgId], references: [id], onDelete: Cascade)
@@ -475,24 +512,29 @@ model Tag {
 // ─── Releases ────────────────────────────────────────────────
 
 model Release {
-  id           String   @id @default(uuid()) @db.Uuid
-  repositoryId String   @map("repository_id") @db.Uuid
-  tagId        String   @unique @map("tag_id") @db.Uuid
-  name         String   @db.VarChar(255)
-  body         String?  @db.Text
-  targetBranch String   @default("main") @map("target_branch") @db.VarChar(255)
-  isDraft      Boolean  @default(false) @map("is_draft")
-  isPrerelease Boolean  @default(false) @map("is_prerelease")
-  authorId     String   @map("author_id") @db.Uuid
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid()) @db.Uuid
+  repositoryId     String   @map("repository_id") @db.Uuid
+  tagId            String   @unique @map("tag_id") @db.Uuid
+  name             String   @db.VarChar(255)
+  body             String?  @db.Text
+  targetBranch     String   @default("main") @map("target_branch") @db.VarChar(255)
+  isDraft          Boolean  @default(false) @map("is_draft")
+  isPrerelease     Boolean  @default(false) @map("is_prerelease")
+  authorId         String   @map("author_id") @db.Uuid
+  externalAuthorId String?  @map("external_author_id") @db.Uuid
+  githubExternalId String?  @map("github_external_id") @db.VarChar(255)
+  syncedAt         DateTime? @map("synced_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
-  repository Repository     @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
-  tag        Tag             @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  author     User            @relation("ReleaseAuthor", fields: [authorId], references: [id])
-  assets     ReleaseAsset[]
+  repository     Repository        @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  tag            Tag               @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  author         User              @relation("ReleaseAuthor", fields: [authorId], references: [id])
+  externalAuthor ExternalIdentity? @relation("ExternalReleaseAuthor", fields: [externalAuthorId], references: [id], onDelete: SetNull)
+  assets         ReleaseAsset[]
 
   @@index([repositoryId])
+  @@index([githubExternalId])
   @@map("releases")
 }
 
@@ -552,6 +594,7 @@ model Issue {
   id               String            @id @default(uuid()) @db.Uuid
   repositoryId     String            @map("repository_id") @db.Uuid
   authorId         String            @map("author_id") @db.Uuid
+  externalAuthorId String?           @map("external_author_id") @db.Uuid
   assigneeId       String?           @map("assignee_id") @db.Uuid
   number           Int
   title            String            @db.VarChar(255)
@@ -566,11 +609,13 @@ model Issue {
   formData         Json?             @map("form_data")
   milestoneId      String?           @map("milestone_id") @db.Uuid
   githubExternalId String?           @map("github_external_id") @db.VarChar(255)
+  syncedAt         DateTime?         @map("synced_at")
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
 
   repository Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
   author     User         @relation("IssueAuthor", fields: [authorId], references: [id])
+  externalAuthor ExternalIdentity? @relation("ExternalIssueAuthor", fields: [externalAuthorId], references: [id], onDelete: SetNull)
   assignee   User?        @relation("IssueAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   milestone  Milestone?   @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
   comments   Comment[]
@@ -586,18 +631,21 @@ model Issue {
 }
 
 model Label {
-  id           String   @id @default(uuid()) @db.Uuid
-  repositoryId String   @map("repository_id") @db.Uuid
-  name         String   @db.VarChar(50)
-  color        String   @db.VarChar(7)
-  description  String?  @db.VarChar(200)
-  createdAt    DateTime @default(now()) @map("created_at")
+  id               String   @id @default(uuid()) @db.Uuid
+  repositoryId     String   @map("repository_id") @db.Uuid
+  name             String   @db.VarChar(50)
+  color            String   @db.VarChar(7)
+  description      String?  @db.VarChar(200)
+  githubExternalId String?  @map("github_external_id") @db.VarChar(255)
+  syncedAt         DateTime? @map("synced_at")
+  createdAt        DateTime @default(now()) @map("created_at")
 
   repository Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
   issues     IssueLabel[]
   pullRequests PRLabel[]
 
   @@unique([repositoryId, name])
+  @@index([repositoryId, githubExternalId])
   @@map("labels")
 }
 
@@ -613,19 +661,22 @@ model IssueLabel {
 }
 
 model Milestone {
-  id           String    @id @default(uuid()) @db.Uuid
-  repositoryId String    @map("repository_id") @db.Uuid
-  title        String    @db.VarChar(255)
-  description  String?   @db.Text
-  dueDate      DateTime? @map("due_date")
-  closedAt     DateTime? @map("closed_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id               String    @id @default(uuid()) @db.Uuid
+  repositoryId     String    @map("repository_id") @db.Uuid
+  title            String    @db.VarChar(255)
+  description      String?   @db.Text
+  dueDate          DateTime? @map("due_date")
+  closedAt         DateTime? @map("closed_at")
+  githubExternalId String?   @map("github_external_id") @db.VarChar(255)
+  syncedAt         DateTime? @map("synced_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
   issues     Issue[]
 
   @@unique([repositoryId, title])
+  @@index([repositoryId, githubExternalId])
   @@map("milestones")
 }
 
@@ -646,6 +697,7 @@ model PullRequest {
   id               String         @id @default(uuid()) @db.Uuid
   repositoryId     String         @map("repository_id") @db.Uuid
   authorId         String         @map("author_id") @db.Uuid
+  externalAuthorId String?        @map("external_author_id") @db.Uuid
   number           Int
   sourceBranch     String         @map("source_branch") @db.VarChar(255)
   targetBranch     String         @map("target_branch") @db.VarChar(255)
@@ -659,11 +711,13 @@ model PullRequest {
   checklist        Json           @default("[]") @map("checklist")
   contextBlocks    Json?          @map("context_blocks")
   githubExternalId String?        @map("github_external_id") @db.VarChar(255)
+  syncedAt         DateTime?      @map("synced_at")
   createdAt        DateTime       @default(now()) @map("created_at")
   updatedAt        DateTime       @updatedAt @map("updated_at")
 
   repository         Repository             @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
   author             User                   @relation("PRAuthor", fields: [authorId], references: [id])
+  externalAuthor     ExternalIdentity?      @relation("ExternalPRAuthor", fields: [externalAuthorId], references: [id], onDelete: SetNull)
   merger             User?                  @relation("PRMerger", fields: [mergedBy], references: [id], onDelete: SetNull)
   reviews            Review[]
   comments           Comment[]
@@ -725,19 +779,24 @@ enum ReviewStatus {
 }
 
 model Review {
-  id            String       @id @default(uuid()) @db.Uuid
-  pullRequestId String       @map("pull_request_id") @db.Uuid
-  reviewerId    String       @map("reviewer_id") @db.Uuid
-  status        ReviewStatus
-  body          String?      @db.Text
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  id               String       @id @default(uuid()) @db.Uuid
+  pullRequestId    String       @map("pull_request_id") @db.Uuid
+  reviewerId       String       @map("reviewer_id") @db.Uuid
+  externalReviewerId String?    @map("external_reviewer_id") @db.Uuid
+  status           ReviewStatus
+  body             String?      @db.Text
+  githubExternalId String?      @map("github_external_id") @db.VarChar(255)
+  syncedAt         DateTime?    @map("synced_at")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
-  pullRequest PullRequest @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
-  reviewer    User        @relation(fields: [reviewerId], references: [id])
-  comments    Comment[]
+  pullRequest      PullRequest       @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+  reviewer         User              @relation(fields: [reviewerId], references: [id])
+  externalReviewer ExternalIdentity? @relation("ExternalReviewer", fields: [externalReviewerId], references: [id], onDelete: SetNull)
+  comments         Comment[]
 
   @@index([pullRequestId])
+  @@index([githubExternalId])
   @@map("reviews")
 }
 
@@ -748,29 +807,34 @@ enum CommentType {
 }
 
 model Comment {
-  id            String      @id @default(uuid()) @db.Uuid
-  authorId      String      @map("author_id") @db.Uuid
-  type          CommentType
-  issueId       String?     @map("issue_id") @db.Uuid
-  pullRequestId String?     @map("pull_request_id") @db.Uuid
-  reviewId      String?     @map("review_id") @db.Uuid
-  body          String      @db.Text
-  filePath      String?     @map("file_path") @db.VarChar(1000)
-  lineNumber    Int?        @map("line_number")
-  resolved      Boolean     @default(false)
-  resolvedById  String?     @map("resolved_by_id") @db.Uuid
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  id               String      @id @default(uuid()) @db.Uuid
+  authorId         String      @map("author_id") @db.Uuid
+  externalAuthorId String?     @map("external_author_id") @db.Uuid
+  type             CommentType
+  issueId          String?     @map("issue_id") @db.Uuid
+  pullRequestId    String?     @map("pull_request_id") @db.Uuid
+  reviewId         String?     @map("review_id") @db.Uuid
+  body             String      @db.Text
+  filePath         String?     @map("file_path") @db.VarChar(1000)
+  lineNumber       Int?        @map("line_number")
+  resolved         Boolean     @default(false)
+  resolvedById     String?     @map("resolved_by_id") @db.Uuid
+  githubExternalId String?     @map("github_external_id") @db.VarChar(255)
+  syncedAt         DateTime?   @map("synced_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
 
-  author      User         @relation("CommentAuthor", fields: [authorId], references: [id])
-  resolvedBy  User?        @relation("CommentResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
-  issue       Issue?       @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  pullRequest PullRequest? @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
-  review      Review?      @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  author         User              @relation("CommentAuthor", fields: [authorId], references: [id])
+  externalAuthor ExternalIdentity? @relation("ExternalCommentAuthor", fields: [externalAuthorId], references: [id], onDelete: SetNull)
+  resolvedBy     User?             @relation("CommentResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  issue          Issue?            @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  pullRequest    PullRequest?      @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+  review         Review?           @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
   @@index([issueId])
   @@index([pullRequestId])
   @@index([reviewId])
+  @@index([githubExternalId])
   @@map("comments")
 }
 
@@ -906,6 +970,44 @@ model ImportJob {
   @@index([userId])
   @@index([status])
   @@map("import_jobs")
+}
+
+// ─── GitHub Webhook Events Log ───────────────────────────────
+
+model GitHubWebhookEvent {
+  id           String   @id @default(uuid()) @db.Uuid
+  repositoryId String?  @map("repository_id") @db.Uuid
+  eventType    String   @map("event_type") @db.VarChar(100)
+  deliveryId   String   @unique @map("delivery_id") @db.VarChar(255)
+  payload      Json     @db.Json
+  signature    String?  @db.VarChar(255)
+  processed    Boolean  @default(false)
+  error        String?  @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([repositoryId])
+  @@index([eventType])
+  @@index([processed])
+  @@index([createdAt])
+  @@map("github_webhook_events")
+}
+
+// ─── GitHub Sync State (ETags, per-resource tracking) ────────
+
+model GitHubSyncState {
+  id            String   @id @default(uuid()) @db.Uuid
+  repositoryId  String   @map("repository_id") @db.Uuid
+  resourceType  String   @map("resource_type") @db.VarChar(50) // issues, pulls, releases, etc.
+  resourceSubId String?  @map("resource_sub_id") @db.VarChar(255) // optional filter
+  eTag          String?  @map("etag") @db.VarChar(255)
+  lastModified  String?  @map("last_modified") @db.VarChar(255)
+  syncedAt      DateTime @map("synced_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([repositoryId, resourceType, resourceSubId])
+  @@index([repositoryId])
+  @@map("github_sync_state")
 }
 
 // ─── Personal Access Tokens ──────────────────────────────────

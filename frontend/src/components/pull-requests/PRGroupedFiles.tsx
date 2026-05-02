@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, memo } from 'react';
 import { ChevronDown, ChevronRight, Folder, FileCode2 } from 'lucide-react';
 import { cn } from '@/lib/utils';

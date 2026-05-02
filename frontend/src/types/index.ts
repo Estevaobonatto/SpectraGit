@@ -175,6 +175,8 @@ export interface Repository {
   isWatched?: boolean;
   canEdit?: boolean;
   language?: string | null;
+  githubRepoFullName?: string | null;
+  mirrorEnabled?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -545,6 +547,43 @@ export interface GitHubPermissions {
   hasRepo: boolean;
   hasReadOrg: boolean;
   scopes: string[];
+}
+
+export interface SyncStatusResponse {
+  lastSyncedAt: string | null;
+  mirrorEnabled: boolean;
+  githubRepoFullName: string | null;
+}
+
+export interface RateLimitStatus {
+  remaining: number;
+  limit: number;
+  resetAt: string | null;
+  resetInSeconds: number;
+  isHealthy: boolean;
+}
+
+export interface TokenHealth {
+  valid: boolean;
+  scopes: string[];
+  expiresAt: string | null;
+}
+
+export interface WebhookEventItem {
+  id: string;
+  repositoryId: string | null;
+  eventType: string;
+  deliveryId: string;
+  processed: boolean;
+  error: string | null;
+  createdAt: string;
+}
+
+export interface MirrorResponse {
+  mirrored: boolean;
+  action: 'created' | 'updated';
+  githubNumber?: number;
+  githubId?: number;
 }
 
 export interface RepoContributor {

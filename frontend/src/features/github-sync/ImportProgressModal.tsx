@@ -83,7 +83,7 @@ export default function ImportProgressModal({
 }: ImportProgressModalProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const redirectTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const { data: jobStatus } = useQuery<ImportJobStatusResponse>({
     queryKey: ['import-status', jobId],

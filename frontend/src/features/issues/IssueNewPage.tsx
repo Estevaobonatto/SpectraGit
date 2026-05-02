@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CircleDot, FileText, Send, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';

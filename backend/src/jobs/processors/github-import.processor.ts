@@ -11,6 +11,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GitService } from '../../modules/git/git.service';
+import { GitHubGhostUserService } from '../../modules/integrations/github/github-ghost-user.service';
 
 interface ImportJobPayload {
   jobId: string;
@@ -30,11 +31,20 @@ interface GHMilestone {
   description: string | null;
   due_on: string | null;
 }
+interface GHUser {
+  id: number;
+  login: string;
+  name?: string | null;
+  avatar_url?: string | null;
+  email?: string | null;
+  html_url?: string | null;
+}
 interface GHIssue {
   number: number;
   title: string;
   body: string | null;
   state: string;
+  user: GHUser;
   pull_request?: any;
   milestone?: { number: number } | null;
   labels: Array<string | { name: string }>;
@@ -46,12 +56,15 @@ interface GHPullRequest {
   body: string | null;
   state: string;
   merged_at: string | null;
+  user: GHUser;
   head?: { ref: string };
   base?: { ref: string };
   labels: Array<string | { name: string }>;
 }
 interface GHComment {
   body: string | null;
+  user: GHUser;
+  id: number;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -62,6 +75,7 @@ export class GitHubImportProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly gitService: GitService,
+    private readonly ghostUserService: GitHubGhostUserService,
   ) {
     super();
   }
@@ -268,16 +282,21 @@ export class GitHubImportProcessor extends WorkerHost {
           });
           if (existing) continue;
 
+          const { identity: authorIdentity } = await this.ghostUserService.resolveGitHubUser(gi.user);
+          const ghostUserId = await this.ghostUserService.getGhostUserId();
+
           const issue = await this.prisma.issue.create({
             data: {
               repositoryId: repo.id,
-              authorId: userId,
+              authorId: authorIdentity.userId ?? ghostUserId,
+              externalAuthorId: authorIdentity.id,
               number: nextNumber++,
               title: String(gi.title).slice(0, 255),
               body: gi.body ?? null,
               status: gi.state === 'open' ? IssueStatus.OPEN : IssueStatus.CLOSED,
               milestoneId: gi.milestone ? (milestoneMap.get(gi.milestone.number) ?? null) : null,
               githubExternalId: ghExtId,
+              syncedAt: new Date(),
             },
           });
 
@@ -309,13 +328,17 @@ export class GitHubImportProcessor extends WorkerHost {
                 },
               );
               for (const c of comments) {
+                const { identity: commentAuthor } = await this.ghostUserService.resolveGitHubUser(c.user);
                 await this.prisma.comment
                   .create({
                     data: {
-                      authorId: userId,
+                      authorId: commentAuthor.userId ?? ghostUserId,
+                      externalAuthorId: commentAuthor.id,
                       type: CommentType.ISSUE,
                       issueId: issue.id,
                       body: c.body ?? '',
+                      githubExternalId: String(c.id),
+                      syncedAt: new Date(),
                     },
                   })
                   .catch(() => {});
@@ -383,10 +406,14 @@ export class GitHubImportProcessor extends WorkerHost {
             status = PRStatus.CLOSED;
           }
 
+          const { identity: authorIdentity } = await this.ghostUserService.resolveGitHubUser(gp.user);
+          const ghostUserId = await this.ghostUserService.getGhostUserId();
+
           const pr = await this.prisma.pullRequest.create({
             data: {
               repositoryId: repo.id,
-              authorId: userId,
+              authorId: authorIdentity.userId ?? ghostUserId,
+              externalAuthorId: authorIdentity.id,
               number: nextPRNumber++,
               sourceBranch: gp.head?.ref ?? 'unknown',
               targetBranch: gp.base?.ref ?? 'main',
@@ -395,6 +422,7 @@ export class GitHubImportProcessor extends WorkerHost {
               status,
               mergedAt: gp.merged_at ? new Date(gp.merged_at) : null,
               githubExternalId: ghExtId,
+              syncedAt: new Date(),
             },
           });
 
@@ -425,13 +453,17 @@ export class GitHubImportProcessor extends WorkerHost {
               },
             );
             for (const c of comments) {
+              const { identity: commentAuthor } = await this.ghostUserService.resolveGitHubUser(c.user);
               await this.prisma.comment
                 .create({
                   data: {
-                    authorId: userId,
+                    authorId: commentAuthor.userId ?? ghostUserId,
+                    externalAuthorId: commentAuthor.id,
                     type: CommentType.PULL_REQUEST,
                     pullRequestId: pr.id,
                     body: c.body ?? '',
+                    githubExternalId: String(c.id),
+                    syncedAt: new Date(),
                   },
                 })
                 .catch(() => {});

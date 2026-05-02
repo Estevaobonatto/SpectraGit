@@ -21,7 +21,7 @@ export class GitHubService {
     return new Octokit({ auth: accessToken });
   }
 
-  private async getUserGitHubToken(userId: string): Promise<string> {
+  async getUserGitHubToken(userId: string): Promise<string> {
     const oauthAccount = await this.prisma.oAuthAccount.findFirst({
       where: { userId, provider: 'github' },
     });
@@ -307,4 +307,18 @@ export class GitHubService {
       following: data.following,
     };
   }
+
+  /**
+   * Find a repository linked to a GitHub repo by full name.
+   */
+  async findLinkedRepository(userId: string, githubRepoFullName: string) {
+    const repo = await this.prisma.repository.findFirst({
+      where: { ownerUserId: userId, githubRepoFullName },
+    });
+    if (!repo) {
+      throw new BadRequestException('Repository not linked to GitHub');
+    }
+    return repo;
+  }
+
 }
