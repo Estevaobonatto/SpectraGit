@@ -15,6 +15,7 @@ This guide walks you through deploying SpectraGit on your own infrastructure usi
 
 > **HTTPS / TLS**: This setup exposes port 80 only. For production, place a TLS-terminating reverse proxy (e.g., Caddy, Traefik, or nginx with certbot) in front of the nginx container.
 
+
 ---
 
 ## 1. Clone the repository
