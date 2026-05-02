@@ -29,4 +29,7 @@ function Avatar({ src, alt = '', fallback, size = 'md', className, ...props }: A
   );
 }
 
-export { Avatar };
+const AvatarImage = AvatarPrimitive.Image;
+const AvatarFallback = AvatarPrimitive.Fallback;
+
+export { Avatar, AvatarImage, AvatarFallback };

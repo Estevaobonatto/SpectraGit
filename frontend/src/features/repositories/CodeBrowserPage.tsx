@@ -372,15 +372,28 @@ function FileRow({ item, owner, repo, branch }: { item: FileTreeItem; owner: str
   return (
     <Link
       to={linkTo}
-      className="flex items-center gap-3 px-4 py-2 text-sm transition-colors hover:bg-surface-hover"
+      className="group grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-4 px-4 py-2.5 text-sm transition-colors hover:bg-surface-hover"
     >
-      {isDir ? (
-        <Folder className="h-4 w-4 text-primary-400" />
-      ) : (
-        <File className="h-4 w-4 text-text-tertiary" />
-      )}
-      <span className={cn('truncate', isDir && 'font-medium text-primary-600')}>
-        {item.name}
+      {/* File name */}
+      <div className="flex items-center gap-3 min-w-0">
+        {isDir ? (
+          <Folder className="h-4 w-4 shrink-0 text-primary-400" />
+        ) : (
+          <File className="h-4 w-4 shrink-0 text-text-tertiary" />
+        )}
+        <span className={cn('truncate', isDir && 'font-medium text-primary-600')}>
+          {item.name}
+        </span>
+      </div>
+
+      {/* Last commit message */}
+      <span className="hidden md:block truncate text-right text-text-secondary group-hover:text-primary-500 transition-colors">
+        {item.lastCommit?.message.split('\n')[0] ?? ''}
+      </span>
+
+      {/* Relative time */}
+      <span className="hidden md:block shrink-0 text-xs text-text-tertiary w-24 text-right">
+        {item.lastCommit ? formatRelativeTime(item.lastCommit.date) : ''}
       </span>
     </Link>
   );

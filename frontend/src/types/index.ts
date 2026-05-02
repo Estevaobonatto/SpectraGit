@@ -261,6 +261,12 @@ export interface FileTreeItem {
   type: 'file' | 'directory';
   size?: number;
   children?: FileTreeItem[];
+  lastCommit?: {
+    sha: string;
+    message: string;
+    author: string;
+    date: string;
+  };
 }
 
 export interface FileContent {

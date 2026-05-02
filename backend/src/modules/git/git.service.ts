@@ -10,6 +10,12 @@ export interface GitFileTreeEntry {
   path: string;
   type: 'file' | 'directory';
   size?: number;
+  lastCommit?: {
+    sha: string;
+    message: string;
+    author: string;
+    date: string;
+  };
 }
 
 export interface GitCommitInfo {
@@ -258,6 +264,43 @@ export class GitService {
     }
   }
 
+  async getLastCommitForFile(
+    ownerName: string,
+    repoSlug: string,
+    branch: string,
+    filePath: string,
+  ): Promise<GitFileTreeEntry['lastCommit']> {
+    const repoPath = this.getRepoPath(ownerName, repoSlug);
+    const git = this.getGit(repoPath);
+
+    try {
+      const fmt = '%x1f%H%x1f%s%x1f%aN%x1f%aI';
+      const SEP = '\x1f';
+      const result = await git.raw([
+        'log',
+        branch,
+        '--max-count=1',
+        `--format=${fmt}`,
+        '--',
+        filePath,
+      ]);
+
+      if (!result.trim()) return undefined;
+
+      const p = result.split(SEP);
+      if (!p[1]?.trim()) return undefined;
+
+      return {
+        sha: p[1].trim(),
+        message: p[2]?.trim() ?? '',
+        author: p[3]?.trim() ?? '',
+        date: p[4]?.trim() ?? '',
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
   async getFileTree(
     ownerName: string,
     repoSlug: string,
@@ -293,6 +336,19 @@ export class GitService {
           type: objType === 'tree' ? 'directory' : 'file',
         });
       }
+
+      // Enrich each entry with its last-commit metadata in parallel
+      await Promise.all(
+        entries.map(async (entry) => {
+          const lastCommit = await this.getLastCommitForFile(
+            ownerName,
+            repoSlug,
+            branch,
+            entry.path,
+          );
+          if (lastCommit) entry.lastCommit = lastCommit;
+        }),
+      );
 
       return entries;
     } catch (err) {
