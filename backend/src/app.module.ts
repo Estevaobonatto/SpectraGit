@@ -29,6 +29,7 @@ import { SetupModule } from './modules/setup/setup.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { CollaboratorsModule } from './modules/collaborators/collaborators.module';
 import { WikiModule } from './modules/wiki/wiki.module';
+import { PlatformModule } from './modules/platform/platform.module';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { WikiModule } from './modules/wiki/wiki.module';
     AdminModule,
     CollaboratorsModule,
     WikiModule,
+    PlatformModule,
   ],
   providers: [
     {

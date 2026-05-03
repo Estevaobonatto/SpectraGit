@@ -299,4 +299,107 @@ export class UsersService {
     await this.prisma.user.delete({ where: { id: userId } });
     return { message: 'Account deleted' };
   }
+
+  async getDashboard(userId: string) {
+    const [
+      repoCount,
+      openIssueCount,
+      openPrCount,
+      assignedIssues,
+      pendingPRs,
+      recentRepos,
+      recentActivity,
+      notificationCount,
+    ] = await Promise.all([
+      this.prisma.repository.count({
+        where: { OR: [{ ownerUserId: userId }, { members: { some: { userId } } }] },
+      }),
+      this.prisma.issue.count({
+        where: { assigneeId: userId, status: 'OPEN' },
+      }),
+      this.prisma.pullRequest.count({
+        where: {
+          OR: [
+            { authorId: userId, status: 'OPEN' },
+            { requestedReviewers: { some: { userId } }, status: 'OPEN' },
+          ],
+        },
+      }),
+      this.prisma.issue.findMany({
+        where: { assigneeId: userId, status: 'OPEN' },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        include: {
+          repository: {
+            select: { slug: true, name: true, ownerUser: { select: { username: true } }, ownerOrg: { select: { name: true } } },
+          },
+          author: { select: { username: true, avatarUrl: true } },
+          labels: { include: { label: { select: { name: true, color: true } } } },
+        },
+      }),
+      this.prisma.pullRequest.findMany({
+        where: {
+          OR: [
+            { authorId: userId, status: 'OPEN' },
+            { requestedReviewers: { some: { userId } }, status: 'OPEN' },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        include: {
+          repository: {
+            select: { slug: true, name: true, ownerUser: { select: { username: true } }, ownerOrg: { select: { name: true } } },
+          },
+          author: { select: { username: true, avatarUrl: true } },
+          reviews: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            select: { status: true },
+          },
+        },
+      }),
+      this.prisma.repository.findMany({
+        where: { OR: [{ ownerUserId: userId }, { members: { some: { userId } } }] },
+        orderBy: { updatedAt: 'desc' },
+        take: 5,
+        include: {
+          ownerUser: { select: { username: true, avatarUrl: true } },
+          ownerOrg: { select: { name: true, avatarUrl: true } },
+          _count: { select: { issues: true, pullRequests: true } },
+        },
+      }),
+      this.prisma.activityEvent.findMany({
+        where: { actorId: userId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        include: {
+          repository: {
+            select: {
+              id: true,
+              slug: true,
+              name: true,
+              ownerUser: { select: { username: true } },
+              ownerOrg: { select: { name: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.notification.count({
+        where: { userId, isRead: false },
+      }),
+    ]);
+
+    return {
+      stats: {
+        repoCount,
+        openIssueCount,
+        openPrCount,
+        notificationCount,
+      },
+      assignedIssues,
+      pendingPRs,
+      recentRepos,
+      recentActivity,
+    };
+  }
 }

@@ -56,6 +56,13 @@ export class UsersController {
     return this.usersService.getOAuthAccounts(user.sub);
   }
 
+  @Get('me/dashboard')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user dashboard data' })
+  async getDashboard(@CurrentUser() user: JwtPayload) {
+    return this.usersService.getDashboard(user.sub);
+  }
+
   @Post('me/ssh-keys')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add SSH key' })

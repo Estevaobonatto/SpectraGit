@@ -48,4 +48,11 @@ export const activityService = {
     });
     return data.data ?? data;
   },
+
+  listGlobal: async (limit = 20): Promise<{ items: ActivityEvent[] }> => {
+    const { data } = await api.get<{ data: ActivityEvent[] }>('/platform/activity', {
+      params: { limit },
+    });
+    return { items: data.data };
+  },
 };
