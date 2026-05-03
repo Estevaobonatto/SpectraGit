@@ -121,6 +121,16 @@ export class GitHubImportProcessor extends WorkerHost {
             visibility: githubRepo.private ? RepoVisibility.PRIVATE : RepoVisibility.PUBLIC,
             defaultBranch: githubRepo.default_branch ?? 'main',
             githubExternalId: String(githubRepo.id),
+            githubRepoFullName: `${owner}/${repoName}`,
+          },
+        });
+      } else if (!repo.githubRepoFullName) {
+        // Update existing repo with the GitHub full name if missing
+        repo = await this.prisma.repository.update({
+          where: { id: repo.id },
+          data: {
+            githubRepoFullName: `${owner}/${repoName}`,
+            githubExternalId: String(githubRepo.id),
           },
         });
       }

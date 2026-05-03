@@ -117,6 +117,8 @@ export class GitHubService {
         description: githubRepo.description ?? null,
         visibility: githubRepo.private ? RepoVisibility.PRIVATE : RepoVisibility.PUBLIC,
         defaultBranch: githubRepo.default_branch ?? 'main',
+        githubExternalId: String(githubRepo.id),
+        githubRepoFullName: `${owner}/${repoName}`,
       },
       include: {
         ownerUser: { select: { username: true } },
@@ -202,6 +204,17 @@ export class GitHubService {
       where: { ownerUserId: userId, slug },
     });
     if (existing) {
+      // If the existing repo was created manually and lacks GitHub linkage, patch it now
+      if (!existing.githubRepoFullName) {
+        await this.prisma.repository.update({
+          where: { id: existing.id },
+          data: {
+            githubRepoFullName: `${owner}/${repoName}`,
+            githubExternalId: String(githubRepo.id),
+          },
+        });
+      }
+
       // Return a "fake" completed job
       return {
         jobId: null,
