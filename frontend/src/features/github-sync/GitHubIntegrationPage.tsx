@@ -369,12 +369,12 @@ export default function GitHubIntegrationPage() {
 
         {/* Health Tab */}
         <TabsContent value="health" className="space-y-6">
-          <RateLimitCard />
+          <RateLimitCard enabled={activeTab === 'health'} />
         </TabsContent>
 
         {/* Webhooks Tab */}
         <TabsContent value="webhooks" className="space-y-6">
-          <WebhookEventsList />
+          <WebhookEventsList enabled={activeTab === 'webhooks'} />
         </TabsContent>
       </Tabs>
 

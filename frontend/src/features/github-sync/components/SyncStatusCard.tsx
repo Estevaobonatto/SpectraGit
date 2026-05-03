@@ -1,10 +1,16 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { RefreshCw, Loader2, CheckCircle2, AlertCircle, ArrowUpDown } from 'lucide-react';
+import { RefreshCw, Loader2, CheckCircle2, AlertCircle, ArrowUpDown, HelpCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Spinner } from '@/components/ui/spinner';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { integrationsService } from '@/services/integrations.service';
 import type { GitHubRepo } from '@/types';
 
@@ -57,6 +63,29 @@ export default function SyncStatusCard({ repo }: SyncStatusCardProps) {
               ) : (
                 <Badge variant="secondary" className="text-[10px] shrink-0">Not linked</Badge>
               )}
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="ml-1 rounded-full p-0.5 text-text-tertiary/60 hover:text-text-secondary hover:bg-bg-secondary transition-colors">
+                      <HelpCircle className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align="start" className="max-w-[260px] space-y-1.5">
+                    <div>
+                      <p className="font-semibold text-[11px]">Sync</p>
+                      <p className="text-[11px] opacity-90">Fetches the latest repository metadata (stars, forks, branches, releases) from GitHub.</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-[11px]">Incremental</p>
+                      <p className="text-[11px] opacity-90">Synchronizes issues, pull requests, comments, labels, and milestones since the last sync.</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-[11px]">Mirror to GitHub</p>
+                      <p className="text-[11px] opacity-90">When enabled, pushes local changes (issues, PRs, comments) back to GitHub.</p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div className="mt-1 flex items-center gap-2 text-xs text-text-tertiary">
               {lastSynced ? (

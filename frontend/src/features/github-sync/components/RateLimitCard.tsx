@@ -5,17 +5,25 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { integrationsService } from '@/services/integrations.service';
 
-export default function RateLimitCard() {
+interface RateLimitCardProps {
+  enabled?: boolean;
+}
+
+export default function RateLimitCard({ enabled = true }: RateLimitCardProps) {
   const { data: rateLimit, isLoading: rateLimitLoading } = useQuery({
     queryKey: ['github-rate-limit'],
     queryFn: () => integrationsService.getRateLimit(),
-    refetchInterval: 30000,
+    enabled,
+    refetchInterval: enabled ? 30000 : false,
+    retry: false,
   });
 
   const { data: tokenHealth, isLoading: tokenHealthLoading } = useQuery({
     queryKey: ['github-token-health'],
     queryFn: () => integrationsService.checkTokenHealth(),
-    refetchInterval: 60000,
+    enabled,
+    refetchInterval: enabled ? 60000 : false,
+    retry: false,
   });
 
   const isLoading = rateLimitLoading || tokenHealthLoading;

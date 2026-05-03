@@ -6,11 +6,17 @@ import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { integrationsService } from '@/services/integrations.service';
 
-export default function WebhookEventsList() {
+interface WebhookEventsListProps {
+  enabled?: boolean;
+}
+
+export default function WebhookEventsList({ enabled = true }: WebhookEventsListProps) {
   const { data: events, isLoading, refetch } = useQuery({
     queryKey: ['github-webhook-events'],
     queryFn: () => integrationsService.listWebhookEvents(),
-    refetchInterval: 10000,
+    enabled,
+    refetchInterval: enabled ? 10000 : false,
+    retry: false,
   });
 
   if (isLoading) {
