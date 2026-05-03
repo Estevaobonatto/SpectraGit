@@ -43,7 +43,20 @@ export class OrganizationsService {
         members: {
           include: { user: { select: { id: true, username: true, avatarUrl: true } } },
         },
-        teams: true,
+        teams: {
+          include: {
+            _count: { select: { members: true, repoAccess: true } },
+          },
+        },
+        repositories: {
+          where: { visibility: 'PUBLIC' },
+          orderBy: { updatedAt: 'desc' },
+          take: 6,
+          include: {
+            ownerUser: { select: { username: true, avatarUrl: true } },
+            _count: { select: { issues: true, pullRequests: true, pulses: true } },
+          },
+        },
         _count: { select: { repositories: true, members: true } },
       },
     });
