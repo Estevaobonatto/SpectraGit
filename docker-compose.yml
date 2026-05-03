@@ -43,6 +43,7 @@ services:
       - '2222:2222'
     environment:
       NODE_ENV: production
+      DEPLOYMENT_MODE: ${DEPLOYMENT_MODE:-self-hosted}
       PORT: 3000
       SSH_PORT: 2222
       DATABASE_URL: postgresql://${POSTGRES_USER:-spectragit}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-spectragit}?schema=public

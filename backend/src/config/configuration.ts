@@ -2,6 +2,9 @@ export default () => ({
   node: {
     env: process.env.NODE_ENV || 'development',
   },
+  deployment: {
+    mode: process.env.DEPLOYMENT_MODE || 'self-hosted',
+  },
   port: parseInt(process.env.PORT || '3000', 10),
   apiPrefix: process.env.API_PREFIX || 'api/v1',
   database: {

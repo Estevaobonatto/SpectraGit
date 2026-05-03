@@ -2,13 +2,14 @@ import { Body, Controller, Get, Param, Patch, Put, Query, UseGuards } from '@nes
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SystemAdminGuard } from './guards/system-admin.guard';
+import { SelfHostedGuard } from './guards/self-hosted.guard';
 import { AdminService } from './admin.service';
 import { UpdateInstanceSettingsDto } from './dto/update-instance-settings.dto';
 import { UpdateUserAdminDto } from './dto/update-user-admin.dto';
 
 @ApiTags('admin')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, SystemAdminGuard)
+@UseGuards(SelfHostedGuard, JwtAuthGuard, SystemAdminGuard)
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}

@@ -2,6 +2,7 @@ import Joi from 'joi';
 
 export const validationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
+  DEPLOYMENT_MODE: Joi.string().valid('self-hosted', 'saas').default('self-hosted'),
   PORT: Joi.number().default(3000),
   DATABASE_URL: Joi.string().required(),
   REDIS_HOST: Joi.string().default('localhost'),

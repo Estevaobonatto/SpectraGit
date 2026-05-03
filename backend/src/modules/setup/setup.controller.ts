@@ -1,10 +1,12 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../../common/decorators/public.decorator';
+import { SelfHostedGuard } from '../admin/guards/self-hosted.guard';
 import { InitializeSetupDto } from './dto/initialize-setup.dto';
 import { SetupService } from './setup.service';
 
 @ApiTags('setup')
+@UseGuards(SelfHostedGuard)
 @Controller('setup')
 export class SetupController {
   constructor(private readonly setupService: SetupService) {}

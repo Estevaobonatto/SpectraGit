@@ -2,6 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
 import { PageLoader } from '@/components/ui/spinner';
 import { useSetupStatus } from '@/hooks/useAdmin';
+import { IS_SELF_HOSTED } from '@/lib/config';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isInitialized } = useAuthStore();
@@ -58,6 +59,14 @@ export function SetupGuard({ children }: { children: React.ReactNode }) {
     return <PageLoader />;
   }
 
+  // SaaS instances have no setup wizard — pass through directly.
+  if (!IS_SELF_HOSTED) {
+    if (!isAuthenticated) {
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+    return <>{children}</>;
+  }
+
   // Setup not complete → send everyone (including guests) to /setup
   if (data && !data.isSetupComplete) {
     return <Navigate to="/setup" replace />;
@@ -84,6 +93,11 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Admin panel is only available in self-hosted mode.
+  if (!IS_SELF_HOSTED) {
+    return <Navigate to="/" replace />;
   }
 
   // @ts-expect-error systemRole added by self-hosted extension

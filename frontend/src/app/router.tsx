@@ -4,8 +4,9 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { PublicShell } from '@/components/layout/PublicShell';
 import { ProtectedRoute, PublicOnlyRoute, OptionalAuthRoute, AdminRoute } from './guards';
 import { PageLoader } from '@/components/ui/spinner';
+import { IS_SELF_HOSTED } from '@/lib/config';
 
-// Self-hosted: setup wizard + admin panel
+// Self-hosted: setup wizard + admin panel (lazy-loaded only when needed)
 const SetupWizardPage = lazy(() => import('@/features/setup/SetupWizardPage'));
 const AdminLayout = lazy(() => import('@/features/admin/AdminLayout'));
 const AdminDashboardPage = lazy(() => import('@/features/admin/AdminDashboardPage'));
@@ -80,28 +81,34 @@ function AdminRequired({ children }: { children: React.ReactNode }) {
   return <AdminRoute>{children}</AdminRoute>;
 }
 
-export const router = createBrowserRouter([
-  /* ---------- First-time setup wizard (unauthenticated) ---------- */
-  {
-    path: '/setup',
-    element: <SuspenseWrapper><SetupWizardPage /></SuspenseWrapper>,
-  },
+const selfHostedRoutes = IS_SELF_HOSTED
+  ? [
+      /* ---------- First-time setup wizard (unauthenticated) ---------- */
+      {
+        path: '/setup',
+        element: <SuspenseWrapper><SetupWizardPage /></SuspenseWrapper>,
+      },
 
-  /* ---------- Admin panel (SYSTEM_ADMIN only) ---------- */
-  {
-    path: '/admin',
-    element: (
-      <AdminRequired>
-        <SuspenseWrapper><AdminLayout /></SuspenseWrapper>
-      </AdminRequired>
-    ),
-    children: [
-      { index: true, element: <SuspenseWrapper><AdminDashboardPage /></SuspenseWrapper> },
-      { path: 'users', element: <SuspenseWrapper><AdminUsersPage /></SuspenseWrapper> },
-      { path: 'settings', element: <SuspenseWrapper><AdminSettingsPage /></SuspenseWrapper> },
-      { path: 'health', element: <SuspenseWrapper><AdminHealthPage /></SuspenseWrapper> },
-    ],
-  },
+      /* ---------- Admin panel (SYSTEM_ADMIN only) ---------- */
+      {
+        path: '/admin',
+        element: (
+          <AdminRequired>
+            <SuspenseWrapper><AdminLayout /></SuspenseWrapper>
+          </AdminRequired>
+        ),
+        children: [
+          { index: true, element: <SuspenseWrapper><AdminDashboardPage /></SuspenseWrapper> },
+          { path: 'users', element: <SuspenseWrapper><AdminUsersPage /></SuspenseWrapper> },
+          { path: 'settings', element: <SuspenseWrapper><AdminSettingsPage /></SuspenseWrapper> },
+          { path: 'health', element: <SuspenseWrapper><AdminHealthPage /></SuspenseWrapper> },
+        ],
+      },
+    ]
+  : [];
+
+export const router = createBrowserRouter([
+  ...selfHostedRoutes,
 
   /* ---------- Legal pages (public, standalone) ---------- */
   {
