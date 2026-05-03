@@ -165,6 +165,8 @@ export class RepositoriesService {
       pulseCount: repo._count?.pulses ?? 0,
       watchCount: repo._count?.watches ?? 0,
       forkCount: repo._count?.forks ?? 0,
+      issueCount: repo._count?.issues ?? 0,
+      pullRequestCount: repo._count?.pullRequests ?? 0,
     }));
 
     return {
